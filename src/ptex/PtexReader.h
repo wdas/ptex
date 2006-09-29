@@ -1,0 +1,398 @@
+#ifndef PtexReader_h
+#define PtexReader_h
+
+#include <stdio.h>
+#include <zlib.h>
+#include <vector>
+#include <map>
+#include "Ptexture.h"
+#include "PtexIO.h"
+#include "PtexCache.h"
+
+#ifndef NDEBUG
+template<typename T> class safevector : public std::vector<T>
+{
+public:
+    safevector() : std::vector<T>() {}
+    safevector(size_t n, const T& val = T()) : std::vector<T>(n, val) {}
+    const T& operator[] (size_t n) const { return std::vector<T>::at(n); }
+    T& operator[] (size_t n) { return std::vector<T>::at(n); }
+};
+#else
+#define safevector std::vector
+#endif
+
+class PtexReader : public PtexCachedFile, public PtexTexture, public PtexIO {
+public:
+    PtexReader(void** parent, PtexCacheImpl* cache);
+    bool open(const char* path, std::string& error);
+
+    virtual void release() { unref(); }
+    virtual Ptex::MeshType meshType() { return MeshType(_header.meshtype); }
+    virtual Ptex::DataType dataType() { return DataType(_header.datatype); }
+    virtual int alphaChannel() { return _header.alphachan; }
+    virtual int numChannels() { return _header.nchannels; }
+    virtual int numFaces() { return _header.nfaces; }
+
+    virtual PtexMetaData* getMetaData();
+    virtual const Ptex::FaceInfo& getFaceInfo(int faceid);
+    virtual void getData(int faceid, void* buffer, int stride);
+    virtual PtexFaceData* getData(int faceid)
+    { return PtexReader::getData(faceid, _faceinfo[faceid].res); }
+    virtual PtexFaceData* getData(int faceid, Res res);
+
+    const char* path() const { return _path.c_str(); }
+
+
+    class MetaData : public PtexCachedData, public PtexMetaData {
+    public:
+	MetaData(void** parent, PtexCacheImpl* cache, int size)
+	    : PtexCachedData(parent, cache, sizeof(*this) + size) {}
+	virtual void release() { unref(); }
+
+	virtual int numKeys() { return _entries.size(); }
+	virtual void getKey(int n, const char*& key, MetaDataType& type)
+	{
+	    Entry* e = getEntry(n);
+	    key = e->key;
+	    type = e->type;
+	}
+
+	virtual void getValue(const char* key, const char*& value)
+	{
+	    Entry* e = getEntry(key);
+	    if (e) value = (const char*) &e->value[0];
+	    else value = 0;
+	}
+
+	virtual void getValue(const char* key, const int8_t*& value, int& count)
+	{
+	    Entry* e = getEntry(key);
+	    if (e) { value = (const int8_t*) &e->value[0]; count = e->value.size(); }
+	    else { value = 0; count = 0; }
+	}
+
+	virtual void getValue(const char* key, const int16_t*& value, int& count)
+	{
+	    Entry* e = getEntry(key);
+	    if (e) {
+		value = (const int16_t*) &e->value[0]; 
+		count = e->value.size()/sizeof(int16_t); 
+	    }
+	    else { value = 0; count = 0; }
+	}
+
+	virtual void getValue(const char* key, const int32_t*& value, int& count)
+	{
+	    Entry* e = getEntry(key);
+	    if (e) {
+		value = (const int32_t*) &e->value[0]; 
+		count = e->value.size()/sizeof(int32_t); 
+	    }
+	    else { value = 0; count = 0; }
+	}
+	
+	virtual void getValue(const char* key, const float*& value, int& count)
+	{
+	    Entry* e = getEntry(key);
+	    if (e) {
+		value = (const float*) &e->value[0]; 
+		count = e->value.size()/sizeof(float); 
+	    }
+	    else { value = 0; count = 0; }
+	}
+
+	virtual void getValue(const char* key, const double*& value, int& count)
+	{
+	    Entry* e = getEntry(key);
+	    if (e) {
+		value = (const double*) &e->value[0]; 
+		count = e->value.size()/sizeof(double); 
+	    }
+	    else { value = 0; count = 0; }
+	}
+
+	void addEntry(uint8_t keysize, const char* key, uint8_t datatype,
+		      uint32_t datasize, void* data)
+	{
+	    std::pair<MetaMap::iterator,bool> result = 
+		_map.insert(std::make_pair(std::string(key, keysize), Entry()));
+	    Entry* e = &result.first->second;
+	    e->key = result.first->first.c_str();
+	    e->type = MetaDataType(datatype);
+	    e->value.resize(datasize);
+	    memcpy(&e->value[0], data, datasize);
+	    if (result.second) {
+		// inserted new entry
+		_entries.push_back(e);
+	    }
+	}
+
+    protected:
+	struct Entry {
+	    const char* key; // ptr to map key string
+	    MetaDataType type;
+	    safevector<uint8_t> value;
+	    Entry() : key(0), type(MetaDataType(0)), value() {}
+	};
+	Entry* getEntry(int n) { return _entries[n]; }
+	Entry* getEntry(const char* key)
+	{
+	    MetaMap::iterator iter = _map.find(key);
+	    if (iter != _map.end()) return &iter->second;
+	    return 0;
+	}
+
+	typedef std::map<std::string, Entry> MetaMap;
+	MetaMap _map;
+	safevector<Entry*> _entries;
+    };
+
+
+    class ConstDataPtr : public PtexFaceData {
+    public:
+	ConstDataPtr(void* data) : _data(data) {}
+	virtual void release() { delete this; }
+	virtual Ptex::Res res() { return 0; }
+	virtual bool isConstant() { return true; }
+	virtual void* getPixel(int, int) { return _data; }
+	virtual void* getPixel(float, float) { return _data; }
+	virtual void* getData() { return _data; }
+	virtual bool isTiled() { return false; }
+	virtual Ptex::Res tileRes() { return 0; }
+	virtual PtexFaceData* getTile(int) { return 0; }
+
+    protected:
+	void* _data;
+    };
+
+
+    class FaceData : public PtexCachedData, public PtexFaceData {
+    public:
+	FaceData(void** parent, PtexCacheImpl* cache, Res res, int size)
+	    : PtexCachedData(parent, cache, size), _res(res) {}
+	virtual void addref() { ref(); }
+	virtual void release() { unref(); }
+	virtual Ptex::Res res() { return _res; }
+    protected:
+	Res _res;
+    };
+
+    class PackedFace : public FaceData {
+    public:
+	PackedFace(void** parent, PtexCacheImpl* cache, Res res, int pixelsize, int size)
+	    : FaceData(parent, cache, res, sizeof(*this)+size),
+	      _pixelsize(pixelsize), _data(malloc(size)) {}
+	void* data() { return _data; }
+	virtual bool isConstant() { return false; }
+	virtual void* getPixel(int uindex, int vindex)
+	{
+	    return (char*)_data + (vindex*_res.u() + uindex) * _pixelsize;
+	}
+	virtual void* getPixel(float u, float v)
+	{
+	    return PackedFace::getPixel(u*index(u, _res.u()), v*index(v, _res.v()));
+	}
+	virtual void* getData() { return _data; };
+	virtual bool isTiled() { return false; }
+	virtual Ptex::Res tileRes() { return _res; };
+	virtual PtexFaceData* getTile(int) { return 0; };
+
+    protected:
+	virtual ~PackedFace() { free(_data); }
+
+	int _pixelsize;
+	void* _data;
+    };
+
+    class ConstantFace : public PackedFace {
+    public:
+	ConstantFace(void** parent, PtexCacheImpl* cache, int pixelsize)
+	    : PackedFace(parent, cache, 0, pixelsize, pixelsize) {}
+	virtual bool isConstant() { return true; }
+	virtual void* getPixel(int, int) { return _data; }
+	virtual void* getPixel(float, float) { return _data; }
+    };
+
+
+    class TiledFace : public FaceData {
+    public:
+	TiledFace(void** parent, PtexCacheImpl* cache, Res res, PtexReader* reader,
+		  Res tileres, int ntiles)
+	    : FaceData(parent, cache, res,
+		       sizeof(*this) + ntiles*(sizeof(FaceDataHeader)+
+					       sizeof(off_t)+
+					       sizeof(FaceData*))),
+	      _reader(reader),
+	      _tileres(tileres),
+	      _ntilesu(_res.ntilesu(tileres)),
+	      _fdh(ntiles),
+	      _offsets(ntiles),
+	      _tiles(ntiles) { _reader->ref(); }
+
+	virtual void addref() { ref(); _reader->ref(); }
+	virtual void release() { _reader->unref(); unref(); }
+	virtual bool isConstant() { return false; }
+	virtual void* getPixel(int uindex, int vindex);
+
+	virtual void* getPixel(float u, float v)
+	{
+	    return TiledFace::getPixel(u*index(u, _res.u()), v*index(v, _res.v()));
+	}
+	virtual void* getData() { return 0; }
+	virtual bool isTiled() { return true; }
+	virtual Ptex::Res tileRes() { return _tileres; };
+	virtual PtexFaceData* getTile(int tile)
+	{
+	    FaceData*& f = _tiles[tile];
+	    if (!f) _reader->readFace(_offsets[tile], _fdh[tile], _tileres, f);
+	    else f->addref();
+	    return f;
+	}
+
+    protected:
+	virtual ~TiledFace() { orphanList(_tiles); }
+	friend class PtexReader;
+
+	PtexReader* _reader;
+	Res _tileres;
+	int _ntilesu;
+	int _pixelsize;
+	safevector<FaceDataHeader> _fdh;
+	safevector<off_t> _offsets;
+	safevector<FaceData*> _tiles;
+    };
+
+    class Level : public PtexCachedData {
+    public:
+	safevector<FaceDataHeader> fdh;
+	safevector<off_t> offsets;
+	safevector<FaceData*> faces;
+	
+	Level(void** parent, PtexCacheImpl* cache, int nfaces) 
+	    : PtexCachedData(parent, cache, 
+			     sizeof(*this) + nfaces * (sizeof(FaceDataHeader) +
+						       sizeof(off_t) + 
+						       sizeof(FaceData*))),
+	      fdh(nfaces),
+	      offsets(nfaces),
+	      faces(nfaces) {}
+    protected:
+	virtual ~Level() { orphanList(faces); }
+    };
+
+protected:
+    virtual ~PtexReader();
+    void setError(const char* error)
+    {
+	_error = error; _error += " PtexFile: "; _error += _path;
+	printf("%s\n", _error.c_str());
+	_ok = 0;
+    }
+
+    off_t tell() { return (_pos = ftello(_fp)); }
+    void seek(off_t pos) 
+    {
+	if (pos != _pos) {
+	    fseeko(_fp, pos, SEEK_SET); 
+	    _pos = pos;
+	}
+    }
+    off_t seekToEnd() 
+    {
+	fseeko(_fp, 0, SEEK_END);
+	_pos = ftello(_fp);	
+	return _pos;
+    }
+    void skip(off_t bytes)
+    {
+	seek(_pos + bytes);
+    }
+
+    bool readBlock(void* data, int size);
+    bool readZipBlock(void* data, int zipsize, int unzipsize);
+    Level* getLevel(int levelid)
+    {
+	Level*& level = _levels[levelid];
+	if (!level) readLevel(levelid, level);
+	else level->ref();
+	return level;
+    }
+
+    uint8_t* getConstData() { if (!_constdata) readConstData(); return _constdata; }
+    FaceData* getFace(Level* level, int faceid)
+    {
+	FaceData*& face = level->faces[faceid];
+	if (!face) readFace(level->offsets[faceid], level->fdh[faceid],
+			    _faceinfo[faceid].res, face);
+	else face->addref();
+	return face;
+    }
+
+    void readFaceInfo();
+    void readLevelInfo();
+    void readConstData();
+    void readLevel(int levelid, Level*& level);
+    void readFace(off_t pos, const FaceDataHeader& fdh, Res res, FaceData*& face);
+    void readMetaData();
+    void readMetaDataBlock(off_t pos, int zipsize, int memsize);
+    void readEditData();
+    void readEditFaceData();
+    void readEditMetaData();
+
+    void computeOffsets(off_t pos, int noffsets, const FaceDataHeader* fdh, off_t* offsets)
+    {
+	off_t* end = offsets + noffsets;
+	while (offsets != end) { *offsets++ = pos; pos += fdh->blocksize; fdh++; }
+    }
+
+    static int index(float u, int uw)
+    {
+	int index = int(u*uw); if (index >= uw) index = uw-1;
+	return index;
+    }
+
+    bool _ok;
+    std::string _error;
+    FILE* _fp;
+    off_t _pos;
+    std::string _path;
+    Header _header;
+    off_t _extheaderpos;
+    off_t _faceinfopos;
+    off_t _constdatapos;
+    off_t _levelinfopos;
+    off_t _leveldatapos;
+    off_t _metadatapos;
+    off_t _editdatapos;
+    int _pixelsize;
+    uint8_t* _constdata;
+    MetaData* _metadata;
+
+    safevector<FaceInfo> _faceinfo;
+    safevector<LevelInfo> _levelinfo;
+    safevector<off_t> _levelpos;
+    safevector<Level*> _levels;
+
+    struct MetaEdit
+    {
+	off_t pos;
+	int zipsize;
+	int memsize;
+    };
+    safevector<MetaEdit> _metaedits;
+
+    struct FaceEdit
+    {
+	off_t pos;
+	int faceid;
+	FaceDataHeader fdh;
+    };
+    safevector<FaceEdit> _faceedits;
+
+    z_stream_s _zstream;
+};
+
+
+
+#endif

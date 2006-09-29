@@ -1,0 +1,36 @@
+#! -*- perl -*-
+use Kida::ToolKit::FAUtilities;
+use Kida::ToolKit::Clean;
+
+my $headers = Headers(input => [ 'Ptexture.h', 'PtexHalf.h', 'PtexUtils.h' ]);
+
+my $libinputs = ['PtexCache.cpp',
+		 'PtexFilterKernel.cpp',
+		 'PtexHalf.cpp',
+		 'PtexMitchellFilter.cpp',
+		 'PtexReader.cpp',
+		 'PtexUtils.cpp',
+		 'PtexWriter.cpp'];
+
+my $Ptex_a = StaticLib(name	  => 'libPtex.a',
+		       input 	  => $libinputs);
+
+my $Ptex_so = SharedLib(name	   => 'libPtex.so',
+			input      => $libinputs,
+			libs       => [ 'm', 'z' ],
+			'libDirs+' => [ ]);
+
+my $wtest = Exe(name => 'wtest', input => [ 'wtest.cpp' ], libs => [$Ptex_so->installed()]);
+my $rtest = Exe(name => 'rtest', input => [ 'rtest.cpp' ], libs => [$Ptex_so->installed()]);
+my $ftest = Exe(name => 'ftest', input => [ 'ftest.cpp' ], libs => [$Ptex_so->installed()]);
+my $tests = VirtualTarget( name =>'tests', input=>[ $wtest, $rtest, $ftest ]);
+
+my $htmls = HTMLdocs(input => ['PtexFile.html'],
+		     installDir => 'doc');
+
+my $all = VirtualTarget( name =>'all',
+			 input=>[ $Ptex_a, $Ptex_so, $tests ]);
+
+Install(name=>'installhdr',input=>[$headers]);
+Install(name=>'install',input=>[ $Ptex_a, $Ptex_so, $htmls]);
+
