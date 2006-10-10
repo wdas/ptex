@@ -1,4 +1,5 @@
-#include <assert.h>
+#include <algorithm>
+#include <vector>
 #include "PtexHalf.h"
 #include "PtexUtils.h"
 
@@ -203,3 +204,178 @@ void PtexUtils::decodeDifference(void* data, int size, DataType dt)
 }
 
 
+namespace {
+    template<typename T>
+    inline void reduce(const T* src, int sstride, int uw, int vw, 
+		       T* dst, int dstride, int nchan)
+    {
+	sstride /= sizeof(T);
+	dstride /= sizeof(T);
+	int rowlen = uw*nchan;
+	int srowskip = 2*sstride - rowlen;
+	int drowskip = dstride - rowlen/2;
+	for (const T* end = src + vw*sstride; src < end; 
+	     src += srowskip, dst += drowskip)
+	    for (const T* rowend = src + rowlen; src < rowend; src += nchan)
+		for (const T* pixend = src+nchan; src < pixend; src++)
+		    *dst++ = T(0.25 * (src[0] + src[nchan] +
+				       src[sstride] + src[sstride+nchan]));
+    }
+}
+
+void PtexUtils::reduce(const void* src, int sstride, int uw, int vw,
+		       void* dst, int dstride, DataType dt, int nchan)
+{
+    //    printf("reduce %dx%d->%dx%d\n", uw, vw, uw/2, vw/2);
+    switch (dt) {
+    case dt_uint8:   ::reduce((const uint8_t*) src, sstride, uw, vw, 
+			      (uint8_t*) dst, dstride, nchan); break;
+    case dt_half:    ::reduce((const PtexHalf*) src, sstride, uw, vw, 
+			      (PtexHalf*) dst, dstride, nchan); break;
+    case dt_uint16:  ::reduce((const uint16_t*) src, sstride, uw, vw, 
+			      (uint16_t*) dst, dstride, nchan); break;
+    case dt_float:   ::reduce((const float*) src, sstride, uw, vw, 
+			      (float*) dst, dstride, nchan); break;
+    }
+}
+
+
+namespace {
+    template<typename T>
+    inline void reduceu(const T* src, int sstride, int uw, int vw, 
+			T* dst, int dstride, int nchan)
+    {	
+	sstride /= sizeof(T);
+	dstride /= sizeof(T);
+	int rowlen = uw*nchan;
+	int srowskip = sstride - rowlen;
+	int drowskip = dstride - rowlen/2;
+	for (const T* end = src + vw*sstride; src < end; 
+	     src += srowskip, dst += drowskip)
+	    for (const T* rowend = src + rowlen; src < rowend; src += nchan)
+		for (const T* pixend = src+nchan; src < pixend; src++)
+		    *dst++ = T(0.5 * (src[0] + src[nchan]));
+    }
+}
+
+void PtexUtils::reduceu(const void* src, int sstride, int uw, int vw,
+			void* dst, int dstride, DataType dt, int nchan)
+{
+    //    printf("reduceu %dx%d->%dx%d\n", uw, vw, uw/2, vw);
+    switch (dt) {
+    case dt_uint8:   ::reduceu((const uint8_t*) src, sstride, uw, vw, 
+			       (uint8_t*) dst, dstride, nchan); break;
+    case dt_half:    ::reduceu((const PtexHalf*) src, sstride, uw, vw, 
+			       (PtexHalf*) dst, dstride, nchan); break;
+    case dt_uint16:  ::reduceu((const uint16_t*) src, sstride, uw, vw, 
+			       (uint16_t*) dst, dstride, nchan); break;
+    case dt_float:   ::reduceu((const float*) src, sstride, uw, vw, 
+			       (float*) dst, dstride, nchan); break;
+    }
+}
+
+
+namespace {
+    template<typename T>
+    inline void reducev(const T* src, int sstride, int uw, int vw, 
+			T* dst, int dstride, int nchan)
+    {
+	sstride /= sizeof(T);
+	dstride /= sizeof(T);
+	int rowlen = uw*nchan;
+	int srowskip = 2*sstride - rowlen;
+	int drowskip = dstride - rowlen;
+	for (const T* end = src + vw*sstride; src < end; 
+	     src += srowskip, dst += drowskip)
+	    for (const T* rowend = src + rowlen; src < rowend; src++)
+		*dst++ = T(0.5 * (src[0] + src[sstride]));
+    }
+}
+
+void PtexUtils::reducev(const void* src, int sstride, int uw, int vw,
+			void* dst, int dstride, DataType dt, int nchan)
+{
+    //    printf("reducev %dx%d->%dx%d\n", uw, vw, uw, vw/2);
+    switch (dt) {
+    case dt_uint8:   ::reducev((const uint8_t*) src, sstride, uw, vw, 
+			       (uint8_t*) dst, dstride, nchan); break;
+    case dt_half:    ::reducev((const PtexHalf*) src, sstride, uw, vw, 
+			       (PtexHalf*) dst, dstride, nchan); break;
+    case dt_uint16:  ::reducev((const uint16_t*) src, sstride, uw, vw, 
+			       (uint16_t*) dst, dstride, nchan); break;
+    case dt_float:   ::reducev((const float*) src, sstride, uw, vw, 
+			       (float*) dst, dstride, nchan); break;
+    }
+}
+
+
+
+namespace {
+    template<typename T>
+    inline void average(const T* src, int sstride, int uw, int vw, 
+			T* dst, int nchan)
+    {
+	float* buff = (float*) alloca(nchan*sizeof(float));
+	memset(buff, 0, nchan*sizeof(float));
+	sstride /= sizeof(T);
+	int rowlen = uw*nchan;
+	int rowskip = sstride - rowlen;
+	for (const T* end = src + vw*sstride; src < end; src += rowskip)
+	    for (const T* rowend = src + rowlen; src < rowend;)
+		for (int i = 0; i < nchan; i++) buff[i] += *src++;
+	float scale = 1.0/(uw*vw);
+	for (int i = 0; i < nchan; i++) dst[i] = T(buff[i]*scale);
+    }
+}
+
+void PtexUtils::average(const void* src, int sstride, int uw, int vw,
+			void* dst, DataType dt, int nchan)
+{
+    switch (dt) {
+    case dt_uint8:   ::average((const uint8_t*) src, sstride, uw, vw, 
+			       (uint8_t*) dst, nchan); break;
+    case dt_half:    ::average((const PtexHalf*) src, sstride, uw, vw, 
+			       (PtexHalf*) dst, nchan); break;
+    case dt_uint16:  ::average((const uint16_t*) src, sstride, uw, vw, 
+			       (uint16_t*) dst, nchan); break;
+    case dt_float:   ::average((const float*) src, sstride, uw, vw, 
+			       (float*) dst, nchan); break;
+    }
+}
+
+
+namespace {
+    struct CompareRfaceIds {
+	const Ptex::FaceInfo* faces;
+	CompareRfaceIds(const Ptex::FaceInfo* faces) : faces(faces) {}
+	bool operator() (uint32_t faceid1, uint32_t faceid2)
+	{
+	    const Ptex::FaceInfo& f1 = faces[faceid1];
+	    const Ptex::FaceInfo& f2 = faces[faceid2];
+	    int min1 = f1.isConstant() ? 1 : PtexUtils::min(f1.res.ulog2, f1.res.vlog2);
+	    int min2 = f2.isConstant() ? 1 : PtexUtils::min(f2.res.ulog2, f2.res.vlog2);
+	    return min1 > min2;
+	}
+    };
+}
+
+void PtexUtils::genRfaceids(const FaceInfo* faces, int nfaces,
+			    uint32_t* rfaceids, uint32_t* faceids)
+{
+    // stable_sort faceids by smaller dimension (u or v) in descending order
+    // treat const faces as having res of 1
+
+    // init faceids
+    for (int i = 0; i < nfaces; i++) faceids[i] = i;
+
+    // sort faceids by rfaceid
+    std::stable_sort(faceids, faceids + nfaces, CompareRfaceIds(faces));
+
+    // generate mapping from faceid to rfaceid
+    for (int i = 0; i < nfaces; i++) {
+	// note: i is the rfaceid
+	rfaceids[faceids[i]] = i;
+    }
+}
+
+	

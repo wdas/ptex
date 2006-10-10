@@ -8,6 +8,12 @@
 #include "Ptexture.h"
 #include "PtexIO.h"
 #include "PtexCache.h"
+#include "PtexUtils.h"
+
+namespace PtexInternal {
+#include "DGHashMap.h"
+}
+using namespace PtexInternal;
 
 #ifndef NDEBUG
 template<typename T> class safevector : public std::vector<T>
@@ -43,6 +49,9 @@ public:
 
     const char* path() const { return _path.c_str(); }
 
+    DataType datatype() const { return _header.datatype; }
+    int nchannels() const { return _header.nchannels; }
+    int pixelsize() const { return _pixelsize; }
 
     class MetaData : public PtexCachedData, public PtexMetaData {
     public:
@@ -171,9 +180,10 @@ public:
     public:
 	FaceData(void** parent, PtexCacheImpl* cache, Res res, int size)
 	    : PtexCachedData(parent, cache, size), _res(res) {}
-	virtual void addref() { ref(); }
 	virtual void release() { unref(); }
 	virtual Ptex::Res res() { return _res; }
+	virtual void reduce(FaceData*&, PtexReader*,
+			    Res newres, PtexUtils::ReduceFn) = 0;
     protected:
 	Res _res;
     };
@@ -197,6 +207,8 @@ public:
 	virtual bool isTiled() { return false; }
 	virtual Ptex::Res tileRes() { return _res; };
 	virtual PtexFaceData* getTile(int) { return 0; };
+	virtual void reduce(FaceData*&, PtexReader*,
+			    Res newres, PtexUtils::ReduceFn);
 
     protected:
 	virtual ~PackedFace() { free(_data); }
@@ -212,56 +224,109 @@ public:
 	virtual bool isConstant() { return true; }
 	virtual void* getPixel(int, int) { return _data; }
 	virtual void* getPixel(float, float) { return _data; }
+	virtual void reduce(FaceData*&, PtexReader*,
+			    Res newres, PtexUtils::ReduceFn);
     };
 
 
-    class TiledFace : public FaceData {
+    class TiledFaceBase : public FaceData {
     public:
-	TiledFace(void** parent, PtexCacheImpl* cache, Res res, PtexReader* reader,
-		  Res tileres, int ntiles)
-	    : FaceData(parent, cache, res,
-		       sizeof(*this) + ntiles*(sizeof(FaceDataHeader)+
-					       sizeof(off_t)+
-					       sizeof(FaceData*))),
-	      _reader(reader),
+	TiledFaceBase(void** parent, PtexCacheImpl* cache, Res res,
+		      Res tileres, DataType dt, int nchan, int size)
+	    : FaceData(parent, cache, res, size),
 	      _tileres(tileres),
+	      _dt(dt),
+	      _nchan(nchan),
 	      _ntilesu(_res.ntilesu(tileres)),
-	      _fdh(ntiles),
-	      _offsets(ntiles),
-	      _tiles(ntiles) { _reader->ref(); }
+	      _ntilesv(_res.ntilesv(tileres)),
+	      _ntiles(_ntilesu*_ntilesv),
+	      _pixelsize(DataSize(dt)*nchan),
+	      _tiles(_ntiles) {}
 
-	virtual void addref() { ref(); _reader->ref(); }
-	virtual void release() { _reader->unref(); unref(); }
+	virtual void release() { unref(); }
 	virtual bool isConstant() { return false; }
 	virtual void* getPixel(int uindex, int vindex);
 
 	virtual void* getPixel(float u, float v)
 	{
-	    return TiledFace::getPixel(u*index(u, _res.u()), v*index(v, _res.v()));
+	    return TiledFaceBase::getPixel(u*index(u, _res.u()), v*index(v, _res.v()));
 	}
 	virtual void* getData() { return 0; }
 	virtual bool isTiled() { return true; }
 	virtual Ptex::Res tileRes() { return _tileres; };
+	virtual void reduce(FaceData*&, PtexReader*,
+			    Res newres, PtexUtils::ReduceFn);
+	Res tileres() const { return _tileres; }
+	int ntilesu() const { return _ntilesu; }
+	int ntilesv() const { return _ntilesv; }
+	int ntiles() const { return _ntiles; }
+
+    protected:
+	virtual ~TiledFaceBase() { orphanList(_tiles); }
+
+	Res _tileres;
+	DataType _dt;
+	int _nchan;
+	int _ntilesu;
+	int _ntilesv;
+	int _ntiles;
+	int _pixelsize;
+	safevector<FaceData*> _tiles;
+    };
+
+
+    class TiledFace : public TiledFaceBase {
+    public:
+	TiledFace(void** parent, PtexCacheImpl* cache, Res res,
+		  Res tileres, PtexReader* reader)
+	    : TiledFaceBase(parent, cache, res, tileres, 
+			    reader->datatype(), reader->nchannels(),
+			    sizeof(*this) + _ntiles*(sizeof(FaceDataHeader)+
+						     sizeof(off_t)+
+						     sizeof(FaceData*))),
+	      _reader(reader),
+	      _fdh(_ntiles),
+	      _offsets(_ntiles)
+	{
+	    _reader->ref();
+	}
 	virtual PtexFaceData* getTile(int tile)
 	{
 	    FaceData*& f = _tiles[tile];
 	    if (!f) _reader->readFace(_offsets[tile], _fdh[tile], _tileres, f);
-	    else f->addref();
+	    else f->ref();
 	    return f;
 	}
 
     protected:
-	virtual ~TiledFace() { orphanList(_tiles); }
 	friend class PtexReader;
-
+	virtual ~TiledFace() { _reader->unref(); }
 	PtexReader* _reader;
-	Res _tileres;
-	int _ntilesu;
-	int _pixelsize;
 	safevector<FaceDataHeader> _fdh;
 	safevector<off_t> _offsets;
-	safevector<FaceData*> _tiles;
+    };	    
+
+
+    class TiledReducedFace : public TiledFaceBase {
+    public:
+	TiledReducedFace(void** parent, PtexCacheImpl* cache, Res res, 
+			 Res tileres, DataType dt, int nchan,
+			 TiledFaceBase* parentface, PtexUtils::ReduceFn reducefn)
+	    : TiledFaceBase(parent, cache, res, tileres, dt, nchan,
+			    sizeof(*this) + _ntiles*sizeof(FaceData*)),
+	      _parentface(parentface),
+	      _reducefn(reducefn)
+	{
+	    _parentface->ref(); 
+	}
+	virtual PtexFaceData* getTile(int tile);
+
+    protected:
+	virtual ~TiledReducedFace() { _parentface->unref(); }
+	TiledFaceBase* _parentface;
+	PtexUtils::ReduceFn* _reducefn;
     };
+
 
     class Level : public PtexCachedData {
     public:
@@ -320,12 +385,11 @@ protected:
     }
 
     uint8_t* getConstData() { if (!_constdata) readConstData(); return _constdata; }
-    FaceData* getFace(Level* level, int faceid)
+    FaceData* getFace(Level* level, int faceid, Res res)
     {
 	FaceData*& face = level->faces[faceid];
-	if (!face) readFace(level->offsets[faceid], level->fdh[faceid],
-			    _faceinfo[faceid].res, face);
-	else face->addref();
+	if (!face) readFace(level->offsets[faceid], level->fdh[faceid], res, face);
+	else face->ref();
 	return face;
     }
 
@@ -370,6 +434,7 @@ protected:
     MetaData* _metadata;
 
     safevector<FaceInfo> _faceinfo;
+    safevector<uint32_t> _rfaceids;
     safevector<LevelInfo> _levelinfo;
     safevector<off_t> _levelpos;
     safevector<Level*> _levels;
@@ -390,9 +455,26 @@ protected:
     };
     safevector<FaceEdit> _faceedits;
 
+    struct ReductionKey {
+	int faceid;
+	Res res;
+	ReductionKey() : faceid(0), res(0,0) {}
+	ReductionKey(uint32_t faceid, Res res) : faceid(faceid), res(res) {}
+	bool operator==(const ReductionKey& k) const 
+	{ return k.faceid == faceid && k.res == res; }
+	struct Hasher {
+	    uint32_t operator() (const ReductionKey& key) const
+	    {
+		// constants from Knuth
+		static uint32_t M = 1664525, C = 1013904223;
+ 		uint32_t val = (key.res.ulog2 * M + key.res.vlog2 + C) * M + key.faceid;
+		return val;
+	    }
+	};
+    };
+    DGHashMap<ReductionKey, FaceData*, ReductionKey::Hasher> _reductions;
+
     z_stream_s _zstream;
 };
-
-
 
 #endif

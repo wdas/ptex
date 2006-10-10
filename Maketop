@@ -12,6 +12,9 @@ $GLOBALS{Attach_Check} = 1;
 # Assign to the package array the list of packages to include for this project.
 my @pkgs = ( 'src/ptex' );
 
+# Add compiler flags
+setGlobalDefaults( 'CPP', 'flags+', { 'all', ['-Wall -pedantic'] } );
+
 # Now process the package Makelets and coallesce certain targets
 my $tgts = process_makelets([@pkgs], ['all','installhdr','install','doc']);
 

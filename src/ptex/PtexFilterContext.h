@@ -20,7 +20,7 @@ struct PtexFilterContext : public Ptex
 		 PtexTexture* tx_val, int faceid_val,
 		 float u_val, float v_val, float uw_val, float vw_val)
     {
-	memset(result_val, 0, sizeof(float)*nchannels);
+	memset(result_val, 0, sizeof(float)*nchannels_val);
 
 	// get tx info
 	tx = tx_val;

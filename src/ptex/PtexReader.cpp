@@ -2,7 +2,6 @@
 #include <sstream>
 #include <errno.h>
 #include <stdio.h>
-#include "DGDict.h"
 #include "Ptexture.h"
 #include "PtexUtils.h"
 #include "PtexReader.h"
@@ -108,6 +107,12 @@ void PtexReader::readFaceInfo()
 	_faceinfo.resize(_header.nfaces);
 	readZipBlock(&_faceinfo[0], _header.faceinfosize, 
 		     sizeof(FaceInfo)*_header.nfaces);
+
+	// generate rfaceids
+	_rfaceids.resize(_header.nfaces);
+	std::vector<uint32_t> faceids_r(_header.nfaces);
+	PtexUtils::genRfaceids(&_faceinfo[0], _header.nfaces,
+			       &_rfaceids[0], &faceids_r[0]);
     }
 }
 
@@ -330,11 +335,9 @@ void PtexReader::readFace(off_t pos, const FaceDataHeader& fdh, Res res,
 	    readBlock(&tileres, sizeof(tileres));
 	    uint32_t tileheadersize;
 	    readBlock(&tileheadersize, sizeof(tileheadersize));
-	    int ntiles = res.ntiles(tileres);
-	    TiledFace* tf = new TiledFace((void**)&face, _cache, res,
-					  this, tileres, ntiles);
-	    readZipBlock(&tf->_fdh[0], tileheadersize, FaceDataHeaderSize * ntiles);
-	    computeOffsets(tell(), ntiles, &tf->_fdh[0], &tf->_offsets[0]);
+	    TiledFace* tf = new TiledFace((void**)&face, _cache, res, tileres, this);
+	    readZipBlock(&tf->_fdh[0], tileheadersize, FaceDataHeaderSize * tf->_ntiles);
+	    computeOffsets(tell(), tf->_ntiles, &tf->_fdh[0], &tf->_offsets[0]);
 	    face = tf;
 	}
 	break;
@@ -449,28 +452,206 @@ void PtexReader::getData(int faceid, void* buffer, int stride)
 
 PtexFaceData* PtexReader::getData(int faceid, Res res)
 {
+    if (faceid < 0 || size_t(faceid) >= _header.nfaces) return 0;
+
     FaceInfo& fi = _faceinfo[faceid];
     if (fi.isConstant() || res == 0) {
 	return new ConstDataPtr(getConstData() + faceid * _pixelsize);
     }
 
-    if (res != fi.res) {
-	// TODO
-	std::cerr << "Reductions not yet supported" << std::endl;
+    // get precomputed reduction level (if possible)
+    // determine how many reduction levels are needed
+    int redu = fi.res.ulog2 - res.ulog2, redv = fi.res.vlog2 - res.vlog2;
+    if (redu < 0 || redv < 0) {
+	std::cerr << "PtexReader::getData - enlargements not supported" << std::endl;
 	return 0;
     }
-    Level* level = getLevel(0);
-    FaceData* face = getFace(level, faceid);
-    level->unref();
+    
+    if (redu == 0 && redv == 0) {
+	// no reduction - get level zero (full) res face
+	Level* level = getLevel(0);
+	FaceData* face = getFace(level, faceid, res);
+	level->unref();
+	return face;
+    }
+    else if (redu == redv && !fi.hasEdits()) {
+	// reduction is symmetric and face has no edits, access reduction level
+	int levelid = redu;
+	if (size_t(levelid) < _levels.size()) {
+	    Level* level = getLevel(levelid);
+
+	    // get reduction face id
+	    int rfaceid = _rfaceids[faceid];
+
+	    // get the face data (if present)
+	    FaceData* face = 0;
+	    if (size_t(rfaceid) < level->faces.size())
+		face = getFace(level, rfaceid, res);
+	    level->unref();
+	    if (face) return face;
+	}
+    }
+    // dynamic reduction required - find in dynamic reduction cache
+    FaceData*& face = _reductions[ReductionKey(faceid, res)];
+    if (face) { face->ref(); return face; }
+	
+    // not found, must generate new reduction
+    if (redu > redv) {
+	// get next-higher u-res and reduce in u
+	PtexFaceData* psrc = getData(faceid, Res(res.ulog2+1, res.vlog2));
+	FaceData* src = dynamic_cast<FaceData*>(psrc);
+	if (src) src->reduce(face, this, res, PtexUtils::reduceu);
+	if (psrc) psrc->release();
+    }
+    else if (redu < redv) {
+	// get next-higher v-res and reduce in v
+	PtexFaceData* psrc = getData(faceid, Res(res.ulog2, res.vlog2+1));
+	FaceData* src = dynamic_cast<FaceData*>(psrc);
+	if (src) src->reduce(face, this, res, PtexUtils::reducev);
+	if (psrc) psrc->release();
+    }
+    else { // redu == redv
+	// get next-higher res and reduce (in both u and v
+	PtexFaceData* psrc = getData(faceid, Res(res.ulog2+1, res.vlog2+1));
+	FaceData* src = dynamic_cast<FaceData*>(psrc);
+	if (src) src->reduce(face, this, res, PtexUtils::reduce);
+	if (psrc) psrc->release();
+    }
     return face;
 }
 
 
-void* PtexReader::TiledFace::getPixel(int ui, int vi)
+void PtexReader::PackedFace::reduce(FaceData*& face, PtexReader* r,
+				    Res newres, PtexUtils::ReduceFn reducefn)
+{
+    // allocate a new face and reduce image
+    DataType dt = r->datatype();
+    int nchan = r->nchannels();
+    PackedFace* pf = new PackedFace((void**)&face, _cache, newres,
+				    _pixelsize, _pixelsize * newres.size());
+    face = pf;
+    // reduce and copy into new face
+    reducefn(_data, _pixelsize * _res.u(), _res.u(), _res.v(),
+	     pf->_data, _pixelsize * newres.u(), dt, nchan);
+}
+
+
+
+void PtexReader::ConstantFace::reduce(FaceData*& face, PtexReader*,
+				      Res, PtexUtils::ReduceFn)
+{
+    face = this; ref();
+}
+
+
+void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
+				       Res newres, PtexUtils::ReduceFn reducefn)
+{
+    /* Tiled reductions should generally only be isotropic (just u or v, not both)
+       since anisotropic reductions are precomputed and stored on disk.  (This
+       function should still work for isotropic reductions though.)
+
+       In the isotropic case, the number of tiles should be preserved
+       along the direction not being reduced in order to preserve the
+       laziness of the file access.  In contrast, if reductions were
+       not tiled, then any reduction would read all the tiles and
+       defeat the purpose of tiling.
+    */
+
+    // propagate the tile res to the reduction
+    // but make sure tile isn't larger than the new face!
+    Res newtileres = _tileres;
+    if (newtileres.ulog2 > newres.ulog2) newtileres.ulog2 = newres.ulog2;
+    if (newtileres.vlog2 > newres.vlog2) newtileres.vlog2 = newres.vlog2;
+
+    // determine how many tiles we will have on the reduction
+    int newntiles = newres.ntiles(newtileres);
+
+    if (newntiles == 1) {
+	// no need to keep tiling, just allocate a packed face
+	DataType dt = r->datatype();
+	int nchan = r->nchannels();
+	PackedFace* f = new PackedFace((void**)&face, _cache, newres,
+					_pixelsize, _pixelsize*newres.size());
+	face = f;
+
+	// reduce tiles into new packed face
+	int tileures = _tileres.u();
+	int tilevres = _tileres.v();
+	int sstride = _pixelsize * tileures;
+	int dstride = _pixelsize * newres.u();
+	int dstepu = dstride/_ntilesu;
+	int dstepv = dstride*newres.v()/_ntilesv;
+
+	int tile = 0;
+	char* dst = (char*) f->getData();
+	for (int i = 0; i < _ntilesv; i++) {
+	    for (int j = 0; j < _ntilesu; j++) {
+		PtexFaceData* src = getTile(tile++);
+		reducefn(src->getData(), sstride, tileures, tilevres,
+			 dst + i*dstepv + j*dstepu,
+			 dstride, dt, nchan);
+		src->release();
+	    }
+	}
+    }
+    else {
+	// otherwise, tile the reduced face
+	face = new TiledReducedFace((void**)&face, _cache, newres, newtileres,
+				    _dt, _nchan, this, reducefn);
+    }
+}
+
+
+void* PtexReader::TiledFaceBase::getPixel(int ui, int vi)
 {
     int tileu = ui >> _tileres.ulog2;
     int tilev = vi >> _tileres.vlog2;
     PtexFaceData* tile = getTile(tilev * _ntilesu + tileu);
     return tile->getPixel(ui - (tileu<<_tileres.ulog2),
 			  vi - (tilev<<_tileres.vlog2));
+}
+
+
+
+PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
+{
+    FaceData*& face = _tiles[tile];
+    if (face) { face->ref(); return face; }
+
+    // allocate a new packed face for the tile
+    int uw = _res.u(), vw = _res.v();
+    int npixels = uw * vw;
+    int unpackedSize = _pixelsize * npixels;
+    PackedFace* f = new PackedFace((void**)&face, _cache, 
+				   _tileres, _pixelsize, unpackedSize);
+    face = f;
+
+    // generate reduction from parent tiles
+    int pntilesu = _parentface->ntilesu();
+    int pntilesv = _parentface->ntilesv();
+    int nu = pntilesu / _ntilesu;
+    int nv = pntilesv / _ntilesv;
+    int tile_vi = tile / _ntilesu;
+    int tile_ui = tile % _ntilesu;
+    int ptile = tile_vi * nv * pntilesu + tile_ui * nu;
+    int ptileures = _parentface->tileres().u();
+    int ptilevres = _tileres.v();
+    int sstride = ptileures * _pixelsize;
+    int dstride = _tileres.u() * _pixelsize;
+    int dstepu = dstride/nu;
+    int dstepv = dstride*_tileres.v()/nv;
+    
+    char* dst = (char*) f->getData();
+    for (int i = 0; i < nv; i++) {
+	for (int j = 0; j < nu; j++) {
+	    PtexFaceData* src = _parentface->getTile(ptile + i*pntilesu + j);
+	    _reducefn(src->getData(), sstride, ptileures, ptilevres,
+		      dst + i*dstepv + j*dstepu,
+		      dstride, _dt, _nchan);
+	    src->release();
+	}
+    }
+    
+    return face;
 }

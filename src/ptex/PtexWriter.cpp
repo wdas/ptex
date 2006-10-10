@@ -349,6 +349,16 @@ int PtexWriterBase::writeZipBlock(FILE* fp, const void* data, int size, bool fin
 }
 
 
+int PtexWriterBase::readBlock(FILE* fp, void* data, int size)
+{
+    if (!fread(data, size, 1, fp)) {
+	setError("PtexWriter error: temp file read failed");
+	return 0;
+    }
+    return size;
+}
+
+
 int PtexWriterBase::copyBlock(FILE* dst, FILE* src, off_t pos, int size)
 {
     fseeko(src, pos, SEEK_SET);
@@ -491,6 +501,23 @@ void PtexWriterBase::writeFaceData(FILE* fp, const void* data, int stride,
 }
 
 
+void PtexWriterBase::writeReduction(FILE* fp, const void* data, int stride, Res res)
+{
+    // reduce and write to file
+    Ptex::Res newres(res.ulog2-1, res.vlog2-1);
+    int buffsize = newres.size() * _pixelSize;
+    bool useMalloc = buffsize > AllocaMax;
+    char* buff = useMalloc ? (char*) malloc(buffsize) : (char*)alloca(buffsize);
+
+    int dstride = newres.u() * _pixelSize;
+    PtexUtils::reduce(data, stride, res.u(), res.v(), buff, dstride,
+		      _header.datatype, _header.nchannels);
+    writeBlock(fp, buff, buffsize);
+
+    if (useMalloc) free(buff);
+}
+
+
 
 void PtexWriterBase::writeMetaData(FILE* fp, uint32_t& memsize, uint32_t& zipsize)
 {
@@ -552,6 +579,7 @@ bool PtexMainWriter::open(const char* path,
     memset(&_faceinfo[0], 0, sizeof(FaceInfo)*nfaces);
     _levels.front().pos.resize(nfaces);
     _levels.front().fdh.resize(nfaces);
+    _rpos.resize(nfaces);
     _constdata.resize(nfaces*_pixelSize);
 
     return true;
@@ -577,6 +605,10 @@ bool PtexMainWriter::close(std::string& error)
 bool PtexMainWriter::writeFace(int faceid, const FaceInfo& f, void* data, int stride)
 {
     if (!_ok) return 0;
+    if (faceid < 0 || size_t(faceid) >= _faceinfo.size()) {
+	setError("PtexWriter error: faceid out of range");
+	return 0;
+    }
     if (stride == 0) stride = f.res.u()*_pixelSize;
 
     // handle constant case
@@ -594,7 +626,14 @@ bool PtexMainWriter::writeFace(int faceid, const FaceInfo& f, void* data, int st
     // write face data
     writeFaceData(_tmpfp, data, stride, f.res, _levels.front().fdh[faceid]);
 
-    // todo - generate and cache reductions (including const data)
+    // generate first reduction (if needed)
+    if (f.res.ulog2 > MinReductionLog2 && f.res.vlog2 > MinReductionLog2) {
+	_rpos[faceid] = ftello(_tmpfp);
+	writeReduction(_tmpfp, data, stride, f.res);
+    }
+    else {
+	storeConstValue(faceid, data, stride, f.res);
+    }
     return 1;
 }
 
@@ -602,6 +641,10 @@ bool PtexMainWriter::writeFace(int faceid, const FaceInfo& f, void* data, int st
 bool PtexMainWriter::writeConstantFace(int faceid, const FaceInfo& f, void* data)
 {
     if (!_ok) return 0;
+    if (faceid < 0 || size_t(faceid) >= _faceinfo.size()) {
+	setError("PtexWriter error: faceid out of range");
+	return 0;
+    }
 
     // store face value in constant block
     if (size_t(faceid) >= _faceinfo.size()) return 0;
@@ -613,8 +656,20 @@ bool PtexMainWriter::writeConstantFace(int faceid, const FaceInfo& f, void* data
 
 
 
+void PtexMainWriter::storeConstValue(int faceid, const void* data, int stride, Res res)
+{
+    // compute average value and store in _constdata block
+    PtexUtils::average(data, stride, res.u(), res.v(), &_constdata[faceid*_pixelSize],
+		       _header.datatype, _header.nchannels);
+}
+
+
+
 void PtexMainWriter::finish()
 {
+    // write reductions to tmp file
+    generateReductions();
+
     // update header
     _header.nlevels = _levels.size();
     _header.nfaces = _faceinfo.size();
@@ -664,6 +719,92 @@ void PtexMainWriter::finish()
     // rewrite header
     fseeko(_fp, 0, SEEK_SET);
     writeBlock(_fp, &_header, HeaderSize);
+}
+
+
+void PtexMainWriter::generateReductions()
+{
+    // first generate "rfaceids", reduction faceids,
+    // which are faceids reordered by decreasing smaller dimension
+    int nfaces = _header.nfaces;
+    _rfaceids.resize(nfaces);
+    _faceids_r.resize(nfaces);
+    PtexUtils::genRfaceids(&_faceinfo[0], nfaces, &_rfaceids[0], &_faceids_r[0]);
+
+    // determine how many faces in each level, and resize _levels
+    // traverse in reverse rfaceid order to find number of faces
+    // larger than cutoff size of each level
+    for (int rfaceid = nfaces-1, cutoffres = MinReductionLog2; rfaceid >= 0; rfaceid--) {
+	int faceid = _faceids_r[rfaceid];
+	FaceInfo& face = _faceinfo[faceid];
+	Res res = face.res;
+	int min = face.isConstant() ? 1 : PtexUtils::min(res.ulog2, res.vlog2);
+	while (min > cutoffres) {
+	    // i == last face for current level
+	    int size = rfaceid+1;
+	    _levels.push_back(LevelRec());
+	    LevelRec& level = _levels.back();
+	    level.pos.resize(size);
+	    level.fdh.resize(size);
+	    cutoffres++;
+	}
+    }
+    
+#if 0
+    // Debug printouts
+    for (int i = 0; i < nfaces; i++) {
+	int faceid = _faceids_r[i];
+	FaceInfo& face = _faceinfo[faceid];
+	printf("rfaceid %d (check %d): size=%d res=%dx%d faceid=%d const=%d\n",
+	       i, _rfaceids[faceid], 
+	       PtexUtils::min(face.res.ulog2, face.res.vlog2),
+	       face.res.u(), face.res.v(), faceid,
+	       face.isConstant());
+    }
+
+    for (int i = 0; i < _levels.size(); i++) {
+	LevelRec& level = _levels[i];
+	printf("level %d: %d faces\n", i, int(level.pos.size()));
+    }
+#endif
+
+    // generate and cache reductions (including const data)
+    // first, find largest face and allocate tmp buffer
+    int buffsize = 0;
+    for (int i = 0; i < nfaces; i++)
+	buffsize = PtexUtils::max(buffsize, _faceinfo[i].res.size());
+    buffsize *= _pixelSize;
+    char* buff = (char*) malloc(buffsize);
+
+    int nlevels = _levels.size();
+    for (int i = 1; i < nlevels; i++) {
+	LevelRec& level = _levels[i];
+	int nextsize = (i+1 < nlevels)? _levels[i+1].fdh.size() : 0;
+	for (int rfaceid = 0, size = level.fdh.size(); rfaceid < size; rfaceid++) {
+	    // output current reduction for face (previously generated)
+	    int faceid = _faceids_r[rfaceid];
+	    Res res = _faceinfo[faceid].res;
+	    res.ulog2 -= i; res.vlog2 -= i;
+	    int stride = res.u() * _pixelSize;
+	    int size = res.size() * _pixelSize;
+	    fseeko(_tmpfp, _rpos[faceid], SEEK_SET);
+	    readBlock(_tmpfp, buff, size);
+	    fseeko(_tmpfp, 0, SEEK_END);
+	    level.pos[rfaceid] = ftello(_tmpfp);
+	    writeFaceData(_tmpfp, buff, stride, res, level.fdh[rfaceid]);
+
+	    // write a new reduction if needed
+	    if (rfaceid < nextsize) {
+		fseeko(_tmpfp, _rpos[faceid], SEEK_SET);
+		writeReduction(_tmpfp, buff, stride, res);
+	    }
+	    else {
+		storeConstValue(faceid, buff, stride, res);
+	    }
+	}
+    }
+    fseeko(_tmpfp, 0, SEEK_END);
+    free(buff);
 }
 
 

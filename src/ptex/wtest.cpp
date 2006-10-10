@@ -6,20 +6,36 @@
 
 int main()
 {
-    static Ptex::Res res[] = { Ptex::Res(2,2),
-			       Ptex::Res(2,3),
+    static Ptex::Res res[] = { Ptex::Res(8,7),
+			       Ptex::Res(1,2),
+			       Ptex::Res(3,1),
+			       Ptex::Res(5,4),
+			       Ptex::Res(9,8),
 			       Ptex::Res(2,4),
-			       Ptex::Res(8,8), };
-    static int adjedges[][4] = {{ 0, 2, 0, 8 },
-				{ 0, 0, 0, 1 },
-				{ 1, 0, 0, 1 },
-				{ 2, 3, 0, 0 }};
-    static int adjfaces[][4] ={{ -1, 1, 3, -1 },
-			       { -1, -1, 2, 0 },
-			       { 1, -1, -1, 3 },
-			       { 0, 2, -1, -1 }};
+			       Ptex::Res(6,2),
+			       Ptex::Res(7,4),
+			       Ptex::Res(2,1),
+ };
+    static int adjedges[][4] = {{ 2, 3, 0, 1 },
+				{ 2, 3, 0, 1 },
+				{ 2, 3, 0, 1 },
+				{ 2, 3, 0, 1 },
+				{ 2, 3, 0, 1 },
+				{ 2, 3, 0, 1 },
+				{ 2, 3, 0, 1 },
+				{ 2, 3, 0, 1 },
+				{ 2, 3, 0, 1 }};
+    static int adjfaces[][4] ={{ 3, 1, -1, -1 },
+			       { 4, 2, -1, 0 },
+			       { 5, -1, -1, 1 },
+			       { 6, 4, 0, -1 },
+			       { 7, 5, 1, 3 },
+			       { 8, -1, 2, 4 },
+			       { -1, 7, 3, -1 },
+			       { -1, 8, 4, 6 },
+			       { -1, -1, 5, 7 }};
 
-    int nfaces = 4;
+    int nfaces = sizeof(res)/sizeof(res[0]);
     Ptex::DataType dt = Ptex::dt_float;
     int alpha = -1;
     int nchan = 3;
@@ -37,10 +53,11 @@ int main()
     size *= Ptex::DataSize(dt) * nchan;
 
     void* buff = malloc(size);
-    memset(buff, 0, size);
     for (int i = 0; i < nfaces; i++)
     {
+	memset(buff, 0, size);
 	float* fbuff = (float*)buff;
+#if 0
 	//uint8_t* fbuff = (uint8_t*)buff;
 	for (int v = 0; v < 256; v++) {
 	    for (int u = 0; u < 256; u++) {
@@ -50,7 +67,21 @@ int main()
 		}
 	    }
 	}
+#endif
 	
+	if (1) { // i!=7) { //i == 0) {
+	    int ures = res[i].u(), vres = res[i].v();
+	    for (int v = 0; v < vres; v++) {
+		for (int u = 0; u < ures; u++) {
+		    float c = (u ^ v) & 1;
+		    //c = ((i/3)^(i%3))&1 ? .8 : .2;
+		    fbuff[(v*ures+u)*nchan] = u/float(ures-1);
+		    fbuff[(v*ures+u)*nchan+1] = v/float(vres-1);
+		    fbuff[(v*ures+u)*nchan+2] = c;
+		}
+	    }
+	}
+
 #if 0
 	((char*)buff)[0] = i>>16;
 	((char*)buff)[1] = i>>8;
@@ -85,7 +116,7 @@ int main()
     }
     free(buff);
 
-#if 1
+#if 0
     w->writeMeta("hello", "goodbye");
     double vals[3] = { 1.1,2.2,3.3 };
     w->writeMeta("flarf", vals, 3);
@@ -99,7 +130,7 @@ int main()
 
     w->release();
 
-#if 1
+#if 0
     // add some edits
     w = PtexWriter::edit("test.ptx", true, Ptex::mt_quad, dt, nchan, alpha, nfaces, error);
     w->writeMeta("hello", "ciao");
@@ -112,7 +143,7 @@ int main()
     w->release();
 #endif
 
-#if 1
+#if 0
     // add some more edits
     w = PtexWriter::edit("test.ptx", false, Ptex::mt_quad, dt, nchan, alpha, nfaces, error);
     w->writeMeta("hello", "aloha");

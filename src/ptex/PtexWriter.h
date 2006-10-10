@@ -32,6 +32,7 @@ protected:
     int writeBlank(FILE* fp, int size);
     int writeBlock(FILE* fp, const void* data, int size);
     int writeZipBlock(FILE* fp, const void* data, int size, bool finish=true);
+    int readBlock(FILE* fp, void* data, int size);
     int copyBlock(FILE* dst, FILE* src, off_t pos, int size);
     Res calcTileRes(Res faceres);
     void addMetaData(const char* key, MetaDataType t, const void* value, int size);
@@ -40,6 +41,7 @@ protected:
 		       FaceDataHeader& fdh);
     void writeFaceData(FILE* fp, const void* data, int stride, Res res,
 		       FaceDataHeader& fdh);
+    void writeReduction(FILE* fp, const void* data, int stride, Res res);
     void writeMetaData(FILE* fp, uint32_t& memsize, uint32_t& zipsize);
     void setError(const std::string& error) { _error = error; _ok = false; }
 
@@ -68,7 +70,7 @@ public:
     bool open(const char* path, Ptex::MeshType mt, Ptex::DataType dt,
 	      int nchannels, int alphachan, int nfaces, std::string& error);
 
-    virtual bool PtexMainWriter::close(std::string& error);
+    virtual bool close(std::string& error);
     virtual bool writeFace(int faceid, const FaceInfo& f, void* data, int stride);
     virtual bool writeConstantFace(int faceid, const FaceInfo& f, void* data);
 
@@ -77,17 +79,26 @@ protected:
 
 private:
     virtual void finish();
+    void generateReductions();
+    void storeConstValue(int faceid, const void* data, int stride, Res res);
 
     std::vector<FaceInfo> _faceinfo;	  // info about each face
-
     std::vector<uint8_t> _constdata;	  // constant data for each face
+    std::vector<uint32_t> _rfaceids;	  // faceid reordering for reduction levels
+    std::vector<uint32_t> _faceids_r;     // faceid indexed by rfaceid
 
+    static const int MinReductionLog2 =2; // log2(minimum reduction size) - can tune
     struct LevelRec {
+	// note: level 0 is ordered by faceid
+	//       levels 1+ are reduction levels (half res in both u and v) and
+	//       are ordered by rfaceid[faceid].   Also, faces with a minimum
+	//       dimension (the smaller of u or v) smaller than MinReductionLog2
+	//       are omitted from subsequent levels.
 	std::vector<off_t> pos;		  // position of data blocks within _tmp file
 	std::vector<FaceDataHeader> fdh;  // face data headers
     };
-
     std::vector<LevelRec> _levels;	  // info about each level
+    std::vector<off_t> _rpos;		  // reduction file positions
 
     std::string _finalpath;	          // final path (base _path has ".tmp" appended)
     FILE* _tmpfp;			  // temp file pointer (on /tmp, not _tmppath!)

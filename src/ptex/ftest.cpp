@@ -17,10 +17,15 @@ int main(int argc, char** argv)
     }
 
     PtexFilter* f = PtexFilter::mitchell(1.0);
-    float result[1];
+    float result[4];
     int faceid = 0;
     float u=0, v=0, uw=1, vw=1;
-    f->eval(result, 0, 1, r, faceid, u, v, uw, vw);
+    for (v = 0; v <= 1; v += .125) {
+	for (u = 0; u <= 1; u += .125) {
+	    f->eval(result, 0, 1, r, faceid, u, v, uw, vw);
+	    printf("%8f %8f -> %8f\n", u, v, result[0]);
+	}
+    }
 
     f->release();
     r->release();

@@ -20,6 +20,9 @@ my $Ptex_so = SharedLib(name	   => 'libPtex.so',
 			libs       => [ 'm', 'z' ],
 			'libDirs+' => [ ]);
 
+my $ptxinfo = Exe(name => 'ptxinfo', input => [ 'ptxinfo.cpp' ], libs => [$Ptex_so->installed()]);
+my $utils = VirtualTarget( name =>'utils', input=>[ $ptxinfo ]);
+
 my $wtest = Exe(name => 'wtest', input => [ 'wtest.cpp' ], libs => [$Ptex_so->installed()]);
 my $rtest = Exe(name => 'rtest', input => [ 'rtest.cpp' ], libs => [$Ptex_so->installed()]);
 my $ftest = Exe(name => 'ftest', input => [ 'ftest.cpp' ], libs => [$Ptex_so->installed()]);
@@ -29,8 +32,15 @@ my $htmls = HTMLdocs(input => ['PtexFile.html'],
 		     installDir => 'doc');
 
 my $all = VirtualTarget( name =>'all',
-			 input=>[ $Ptex_a, $Ptex_so, $tests ]);
+			 input=>[ $Ptex_a, $Ptex_so, $utils, $tests ]);
 
 Install(name=>'installhdr',input=>[$headers]);
-Install(name=>'install',input=>[ $Ptex_a, $Ptex_so, $htmls]);
+
+my $flavor = Kida::Exposed::getGlobalVariable('Flavor');
+my $installs = [ $Ptex_a, $Ptex_so, $utils, $htmls];
+if ($flavor =~ /debug/i) {
+  push(@$installs, $tests);
+}
+
+Install(name=>'install',input=> $installs);
 

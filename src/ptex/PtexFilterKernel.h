@@ -53,7 +53,7 @@ class PtexFilterKernel : public Ptex {
 	int w = -v;
 	kv.set(res, u, res.v()-w, uw, w, start, stride);
 	kv.eid = e_bottom;
-	start += w*stride; v = 0; uw -= w;
+	start += w*stride; v = 0; vw -= w;
     }
     void splitT(PtexFilterKernel& kv)
     {

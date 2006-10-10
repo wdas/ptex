@@ -68,6 +68,19 @@ struct PtexUtils : public Ptex {
 			     void* dst, int dstride, DataType dt, int nchannels);
     static void encodeDifference(void* data, int size, DataType dt);
     static void decodeDifference(void* data, int size, DataType dt);
+    typedef void ReduceFn(const void* src, int sstride, int ures, int vres,
+			  void* dst, int dstride, DataType dt, int nchannels);
+    static void reduce(const void* src, int sstride, int ures, int vres,
+		       void* dst, int dstride, DataType dt, int nchannels);
+    static void reduceu(const void* src, int sstride, int ures, int vres,
+			void* dst, int dstride, DataType dt, int nchannels);
+    static void reducev(const void* src, int sstride, int ures, int vres,
+			void* dst, int dstride, DataType dt, int nchannels);
+    static void average(const void* src, int sstride, int ures, int vres,
+			void* dst, DataType dt, int nchannels);
+
+    static void genRfaceids(const FaceInfo* faces, int nfaces, 
+			    uint32_t* rfaceids, uint32_t* faceids);
 };
 
 #endif

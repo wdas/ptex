@@ -8,27 +8,33 @@ void DumpData(Ptex::DataType dt, int nchan, PtexFaceData* dh, std::string prefix
     float* pixel = (float*) alloca(sizeof(float)*nchan);
     uint8_t* cpixel = (uint8_t*) alloca(sizeof(uint8_t)*nchan);
     Ptex::Res res = dh->res();
-    std::cout << prefix;
+    printf("%sdata (%d x %d)", prefix.c_str(), res.u(), res.v());
     if (dh->isTiled()) {
 	Ptex::Res tileres = dh->tileRes();
-	printf("tiled data (%d x %d):\n", tileres.u(), tileres.v());
+	printf(", tiled (%d x %d):\n", tileres.u(), tileres.v());
 	int n = res.ntiles(tileres);
 	for (int i = 0; i < n; i++) {
 	    PtexFaceData* t = dh->getTile(i);
-	    std::cout << prefix << i;
-	    DumpData(dt, nchan, t, prefix + "  ");
-	    t->release();
+	    std::cout << prefix << "  tile " << i;
+	    if (!t) {
+		std::cout << " NULL!" << std::endl;
+	    } else {
+		DumpData(dt, nchan, t, prefix + "  ");
+		t->release();
+	    }
 	}
     } else {
 	int ures, vres;
-	if (dh->isConstant()) { ures = vres = 1; std::cout << "const data: "; }
-	else { ures = res.u(); vres = res.v(); std::cout << "data:\n"; }
+	if (dh->isConstant()) { ures = vres = 1; std::cout << ", const: "; }
+	else { ures = res.u(); vres = res.v(); std::cout << ":\n"; }
 	
-	int vimax = vres; if (vimax > 16) vimax = 16;
+	int vimax = vres;// if (vimax > 16) vimax = 16;
 	for (int vi = 0; vi < vimax; vi++) {
+	    if (vi == 8 && vres > 16) { vi = vres-8; std::cout << prefix << "  ..." << std::endl; }
 	    std::cout << prefix << "  ";
-	    int uimax = ures; if (uimax > 16) uimax = 16;
+	    int uimax = ures;// if (uimax > 16) uimax = 16;
 	    for (int ui = 0; ui < uimax; ui++) {
+		if (ui == 8 && ures > 16) { ui = ures-8; std::cout << "... "; }
 		Ptex::ConvertToFloat(pixel, dh->getPixel(ui, vi), dt, nchan);
 		Ptex::ConvertFromFloat(cpixel, pixel, Ptex::dt_uint8, nchan);
 		for (int c=0; c < nchan; c++) {
@@ -117,15 +123,17 @@ int main(int argc, char** argv)
 	std::cerr << error << std::endl;
 	return 1;
     }
-    std::cout << "meshType " << Ptex::MeshTypeName(r->meshType()) << std::endl;
-    std::cout << "dataType " << Ptex::DataTypeName(r->dataType()) << std::endl;
-    std::cout << "alphaChannel " << r->alphaChannel() << std::endl;
-    std::cout << "numChannels " << r->numChannels() << std::endl;
-    std::cout << "numFaces " << r->numFaces() << std::endl;
+    std::cout << "meshType: " << Ptex::MeshTypeName(r->meshType()) << std::endl;
+    std::cout << "dataType: " << Ptex::DataTypeName(r->dataType()) << std::endl;
+    std::cout << "numChannels: " << r->numChannels() << std::endl;
+    std::cout << "alphaChannel: ";
+    if (r->alphaChannel() == -1) std::cout << "(none)" << std::endl;
+    else std::cout << r->alphaChannel() << std::endl;
+    std::cout << "numFaces: " << r->numFaces() << std::endl;
 
     PtexMetaData* meta = r->getMetaData();
-    std::cout << "numMeta " << meta->numKeys() << std::endl;
-    DumpMetaData(meta);
+    std::cout << "numMetaKeys: " << meta->numKeys() << std::endl;
+    if (meta->numKeys()) DumpMetaData(meta);
     meta->release();
 
     int nfaces = r->numFaces();
@@ -144,13 +152,26 @@ int main(int argc, char** argv)
 		  << f.adjedge(1) << ' '
 		  << f.adjedge(2) << ' '
 		  << f.adjedge(3) << "\n"
-		  << "  flags: " << f.flags << "\n";
+		  << "  flags: " << int(f.flags) << "\n";
 #endif
 
-	PtexFaceData* dh = r->getData(i, f.res);
-#if 0
+	Ptex::Res res = f.res;
+	while (res.ulog2 > 0 || res.vlog2 > 0) {
+	    PtexFaceData* dh = r->getData(i, res);
+	    if (!dh) break;
+	    DumpData(r->dataType(), r->numChannels(), dh, "  ");
+	    bool isconst = dh->isConstant();
+	    dh->release();
+	    if (isconst) break;
+	    if (res.ulog2) res.ulog2--;
+	    else
+		if (res.vlog2) res.vlog2--;
+	}
+	PtexFaceData* dh = r->getData(i, Ptex::Res(0,0));
 	DumpData(r->dataType(), r->numChannels(), dh, "  ");
-#else
+	dh->release();
+
+#if 0
 	{
 	    int ures=f.res.u(), vres=f.res.v();
 	    Ptex::DataType dt = r->dataType();
@@ -187,7 +208,6 @@ int main(int argc, char** argv)
 	    if (vimax != vres) std::cout << "  ..." << std::endl;
 	}
 #endif
-	dh->release();
     }
 
 #if 0

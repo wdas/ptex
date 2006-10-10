@@ -88,7 +88,14 @@ void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
     _face.set(faceid, Res(ureslog2, vreslog2));
 
     // find neighboring faces and determine if neighborhood is constant
+#if 1
     getNeighborhood(f);
+#endif
+
+#if 1
+    _ctx.uw = 1.0f/(f.res.u());
+    _ctx.vw = 1.0f/(f.res.v());
+#endif
 
     // if neighborhood is constant, just return constant value of face
     if (_isConstant) {
@@ -136,7 +143,7 @@ void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
 	else evalFaces(_uface.res, uweight);
     }
     if (vweight) {
-	if (!_vface.blend) mweight += uweight;
+	if (!_vface.blend) mweight += vweight;
 	else evalFaces(_vface.res, vweight);
     }
     if (mweight) {
@@ -156,8 +163,8 @@ void PtexMitchellFilter::getNeighborhood(const FaceInfo& f)
     if (_ctx.v < .5) { veid = e_bottom; vdist = _ctx.v; }
     else             { veid = e_top;    vdist = 1 - _ctx.v; }
 
-    bool nearu = 2 * udist < _ctx.uw;
-    bool nearv = 2 * vdist < _ctx.vw;
+    bool nearu = udist < 1.5 * _ctx.uw;
+    bool nearv = vdist < 1.5 * _ctx.vw;
 
     if (!nearu && !nearv) 
 	// not near an edge, no neighbors
@@ -272,20 +279,22 @@ void PtexMitchellFilter::evalFaces(Res res, double weight, float uw, float vw)
     double* vkernel = (double*)alloca(kvw * sizeof(double));
     computeWeights(ukernel, (u1-u)/uw, 1.0/uw, kuw);
     computeWeights(vkernel, (v1-v)/vw, 1.0/vw, kvw);
+    double scale = weight * (16/(kuw*kvw));
 
     // skip zero entries (will save a lot of work later)
-    if (!ukernel[0])     { ukernel++; u1++; kuw--; }
-    if (!ukernel[kuw-1]) { kuw--; }
-    if (!vkernel[0])     { vkernel++; v1++; kvw--; }
-    if (!vkernel[kvw-1]) { kvw--; }
+#if 1
+    while (!ukernel[0])     { ukernel++; u1++; kuw--; }
+    while (!ukernel[kuw-1]) { kuw--; }
+    while (!vkernel[0])     { vkernel++; v1++; kvw--; }
+    while (!vkernel[kvw-1]) { kvw--; }
+#endif
 
     // compute tensor product to form rectangular kernel
     double* kbuffer = (double*) alloca(kuw*kvw*sizeof(double));
     double* kp = kbuffer;
-    double scale = weight/(kuw*kvw), vk;
     for (int i = 0; i < kvw; i++, kp += kuw) {
-	vk = vkernel[i] * scale;
-	for (int j = 0; j < kuw; j++) kp[j] = ukernel[j]*scale;
+	double vk = vkernel[i] * scale;
+	for (int j = 0; j < kuw; j++) kp[j] = ukernel[j]*vk;
     }
     PtexFilterKernel k; k.set(res, u1, v1, kuw, kvw, kbuffer, kuw);
 
@@ -316,7 +325,7 @@ void PtexMitchellFilter::evalFaces(Res res, double weight, float uw, float vw)
     k.apply(_face.id, 0, _ctx);
     if (ku) ku.apply(_uface.id, _uface.rotate, _ctx);
     if (kv) kv.apply(_vface.id, _vface.rotate, _ctx);
-    if (kc) kv.apply(_cface.id, _cface.rotate, _ctx);
+    if (kc) kc.apply(_cface.id, _cface.rotate, _ctx);
 }
 
 
