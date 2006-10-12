@@ -310,6 +310,43 @@ void PtexUtils::reducev(const void* src, int sstride, int uw, int vw,
 
 
 
+void PtexUtils::fill(const void* src, void* dst, int dstride,
+		     int ures, int vres, int pixelsize)
+{
+    // fill first row
+    int rowlen = ures*pixelsize;
+    char* ptr = (char*) dst;
+    char* end = ptr + rowlen;
+    for (; ptr != end; ptr += pixelsize) memcpy(ptr, src, pixelsize);
+
+    // fill remaining rows from first row
+    ptr = (char*) dst + dstride;
+    end = (char*) dst + vres*dstride;
+    for (; ptr != end; ptr += dstride) memcpy(ptr, dst, rowlen);
+}
+
+
+void PtexUtils::copy(const void* src, int sstride, void* dst, int dstride,
+		     int vres, int rowlen)
+{
+    // regular non-tiled case
+    if (sstride == rowlen && dstride == rowlen) {
+	// packed case - copy in single block
+	memcpy(dst, src, vres*rowlen);
+    } else {
+	// copy a row at a time
+	char* sptr = (char*) src;
+	char* dptr = (char*) dst;
+	for (char* end = sptr + vres*sstride; sptr != end;) {
+	    memcpy(dptr, sptr, rowlen);
+	    dptr += dstride;
+	    sptr += sstride;
+	}
+    }
+}
+
+
+
 namespace {
     template<typename T>
     inline void average(const T* src, int sstride, int uw, int vw, 

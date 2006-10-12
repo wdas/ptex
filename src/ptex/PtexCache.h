@@ -7,8 +7,6 @@ namespace PtexInternal {
 }
 using namespace PtexInternal;
 
-class PtexReader;
-
 class PtexLruItem {
 public:
     bool inuse() { return _prev == 0; }
@@ -108,10 +106,6 @@ public:
     {}
 
     virtual void release() { unref(); purgeAll(); }
-    virtual PtexTexture* get(const char* filename, std::string& error);
-    virtual void purge(PtexTexture* texture);
-    virtual void purge(const char* filename);
-    virtual void purgeAll();
 
 protected:
     ~PtexCacheImpl() {}
@@ -130,18 +124,16 @@ protected:
     void touchData(PtexLruItem* data) { _unusedData.touch(data); }
     void removeData(int size) { _dataSize -= size; }
 
-private:
+protected:
     void ref() { _refcount++; }
     void unref() { if (!--_refcount) delete this; }
-    void purgeFiles() {	while (_fileCount > _maxFiles && _unusedFiles.pop()); }
+    void purgeFiles() { while (_fileCount > _maxFiles && _unusedFiles.pop()); }
     void purgeData() { while (_dataSize > _maxData && _unusedData.pop()); }
 
     int _refcount;
     int _maxFiles, _fileCount;
     long int _maxData, _dataSize;
     PtexLruList _unusedFiles, _unusedData;
-    typedef DGDict<PtexReader*> FileMap;
-    FileMap _files;
 };
 
 

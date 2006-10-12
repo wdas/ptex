@@ -58,29 +58,6 @@
 #include "PtexReader.h"
 #include "PtexCache.h"
 
-PtexCache* PtexCache::create(int maxFiles, int maxMem)
-{
-    if (maxFiles <= 0) maxFiles = 100;
-    if (maxMem <= 0) maxMem = 1024*1024*100;
-    return new PtexCacheImpl(maxFiles, maxMem);
-}
-
-
-PtexTexture* PtexCacheImpl::get(const char* filename, std::string& error)
-{
-    PtexReader*& p = _files[filename];
-    if (p) p->ref();
-    else {
-	p = new PtexReader((void**)&p, this);
-	if (!p->open(filename, error)) {
-	    p->release();
-	    return 0;
-	}
-    }
-    return p;
-}
-
-
 void PtexCacheImpl::setFileUnused(PtexLruItem* file)
 {
     _unusedFiles.push(file);
@@ -97,29 +74,84 @@ void PtexCacheImpl::setDataUnused(PtexLruItem* data)
 }
 
 
-void PtexCacheImpl::purge(PtexTexture* tx)
+class PtexReaderCache : public PtexCacheImpl
 {
-    PtexReader* reader = dynamic_cast<PtexReader*>(tx);
-    if (!reader) return;
-    purge(reader->path());
-}
+public:
+    PtexReaderCache(int maxFiles, int maxMem)
+	: PtexCacheImpl(maxFiles, maxMem),
+	  _cleanupCount(0)
+    {}
 
-
-void PtexCacheImpl::purge(const char* path)
-{
-    FileMap::iterator iter = _files.find(path);
-    if (iter != _files.end()) {
-	iter->second->orphan();
-	_files.erase(iter);
+    virtual PtexTexture* get(const char* filename, std::string& error)
+    {
+	PtexReader*& p = _files[filename];
+	if (p) p->ref();
+	else {
+	    p = new PtexReader((void**)&p, this);
+	    if (!p->open(filename, error)) {
+		p->release();
+		return 0;
+	    }
+	    // cleanup map every so often
+	    if (++_cleanupCount >= _maxFiles) {
+		_cleanupCount = 0;
+		removeBlankEntries();
+	    }
+	}
+	return p;
     }
-}
 
-
-void PtexCacheImpl::purgeAll()
-{
-    FileMap::iterator iter = _files.begin();
-    while (iter != _files.end()) {
-	iter->second->orphan();
-	iter = _files.erase(iter);
+    virtual void purge(PtexTexture* texture)
+    {
+	PtexReader* reader = dynamic_cast<PtexReader*>(texture);
+	if (!reader) return;
+	purge(reader->path());
     }
+
+    virtual void purge(const char* filename)
+    {
+	FileMap::iterator iter = _files.find(filename);
+	if (iter != _files.end()) {
+	    if (iter->second)
+		iter->second->orphan();
+	    _files.erase(iter);
+	}
+    }
+
+    virtual void purgeAll()
+    {
+	FileMap::iterator iter = _files.begin();
+	while (iter != _files.end()) {
+	    if (iter->second)
+		iter->second->orphan();
+	    iter = _files.erase(iter);
+	}
+    }
+
+
+    void removeBlankEntries()
+    {
+	// remove blank file entries to keep map size in check
+	for (FileMap::iterator i = _files.begin(); i != _files.end();) {
+	    if (i->second == 0) i = _files.erase(i);
+	    else i++;
+	}
+    }
+
+
+private:
+
+    typedef DGDict<PtexReader*> FileMap;
+    FileMap _files;
+    int _cleanupCount;
+};
+
+
+PtexCache* PtexCache::create(int maxFiles, int maxMem)
+{
+    if (maxFiles <= 0) maxFiles = 100;
+    if (maxMem <= 0) maxMem = 1024*1024*100;
+    return new PtexReaderCache(maxFiles, maxMem);
 }
+
+

@@ -373,23 +373,11 @@ void PtexReader::getData(int faceid, void* buffer, int stride)
     PtexFaceData* d = getData(faceid, f.res);
     if (d->isConstant()) {
 	// fill dest buffer with pixel value
-	char* pixel = (char*) d->getData();
-	char* firstrow = (char*) buffer;
-	char* p = firstrow;
-	// fill first row
-	for (int i = 0; i < resu; i++) {
-	    memcpy(p, pixel, _pixelsize);
-	    p += _pixelsize;
-	}
-	// copy to remaining rows
-	p = firstrow + stride;
-	for (int i = 1; i < resv; i++) {
-	    memcpy(p, firstrow, rowlen);
-	    p += stride;
-	}
+	PtexUtils::fill(d->getData(), buffer, stride,
+			resu, resv, _pixelsize);
     }
     else if (d->isTiled()) {
-	// loop over tiles and copy line by line
+	// loop over tiles
 	Res tileres = d->tileRes();
 	int ntilesu = f.res.ntilesu(tileres);
 	int ntilesv = f.res.ntilesv(tileres);
@@ -402,28 +390,12 @@ void PtexReader::getData(int faceid, void* buffer, int stride)
 	    char* dsttile = dsttilerow;
 	    for (int j = 0; j < ntilesu; j++) {
 		PtexFaceData* t = d->getTile(tile++);
-		const char* src = (const char*) t->getData();
-		if (t->isConstant()) {
-		    // fill dest tile with pixel value
-		    char* p = dsttile;
-		    // fill first row
-		    for (int i = 0; i < tileures; i++) {
-			memcpy(p, src, _pixelsize);
-			p += _pixelsize;
-		    }
-		    // copy to remaining rows
-		    p = dsttile + stride;
-		    for (int i = 1; i < tilevres; i++) {
-			memcpy(p, dsttile, tilerowlen);
-			p += stride;
-		    }
-		} else {
-		    // copy tile row by row
-		    const char* end = src + tilerowlen * tilevres;
-		    char* dst = dsttile;
-		    for (; src < end; src += tilerowlen, dst += stride)
-			memcpy(dst, src, tilerowlen);
-		}
+		if (t->isConstant())
+		    PtexUtils::fill(t->getData(), dsttile, stride,
+				    tileures, tilevres, _pixelsize);
+		else
+		    PtexUtils::copy(t->getData(), tilerowlen, dsttile, stride, 
+				    tilevres, tilerowlen);
 		t->release();
 		dsttile += tilerowlen;
 	    }
@@ -431,20 +403,7 @@ void PtexReader::getData(int faceid, void* buffer, int stride)
 	}
     }
     else {
-	// regular non-tiled case
-	if (stride == rowlen) {
-	    // packed case - copy in single block
-	    memcpy(buffer, d->getData(), rowlen*resv);
-	} else {
-	    // copy a row at a time
-	    char* src = (char*) d->getData();
-	    char* dst = (char*) buffer;
-	    for (int i = 0; i < resv; i++) {
-		memcpy(dst, src, rowlen);
-		src += rowlen;
-		dst += stride;
-	    }
-	}
+	PtexUtils::copy(d->getData(), rowlen, buffer, stride, resv, rowlen);
     }
     d->release();
 }
@@ -547,14 +506,15 @@ void PtexReader::ConstantFace::reduce(FaceData*& face, PtexReader*,
 void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
 				       Res newres, PtexUtils::ReduceFn reducefn)
 {
-    /* Tiled reductions should generally only be isotropic (just u or v, not both)
-       since anisotropic reductions are precomputed and stored on disk.  (This
-       function should still work for isotropic reductions though.)
+    /* Tiled reductions should generally only be anisotropic (just u
+       or v, not both) since isotropic reductions are precomputed and
+       stored on disk.  (This function should still work for isotropic
+       reductions though.)
 
-       In the isotropic case, the number of tiles should be preserved
-       along the direction not being reduced in order to preserve the
-       laziness of the file access.  In contrast, if reductions were
-       not tiled, then any reduction would read all the tiles and
+       In the anisotropic case, the number of tiles should be kept the
+       same along the direction not being reduced in order to preserve
+       the laziness of the file access.  In contrast, if reductions
+       were not tiled, then any reduction would read all the tiles and
        defeat the purpose of tiling.
     */
 
@@ -568,32 +528,49 @@ void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
     int newntiles = newres.ntiles(newtileres);
 
     if (newntiles == 1) {
-	// no need to keep tiling, just allocate a packed face
-	DataType dt = r->datatype();
-	int nchan = r->nchannels();
-	PackedFace* f = new PackedFace((void**)&face, _cache, newres,
-					_pixelsize, _pixelsize*newres.size());
-	face = f;
+	// no need to keep tiling, reduce tiles into a single face
+	// first, get all tiles and check if they are constant (with the same value)
+	PtexFaceData** tiles = (PtexFaceData**) alloca(_ntiles * sizeof(PtexFaceData*));
+	bool allConstant = true;
+	for (int i = 0; i < _ntiles; i++) {
+	    PtexFaceData* tile = tiles[i] = getTile(i);
+	    allConstant = (allConstant && tile->isConstant() && 
+			   (i == 0 || (0 == memcmp(tiles[0]->getData(), tile->getData(), 
+						   _pixelsize))));
+	}
+	if (allConstant) {
+	    // allocate a new constant face
+	    face = new ConstantFace((void**)&face, _cache, _pixelsize);
+	    memcpy(face->getData(), tiles[0]->getData(), _pixelsize);
+	}
+	else {
+	    // allocate a new packed face
+	    face = new PackedFace((void**)&face, _cache, newres,
+				  _pixelsize, _pixelsize*newres.size());
 
-	// reduce tiles into new packed face
-	int tileures = _tileres.u();
-	int tilevres = _tileres.v();
-	int sstride = _pixelsize * tileures;
-	int dstride = _pixelsize * newres.u();
-	int dstepu = dstride/_ntilesu;
-	int dstepv = dstride*newres.v()/_ntilesv;
-
-	int tile = 0;
-	char* dst = (char*) f->getData();
-	for (int i = 0; i < _ntilesv; i++) {
-	    for (int j = 0; j < _ntilesu; j++) {
-		PtexFaceData* src = getTile(tile++);
-		reducefn(src->getData(), sstride, tileures, tilevres,
-			 dst + i*dstepv + j*dstepu,
-			 dstride, dt, nchan);
-		src->release();
+	    int tileures = _tileres.u();
+	    int tilevres = _tileres.v();
+	    int sstride = _pixelsize * tileures;
+	    int dstride = _pixelsize * newres.u();
+	    int dstepu = dstride/_ntilesu;
+	    int dstepv = dstride*newres.v()/_ntilesv - dstepu*(_ntilesu-1);
+	    
+	    char* dst = (char*) face->getData();
+	    for (int i = 0; i < _ntiles;) {
+		PtexFaceData* tile = tiles[i];
+		if (tile->isConstant())
+		    PtexUtils::fill(tile->getData(), dst, dstride,
+				    newres.u()/_ntilesu, newres.v()/_ntilesv,
+				    _pixelsize);
+		else
+		    reducefn(tile->getData(), sstride, tileures, tilevres,
+			     dst, dstride, _dt, _nchan);
+		i++;
+		dst += i%_ntilesu ? dstepu : dstepv;
 	    }
 	}
+	// release the tiles
+	for (int i = 0; i < _ntiles; i++) tiles[i]->release();
     }
     else {
 	// otherwise, tile the reduced face
@@ -619,39 +596,58 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
     FaceData*& face = _tiles[tile];
     if (face) { face->ref(); return face; }
 
-    // allocate a new packed face for the tile
-    int uw = _res.u(), vw = _res.v();
-    int npixels = uw * vw;
-    int unpackedSize = _pixelsize * npixels;
-    PackedFace* f = new PackedFace((void**)&face, _cache, 
-				   _tileres, _pixelsize, unpackedSize);
-    face = f;
-
-    // generate reduction from parent tiles
+    // first, get all tiles and check if they are constant (with the same value)
     int pntilesu = _parentface->ntilesu();
     int pntilesv = _parentface->ntilesv();
     int nu = pntilesu / _ntilesu;
     int nv = pntilesv / _ntilesv;
-    int tile_vi = tile / _ntilesu;
-    int tile_ui = tile % _ntilesu;
-    int ptile = tile_vi * nv * pntilesu + tile_ui * nu;
-    int ptileures = _parentface->tileres().u();
-    int ptilevres = _tileres.v();
-    int sstride = ptileures * _pixelsize;
-    int dstride = _tileres.u() * _pixelsize;
-    int dstepu = dstride/nu;
-    int dstepv = dstride*_tileres.v()/nv;
+
+    int ntiles = nu*nv;
+    PtexFaceData** tiles = (PtexFaceData**) alloca(ntiles * sizeof(PtexFaceData*));
+    bool allConstant = true;
+    int ptile = (tile/_ntilesu) * nv * pntilesu + (tile%_ntilesu) * nu;
+    for (int i = 0; i < ntiles;) {
+	PtexFaceData* tile = tiles[i] = _parentface->getTile(ptile);
+	allConstant = (allConstant && tile->isConstant() && 
+		       (i==0 || (0 == memcmp(tiles[0]->getData(), tile->getData(), 
+					     _pixelsize))));
+	i++;
+	ptile += i%nu? 1 : pntilesu - nu + 1;
+    }
+    if (allConstant) {
+	// allocate a new constant face
+	face = new ConstantFace((void**)&face, _cache, _pixelsize);
+	memcpy(face->getData(), tiles[0]->getData(), _pixelsize);
+    }
+    else {
+	// allocate a new packed face for the tile
+	face = new PackedFace((void**)&face, _cache, _tileres,
+			      _pixelsize, _pixelsize*_tileres.size());
+
+	// generate reduction from parent tiles
+	int ptileures = _parentface->tileres().u();
+	int ptilevres = _tileres.v();
+	int sstride = ptileures * _pixelsize;
+	int dstride = _tileres.u() * _pixelsize;
+	int dstepu = dstride/nu;
+	int dstepv = dstride*_tileres.v()/nv - dstepu*(nu-1);
     
-    char* dst = (char*) f->getData();
-    for (int i = 0; i < nv; i++) {
-	for (int j = 0; j < nu; j++) {
-	    PtexFaceData* src = _parentface->getTile(ptile + i*pntilesu + j);
-	    _reducefn(src->getData(), sstride, ptileures, ptilevres,
-		      dst + i*dstepv + j*dstepu,
-		      dstride, _dt, _nchan);
-	    src->release();
+	char* dst = (char*) face->getData();
+	for (int i = 0; i < ntiles;) {
+	    PtexFaceData* tile = tiles[i];
+	    if (tile->isConstant())
+		PtexUtils::fill(tile->getData(), dst, dstride,
+				_tileres.u()/nu, _tileres.v()/nv,
+				_pixelsize);
+	    else
+		_reducefn(tile->getData(), sstride, ptileures, ptilevres,
+			  dst, dstride, _dt, _nchan);
+	    i++;
+	    dst += i%nu ? dstepu : dstepv;
 	}
     }
-    
+
+    // release the tiles
+    for (int i = 0; i < ntiles; i++) tiles[i]->release();
     return face;
 }

@@ -78,6 +78,10 @@ struct PtexUtils : public Ptex {
 			void* dst, int dstride, DataType dt, int nchannels);
     static void average(const void* src, int sstride, int ures, int vres,
 			void* dst, DataType dt, int nchannels);
+    static void fill(const void* src, void* dst, int dstride,
+		     int ures, int vres, int pixelsize);
+    static void copy(const void* src, int sstride, void* dst, int dstride,
+		     int vres, int rowlen);
 
     static void genRfaceids(const FaceInfo* faces, int nfaces, 
 			    uint32_t* rfaceids, uint32_t* faceids);

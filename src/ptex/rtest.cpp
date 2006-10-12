@@ -156,6 +156,7 @@ int main(int argc, char** argv)
 #endif
 
 	Ptex::Res res = f.res;
+	//	res.vlog2--;
 	while (res.ulog2 > 0 || res.vlog2 > 0) {
 	    PtexFaceData* dh = r->getData(i, res);
 	    if (!dh) break;
@@ -164,7 +165,7 @@ int main(int argc, char** argv)
 	    dh->release();
 	    if (isconst) break;
 	    if (res.ulog2) res.ulog2--;
-	    else
+	    //else
 		if (res.vlog2) res.vlog2--;
 	}
 	PtexFaceData* dh = r->getData(i, Ptex::Res(0,0));

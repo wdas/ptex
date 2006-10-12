@@ -12,27 +12,40 @@ my $libinputs = ['PtexCache.cpp',
 		 'PtexUtils.cpp',
 		 'PtexWriter.cpp'];
 
+# can't set -pedantic by default b/c ItImage.h won't compile
+# and there's no flags- to skip it just on the affected sources
+#setLocalDefaults( 'CPP', 'flags+', { 'all', ['-Wall -pedantic'] } );
+
+# manually add extra warnings to all lib sources
+for (@$libinputs) { $_ = CPP(input=>$_, 'flags+' => '-Wall -pedantic'); }
+
 my $Ptex_a = StaticLib(name	  => 'libPtex.a',
 		       input 	  => $libinputs);
 
 my $Ptex_so = SharedLib(name	   => 'libPtex.so',
-			input      => $libinputs,
-			libs       => [ 'm', 'z' ],
+			input      => $Ptex_a,
+			libs       => [ '-Wl,-no-whole-archive', 'm', 'z' ],
+			'flags+'   => '-Wl,-whole-archive',
 			'libDirs+' => [ ]);
 
-my $ptxinfo = Exe(name => 'ptxinfo', input => [ 'ptxinfo.cpp' ], libs => [$Ptex_so->installed()]);
-my $utils = VirtualTarget( name =>'utils', input=>[ $ptxinfo ]);
+my $ptxmake = Exe(name => 'ptxmake', input => 'ptxmake.cpp',
+		  'incDirs+' => [ "$ENV{RP_ImageToolkit}/include" ],
+		  'libDirs+' => [ "$ENV{RP_ImageToolkit}/$LIB" ],
+		  libs => ['ItImage', $Ptex_so->installed()]);
 
-my $wtest = Exe(name => 'wtest', input => [ 'wtest.cpp' ], libs => [$Ptex_so->installed()]);
-my $rtest = Exe(name => 'rtest', input => [ 'rtest.cpp' ], libs => [$Ptex_so->installed()]);
-my $ftest = Exe(name => 'ftest', input => [ 'ftest.cpp' ], libs => [$Ptex_so->installed()]);
+my $ptxinfo = Exe(name => 'ptxinfo', input => 'ptxinfo.cpp', libs => [$Ptex_so->installed()]);
+my $utils = VirtualTarget( name =>'utils', input=> $ptxinfo);
+
+my $wtest = Exe(name => 'wtest', input => 'wtest.cpp', libs => [$Ptex_so->installed()]);
+my $rtest = Exe(name => 'rtest', input => 'rtest.cpp', libs => [$Ptex_so->installed()]);
+my $ftest = Exe(name => 'ftest', input => 'ftest.cpp', libs => [$Ptex_so->installed()]);
 my $tests = VirtualTarget( name =>'tests', input=>[ $wtest, $rtest, $ftest ]);
 
 my $htmls = HTMLdocs(input => ['PtexFile.html'],
 		     installDir => 'doc');
 
 my $all = VirtualTarget( name =>'all',
-			 input=>[ $Ptex_a, $Ptex_so, $utils, $tests ]);
+			 input=>[ $Ptex_a, $Ptex_so, $utils, $tests, $ptxmake ]);
 
 Install(name=>'installhdr',input=>[$headers]);
 
@@ -40,6 +53,7 @@ my $flavor = Kida::Exposed::getGlobalVariable('Flavor');
 my $installs = [ $Ptex_a, $Ptex_so, $utils, $htmls];
 if ($flavor =~ /debug/i) {
   push(@$installs, $tests);
+  push(@$installs, $ptxmake);
 }
 
 Install(name=>'install',input=> $installs);
