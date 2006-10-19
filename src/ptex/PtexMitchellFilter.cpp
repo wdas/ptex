@@ -42,6 +42,26 @@ void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
 			      PtexTexture* tx, int faceid,
 			      float u, float v, float uw, float vw)
 {
+#if 0
+    // for debugging only!
+    {
+	// point sample nearest res
+	const FaceInfo& f = tx->getFaceInfo(faceid);
+	Res res(int(log2(1.0/uw)), int(log2(1.0/vw)));
+	if (res.ulog2 > f.res.ulog2) res.ulog2 = f.res.ulog2;
+	if (res.vlog2 > f.res.vlog2) res.vlog2 = f.res.vlog2;
+
+	PtexFaceData* dh = tx->getData(faceid, res);
+	if (dh) {
+	    DataType dt = tx->dataType();
+	    char* d = (char*) dh->getPixel(u,v) + firstchan*DataSize(dt);
+	    Ptex::ConvertToFloat(result, d, dt, nchannels);
+	    dh->release();
+	}
+	return;
+    }
+#endif
+
     /*
       Filter Scenarios:
 
@@ -92,18 +112,12 @@ void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
     getNeighborhood(f);
 #endif
 
-#if 1
-    _ctx.uw = 1.0f/(f.res.u());
-    _ctx.vw = 1.0f/(f.res.v());
-#endif
-
     // if neighborhood is constant, just return constant value of face
     if (_isConstant) {
 	PtexFaceData* data = tx->getData(faceid, 0);
 	if (data) {
-	    int dtsize = DataSize(_ctx.dt);
-	    char* d = (char*) data->getData();
-	    memcpy(_ctx.result, d + _ctx.firstchan*dtsize, _ctx.nchannels*dtsize);
+	    char* d = (char*) data->getData() + _ctx.firstchan*DataSize(_ctx.dt);
+	    Ptex::ConvertToFloat(_ctx.result, d, _ctx.dt, _ctx.nchannels);
 	}
 	data->release();
 	return;
@@ -178,7 +192,7 @@ void PtexMitchellFilter::getNeighborhood(const FaceInfo& f)
 	ublendwidth = 2.0/f.res.u();
 	// get u neighbor face
 	uf = &_ctx.tx->getFaceInfo(ufid);
-	if (!uf->isConstant()) _isConstant = 0;
+	if (_isConstant && !uf->isConstant()) _isConstant = 0;
 	_uface.set(ufid, uf->res, f.adjedge(ueid) - ueid + 2);
 	// clamp res against desired res and check for blending
 	_uface.clampres(_face.res);
@@ -187,74 +201,118 @@ void PtexMitchellFilter::getNeighborhood(const FaceInfo& f)
 	vblendwidth = 2.0/f.res.v();
 	// get v neighbor face
 	vf = &_ctx.tx->getFaceInfo(vfid);
-	if (!vf->isConstant()) _isConstant = 0;
+	if (_isConstant && !vf->isConstant()) _isConstant = 0;
 	_vface.set(vfid, vf->res, f.adjedge(veid) - veid + 2);
 	// clamp res against desired res and check for blending
 	_vface.clampres(_face.res);
     }
 
-    // compute blend weights based on distances to edges
-    // blend width is 2 pixels / res in u or v direction
-    if (_uface && _vface) {
+    // filter w/ corner face(s) if we have both u and v neighbors
+    bool usecorner = _uface && _vface;
+
+    // smoothstep blendwidth's towards corner
+    if (usecorner) {
 	// smoothstep ublendwidth towards adj ures
-	if (_vface.res.ulog2 != f.res.ulog2) {
+	if (_vface.res.ulog2 != _face.res.ulog2) {
 	    float adjwidth = 2.0/_vface.res.u();
 	    float wblend = PtexUtils::smoothstep(vdist, 0, 0.5);
 	    ublendwidth = ublendwidth * wblend + adjwidth * (1-wblend);
 	}
 	// smoothstep vblendwidth towards adj vres
-	if (_uface && _uface.res.vlog2 != f.res.vlog2) {
+	if (_uface.res.vlog2 != _face.res.vlog2) {
 	    float adjwidth = 2.0/_uface.res.v();
 	    float wblend = PtexUtils::smoothstep(udist, 0, 0.5);
 	    vblendwidth = vblendwidth * wblend + adjwidth * (1-wblend);
 	}
     }
+
+    // compute blend weights based on distances to edges
+    // blend width is 2 pixels / res in u or v direction
     _ublend = 1 - PtexUtils::smoothstep(udist, 0, ublendwidth);
     _vblend = 1 - PtexUtils::smoothstep(vdist, 0, vblendwidth);
 
-    // if we're not blending in both directions, then we don't care about the corner
-    if (!_ublend || !_vblend) return;
+    // gather corner faces if needed
+    if (usecorner) {
+	// gather faces around corner starting at uface
+	_cfaces.reserve(8); // (could be any number, but typically just 1 or 2)
 
-    // gather faces around corner starting at uface
-    _cfaces.reserve(8); // (could be any number, but typically just 1 or 2)
+	int cfid = ufid;		   // current face id (start at uface)
+	const FaceInfo* cf = uf;	   // current face info
+	EdgeId ceid = f.adjedge(ueid);	   // current edge id
+	int rotate = _uface.rotate;	   // cumulative rotation
+	int dir = (ueid+1)%4==veid? 3 : 1; // ccw or cw
+	int count = 0;			   // runaway loop count
 
-    int cfid = ufid;		       // current face id (start at uface)
-    const FaceInfo* cf = uf;	       // current face info
-    EdgeId ceid = f.adjedge(ueid);     // current edge id
-    int rotate = _uface.rotate;	       // cumulative rotation
-    int dir = (ueid+1)%4==veid? 3 : 1; // ccw or cw
-    int count = 0;		       // runaway loop count
+	while (count++ < 10) {
+	    // advance to next face
+	    int eid = EdgeId((ceid + dir) % 4);
+	    cfid = cf->adjfaces[eid];
+	    if (cfid == _vface.id || cfid == -1) 
+		// reached "vface" or boundary, stop
+		break;
+	    ceid = cf->adjedge(eid);
+	    cf = &_ctx.tx->getFaceInfo(cfid);
+	    rotate += ceid - eid + 2;
 
-    while (count++ < 10) {
-	// advance to next face
-	int eid = EdgeId((ceid + dir) % 4);
-	cfid = cf->adjfaces[eid];
-	if (cfid == _vface.id || cfid == -1) 
-	    // reached a boundary or a boundary, stop
-	    break;
+	    // record face (note: first face (uface) is skipped)
+	    _cfaces.push_back(Face());
+	    Face& face = _cfaces.back();
+	    face.set(cfid, cf->res, rotate);
 
-	cf = &_ctx.tx->getFaceInfo(cfid);
-	ceid = cf->adjedge(eid);
-	rotate += ceid - eid + 2;
-
-	// record face (note: first face (uface) is skipped)
-	_cfaces.push_back(Face());
-	Face& face = _cfaces.back();
-	face.set(cfid, cf->res, rotate);
-    }
-    // if we reached the vface, corner is an interior point
-    if (cfid == _vface.id) {
-	// see if we're reguler - i.e. we have a single corner face
-	if (_cfaces.size() == 1) {
-	    _cface = _cfaces.front();
-	    _cface.res.clamp(_uface.res);
-	    _cface.res.clamp(_vface.res);
+	    if (_isConstant && !cf->isConstant()) _isConstant = 0;
+	}
+	// if we reached the vface, corner is an interior point
+	if (cfid == _vface.id) {
+	    // see if we're reguler - i.e. we have a single corner face
+	    if (_cfaces.size() == 1) {
+		_cface = _cfaces.front();
+		_cface.res.clamp(_uface.res);
+		_cface.res.clamp(_vface.res);
+	    }
+	}
+	// otherwise corner is an e.p. on a mesh boundary
+	else {
+	    // don't blend w/ corner faces for this case
+	    _cfaces.clear();
 	}
     }
-    // otherwise corner is an e.p. on a mesh boundary
-    else {
-	// don't blend w/ corner faces for this case
-	_cfaces.clear();
+
+    // if all faces are constant, see if all have the same value
+    if (_isConstant) {
+	int pixelsize = DataSize(_ctx.dt) * _ctx.ntxchannels;
+	PtexFaceData* data = _ctx.tx->getData(_face.id, 0);
+	if (data) {
+	    void* constval = data->getData();
+	    if (_uface) {
+		PtexFaceData* udata = _ctx.tx->getData(_uface.id, 0);
+		if (udata) {
+		    if (0 != memcmp(constval, udata->getData(), pixelsize))
+			_isConstant = 0;
+		    udata->release();
+		}
+	    }
+	    if (_isConstant && _vface) {
+		PtexFaceData* vdata = _ctx.tx->getData(_vface.id, 0);
+		if (vdata) {
+		    if (0 != memcmp(constval, vdata->getData(), pixelsize))
+			_isConstant = 0;
+		    vdata->release();
+		}
+	    }
+	    if (_isConstant) {
+		for (int i = 0, size = _cfaces.size(); i < size; i++) {
+		    PtexFaceData* cdata = _ctx.tx->getData(_cfaces[i].id, 0);
+		    if (cdata) {
+			if (0 != memcmp(constval, cdata->getData(), pixelsize)) {
+			    _isConstant = 0;
+			    break;
+			}
+			cdata->release();
+		    }
+		}
+	    }
+	    data->release();
+	}
     }
 }
 
@@ -269,17 +327,19 @@ void PtexMitchellFilter::evalFaces(Res res, double weight, float uw, float vw)
     
     // find integer pixel extent: [u,v] +/- [2*uw,2*vw]
     // (mitchell is 4 units wide for a 1 unit filter period)
+
     int u1 = int(ceil(u - 2*uw)), u2 = int(ceil(u + 2*uw));
     int v1 = int(ceil(v - 2*vw)), v2 = int(ceil(v + 2*vw));
+
     int kuw = u2-u1, kvw = v2-v1;
-    assert(kuw >= 4 && kuw <= 8 && kvw >= 4 && kvw <= 8);
+    assert(kuw <= 8 && kvw <= 8);
 
     // compute kernel weights along u and v directions
     double* ukernel = (double*)alloca(kuw * sizeof(double));
     double* vkernel = (double*)alloca(kvw * sizeof(double));
     computeWeights(ukernel, (u1-u)/uw, 1.0/uw, kuw);
     computeWeights(vkernel, (v1-v)/vw, 1.0/vw, kvw);
-    double scale = weight * (16/(kuw*kvw));
+    double scale = weight;
 
     // skip zero entries (will save a lot of work later)
 #if 1
@@ -288,6 +348,10 @@ void PtexMitchellFilter::evalFaces(Res res, double weight, float uw, float vw)
     while (!vkernel[0])     { vkernel++; v1++; kvw--; }
     while (!vkernel[kvw-1]) { kvw--; }
 #endif
+
+    double sumu = 0; for (int i = 0; i < kuw; i++) sumu += ukernel[i];
+    double sumv = 0; for (int i = 0; i < kvw; i++) sumv += vkernel[i];
+    scale /= sumu * sumv;
 
     // compute tensor product to form rectangular kernel
     double* kbuffer = (double*) alloca(kuw*kvw*sizeof(double));
@@ -319,13 +383,14 @@ void PtexMitchellFilter::evalFaces(Res res, double weight, float uw, float vw)
 	    k.merge(ku, ku.eidval(), _extrapolate);
 	if (kv && (!_vface || !(_vface.res >= res)))
 	    k.merge(kv, kv.eidval(), _extrapolate);
+
+	if (ku) ku.apply(_uface.id, _uface.rotate, _ctx);
+	if (kv) kv.apply(_vface.id, _vface.rotate, _ctx);
+	if (kc) kc.apply(_cface.id, _cface.rotate, _ctx);
     }
 
     // eval faces
     k.apply(_face.id, 0, _ctx);
-    if (ku) ku.apply(_uface.id, _uface.rotate, _ctx);
-    if (kv) kv.apply(_vface.id, _vface.rotate, _ctx);
-    if (kc) kc.apply(_cface.id, _cface.rotate, _ctx);
 }
 
 

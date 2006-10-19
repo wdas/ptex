@@ -57,7 +57,7 @@ struct Ptex {
 
     struct FaceInfo {
 	Res res;		// resolution of face
-	uint8_t adjedges;       // adjacent edges, 4 bits per edge
+	uint8_t adjedges;       // adjacent edges, 2 bits per edge
 	uint8_t flags;		// flags (internal use)
 	int32_t adjfaces[4];	// adjecent faces (-1 == no adjacent face)
 

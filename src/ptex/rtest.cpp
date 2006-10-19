@@ -224,5 +224,7 @@ int main(int argc, char** argv)
     log(c->release(););
     log(r->release(););
 #endif
+    c->release();
+    r->release();
     return 0;
 }

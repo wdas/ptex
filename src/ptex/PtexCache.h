@@ -4,6 +4,32 @@
 #include "Ptexture.h"
 namespace PtexInternal {
 #include "DGDict.h"
+
+#ifndef NDEBUG
+#define GATHER_STATS
+#endif
+
+#ifdef GATHER_STATS
+    struct CacheStats{
+	int nfilesOpened;
+	int nfilesClosed;
+	int ndataAllocated;
+	int ndataFreed;
+	int nblocksRead;
+	long int nbytesRead;
+
+	CacheStats()
+	    : nfilesOpened(0),
+	      nfilesClosed(0),
+	      ndataAllocated(0),
+	      ndataFreed(0),
+	      nblocksRead(0),
+	      nbytesRead(0) {}
+
+	~CacheStats();
+    };
+    extern CacheStats stats;
+#endif
 }
 using namespace PtexInternal;
 
@@ -111,18 +137,38 @@ protected:
     ~PtexCacheImpl() {}
 
     friend class PtexCachedFile;
-    void addFile() { ref(); _fileCount++; purgeFiles(); }
+    void addFile() {
+	ref(); _fileCount++; purgeFiles();
+#ifdef GATHER_STATS
+	stats.nfilesOpened++;
+#endif
+    }
     void setFileInUse(PtexLruItem* file) { ref(); _unusedFiles.extract(file); }
     void setFileUnused(PtexLruItem* file);
     void touchFile(PtexLruItem* file) { _unusedFiles.touch(file); }
-    void removeFile() { _fileCount--; }
+    void removeFile() { 
+	_fileCount--; 
+#ifdef GATHER_STATS
+	stats.nfilesClosed++;
+#endif
+    }
 
     friend class PtexCachedData;
-    void addData(int size) { ref(); _dataSize += size; purgeData(); }
+    void addData(int size) {
+	ref(); _dataSize += size; purgeData(); 
+#ifdef GATHER_STATS
+	stats.ndataAllocated++;
+#endif
+    }
     void setDataInUse(PtexLruItem* data) { ref(); _unusedData.extract(data); }
     void setDataUnused(PtexLruItem* data);
     void touchData(PtexLruItem* data) { _unusedData.touch(data); }
-    void removeData(int size) { _dataSize -= size; }
+    void removeData(int size) {
+	_dataSize -= size;
+#ifdef GATHER_STATS
+	stats.ndataFreed++;
+#endif
+    }
 
 protected:
     void ref() { _refcount++; }

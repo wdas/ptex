@@ -2,25 +2,45 @@
 #include <alloca.h>
 #include <iostream>
 #include "Ptexture.h"
+#include "PtexReader.h"
 
 void DumpFaceInfo(const Ptex::FaceInfo& f)
 {
     Ptex::Res res = f.res;
     std::cout << "  res: " << int(res.ulog2) << ' ' << int(res.vlog2)
-	      << " (" << res.u() << " x " << res.v() << ")\n"
+	      << " (" << res.u() << " x " << res.v() << ")"
 	      << "  adjface: " 
 	      << f.adjfaces[0] << ' '
 	      << f.adjfaces[1] << ' '
 	      << f.adjfaces[2] << ' '
-	      << f.adjfaces[3] << "\n"
+	      << f.adjfaces[3]
 	      << "  adjedge: " 
 	      << f.adjedge(0) << ' '
 	      << f.adjedge(1) << ' '
 	      << f.adjedge(2) << ' '
-	      << f.adjedge(3) << "\n"
+	      << f.adjedge(3)
 	      << "  flags: " << int(f.flags) << "\n";
 }
 
+
+void DumpTiling(PtexFaceData* dh)
+{
+    std::cout << "  tiling: ";
+    if (dh->isTiled()) {
+	Ptex::Res res = dh->tileRes();
+	std::cout << "ntiles = " << dh->res().ntiles(res)
+		  << ", res = "
+		  << int(res.ulog2) << ' ' << int(res.vlog2)
+		  << " (" << res.u() << " x " << res.v() << ")\n";
+    }
+    else if (dh->isConstant()) {
+	std::cout << "  (constant)" << std::endl;
+    }
+    else {
+	std::cout << "  (untiled)" << std::endl;
+    }
+}
+			
 
 void DumpData(Ptex::DataType dt, int nchan, PtexFaceData* dh)
 {
@@ -107,12 +127,56 @@ void DumpMetaData(PtexMetaData* meta)
     }
 }
 
+
+void DumpInternal(PtexTexture* tx)
+{
+    PtexReader* r = dynamic_cast<PtexReader*> (tx);
+    if (!r) {
+	std::cout << "Internal error - PtexReader cast failed\n";
+	return;
+    }
+
+    const PtexIO::Header& h = r->header();
+    std::cout << "Header:\n"
+	      << "  magic: ";
+
+    if (h.magic == PtexIO::Magic)
+	std::cout << "'Ptex'" << std::endl;
+    else
+	std::cout << h.magic << std::endl;
+
+    std::cout << "  version: " << h.version << std::endl
+	      << "  meshtype: " << h.meshtype << std::endl
+	      << "  datatype: " << h.datatype << std::endl
+	      << "  alphachan: " << int(h.alphachan) << std::endl
+	      << "  nchannels: " << h.nchannels << std::endl
+	      << "  nlevels: " << h.nlevels << std::endl
+	      << "  nfaces: " << h.nfaces << std::endl
+	      << "  extheadersize: " << h.extheadersize << std::endl
+	      << "  faceinfosize: " << h.faceinfosize << std::endl
+	      << "  constdatasize: " << h.constdatasize << std::endl
+	      << "  levelinfosize: " << h.levelinfosize << std::endl
+	      << "  leveldatasize: " << h.leveldatasize << std::endl
+	      << "  metadatazipsize: " << h.metadatazipsize << std::endl
+	      << "  metadatamemsize: " << h.metadatamemsize << std::endl;
+    std::cout << "Level info:\n";
+    for (int i = 0; i < h.nlevels; i++) {
+	const PtexIO::LevelInfo& l = r->levelinfo(i);
+	std::cout << "  Level " << i << std::endl
+		  << "    leveldatasize: " << l.leveldatasize << std::endl
+		  << "    levelheadersize: " << l.levelheadersize << std::endl
+		  << "    nfaces: " << l.nfaces << std::endl;
+    }
+}
+
 void usage()
 {
     std::cerr << "Usage: ptxinfo [options] file\n"
 	      << "  -m Dump meta data\n"
 	      << "  -f Dump face info\n"
-	      << "  -d Dump data\n";
+	      << "  -d Dump data\n"
+	      << "  -t Dump tiling info\n"
+	      << "  -i Dump internal info\n";
     exit(1);
 }
 
@@ -122,6 +186,8 @@ int main(int argc, char** argv)
     bool dumpmeta = 0;
     bool dumpfaceinfo = 0;
     bool dumpdata = 0;
+    bool dumpinternal = 0;
+    bool dumptiling = 0;
     const char* fname = 0;
 
     while (--argc) {
@@ -131,6 +197,8 @@ int main(int argc, char** argv)
 		case 'm': dumpmeta = 1; break;
 		case 'd': dumpdata = 1; break;
 		case 'f': dumpfaceinfo = 1; break;
+		case 't': dumptiling = 1; break;
+		case 'i': dumpinternal = 1; break;
 		default: usage();
 		}
 	    }
@@ -159,18 +227,24 @@ int main(int argc, char** argv)
     if (dumpmeta && meta->numKeys()) DumpMetaData(meta);
     meta->release();
 
-    if (dumpfaceinfo || dumpdata) {
+    if (dumpfaceinfo || dumpdata || dumptiling) {
 	for (int i = 0; i < r->numFaces(); i++) {
-	    std::cout << "face " << i << ":\n";
+	    std::cout << "face " << i << ":";
 	    const Ptex::FaceInfo& f = r->getFaceInfo(i);
-	    if (dumpfaceinfo) DumpFaceInfo(f);
+	    DumpFaceInfo(f);
 
-	    if (dumpdata) {
+	    if (dumpdata || dumptiling) {
 		PtexFaceData* dh = r->getData(i, f.res);
-		if (dh) DumpData(r->dataType(), r->numChannels(), dh);
+		if (dh) {
+		    if (dumptiling) DumpTiling(dh);
+		    if (dumpdata)
+			DumpData(r->dataType(), r->numChannels(), dh);
+		}
 		dh->release();
 	    }
 	}
     }
+
+    if (dumpinternal) DumpInternal(r);
     return 0;
 }

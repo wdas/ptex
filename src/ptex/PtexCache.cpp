@@ -58,6 +58,27 @@
 #include "PtexReader.h"
 #include "PtexCache.h"
 
+#ifdef GATHER_STATS
+namespace PtexInternal {
+    CacheStats::~CacheStats()
+    {
+	if (nfilesOpened || ndataAllocated || nblocksRead) {
+	    printf("Ptex Stats:\n");
+	    printf("  nfilesOpened:   %6d\n", nfilesOpened);
+	    printf("  nfilesClosed:   %6d\n", nfilesClosed);
+	    printf("  ndataAllocated: %6d\n", ndataAllocated);
+	    printf("  ndataFreed:     %6d\n", ndataFreed);
+	    printf("  nblocksRead:    %6d\n", nblocksRead);
+	    if (nblocksRead)
+		printf("  avgReadSize:    %6d\n", int(nbytesRead/nblocksRead));
+	    printf("  MbytesRead:     %6.2f\n", nbytesRead/(1024.0*1024.0));
+	}
+    }
+
+    CacheStats stats;
+}
+#endif
+
 void PtexCacheImpl::setFileUnused(PtexLruItem* file)
 {
     _unusedFiles.push(file);

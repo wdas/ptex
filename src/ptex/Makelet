@@ -15,6 +15,7 @@ my $libinputs = ['PtexCache.cpp',
 # can't set -pedantic by default b/c ItImage.h won't compile
 # and there's no flags- to skip it just on the affected sources
 #setLocalDefaults( 'CPP', 'flags+', { 'all', ['-Wall -pedantic'] } );
+#setLocalDefaults( 'CPP', 'flags+', { 'all', ['-Weffc++'] } );
 
 # manually add extra warnings to all lib sources
 for (@$libinputs) { $_ = CPP(input=>$_, 'flags+' => '-Wall -pedantic'); }
@@ -39,6 +40,13 @@ my $utils = VirtualTarget( name =>'utils', input=> $ptxinfo);
 my $wtest = Exe(name => 'wtest', input => 'wtest.cpp', libs => [$Ptex_so->installed()]);
 my $rtest = Exe(name => 'rtest', input => 'rtest.cpp', libs => [$Ptex_so->installed()]);
 my $ftest = Exe(name => 'ftest', input => 'ftest.cpp', libs => [$Ptex_so->installed()]);
+
+my $numberfaces = SharedLib(name => 'NumberFaces.so', input=> 'NumberFaces.cpp',
+			    'incDirs+' => [ "$ENV{RMANTREE}/include" ]);
+my $shadeop = SharedLib(name => 'ptextureShadeop.so', input=> 'ptextureShadeop.cpp',
+			'incDirs+' => [ "$ENV{RMANTREE}/include" ],
+			libs => [$Ptex_so->installed()]);
+
 my $tests = VirtualTarget( name =>'tests', input=>[ $wtest, $rtest, $ftest ]);
 
 my $htmls = HTMLdocs(input => ['PtexFile.html'],
@@ -51,9 +59,11 @@ Install(name=>'installhdr',input=>[$headers]);
 
 my $flavor = Kida::Exposed::getGlobalVariable('Flavor');
 my $installs = [ $Ptex_a, $Ptex_so, $utils, $htmls];
-if ($flavor =~ /debug/i) {
+if ($flavor =~ /(debug|insure)/i) {
   push(@$installs, $tests);
   push(@$installs, $ptxmake);
+#  push(@$installs, $numberfaces);
+#  push(@$installs, $shadeop);
 }
 
 Install(name=>'install',input=> $installs);

@@ -83,8 +83,15 @@ PtexReader::PtexReader(void** parent, PtexCacheImpl* cache)
 PtexReader::~PtexReader()
 {
     if (_fp) fclose(_fp);
+    
+    // we can free the const data directly since we own it (it doesn't go through the cache)
     if (_constdata) free(_constdata);
+
+    // the rest must be orphaned since there may still be references outstanding
     orphanList(_levels);
+    for (ReductionMap::iterator i = _reductions.begin(); i != _reductions.end(); i++)
+	i->second->orphan();
+
     inflateEnd(&_zstream);
 }
 
@@ -264,6 +271,11 @@ bool PtexReader::readBlock(void* data, int size)
     int result = fread(data, size, 1, _fp);
     if (result == 1) {
 	_pos += size;
+
+#ifdef GATHER_STATS
+	stats.nblocksRead++;
+	stats.nbytesRead += size;
+#endif
 	return 1;
     }
     setError("PtexReader error: read failed (EOF)");

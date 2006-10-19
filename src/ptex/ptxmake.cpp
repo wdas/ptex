@@ -350,10 +350,10 @@ int main(int argc, char** argv)
 	} 
 	
 	// convert uvs to integer extent
-	int x = int(floor(u[0] * imgw));
-	int w = int(ceil(u[1] * imgw)) - x;
-	int y = int(floor(v[0] * imgh));
-	int h = int(ceil(v[3] * imgh)) - y;
+	int x = int(floor(u[0] * imgw + .5));
+	int w = int(ceil(u[1] * imgw - .5)) - x;
+	int y = int(floor(v[0] * imgh + .5));
+	int h = int(ceil(v[3] * imgh - .5)) - y;
 
 	// make sure it's a power of two
 	if (!PtexUtils::isPowerOfTwo(w) || !PtexUtils::isPowerOfTwo(h))

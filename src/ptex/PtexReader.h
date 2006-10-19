@@ -52,6 +52,8 @@ public:
     DataType datatype() const { return _header.datatype; }
     int nchannels() const { return _header.nchannels; }
     int pixelsize() const { return _pixelsize; }
+    const Header& header() const { return _header; }
+    const LevelInfo& levelinfo(int level) const { return _levelinfo[level]; }
 
     class MetaData : public PtexCachedData, public PtexMetaData {
     public:
@@ -201,7 +203,7 @@ public:
 	}
 	virtual void* getPixel(float u, float v)
 	{
-	    return PackedFace::getPixel(u*index(u, _res.u()), v*index(v, _res.v()));
+	    return PackedFace::getPixel(index(u, _res.u()),index(v, _res.v()));
 	}
 	virtual void* getData() { return _data; };
 	virtual bool isTiled() { return false; }
@@ -249,7 +251,7 @@ public:
 
 	virtual void* getPixel(float u, float v)
 	{
-	    return TiledFaceBase::getPixel(u*index(u, _res.u()), v*index(v, _res.v()));
+	    return TiledFaceBase::getPixel(index(u, _res.u()),index(v, _res.v()));
 	}
 	virtual void* getData() { return 0; }
 	virtual bool isTiled() { return true; }
@@ -472,7 +474,8 @@ protected:
 	    }
 	};
     };
-    DGHashMap<ReductionKey, FaceData*, ReductionKey::Hasher> _reductions;
+    typedef DGHashMap<ReductionKey, FaceData*, ReductionKey::Hasher> ReductionMap;
+    ReductionMap _reductions;
 
     z_stream_s _zstream;
 };

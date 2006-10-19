@@ -2,6 +2,16 @@
 #include "PtexFilterKernel.h"
 #include "PtexHalf.h"
 
+/* Kernel iterator
+
+   Allows moving through the kernel while moving through the data
+   following the in-memory order of the data.  Since the kernel may be
+   rotated with respect to the data, the iterator allows moving
+   through the kernel in arbitrary order which is accomplished by
+   having both a ustride and a vstride, either of which may be
+   positive or negative.
+*/
+
 struct PtexFilterKernel::Iter : public Ptex {
     const PtexFilterContext& ctx;
 
@@ -21,10 +31,9 @@ struct PtexFilterKernel::Iter : public Ptex {
     {
 	int resu = k.res.u(), resv = k.res.v();
 	switch (rotate) {
-	case 0:
+	case 0: // no rotation
 	    ustride = 1;
 	    vstride = k.stride;
-	    rowskip = k.stride - k.uw;
 	    pos = k.start;
 	    rowend = pos + k.uw;
 	    end = pos + vstride * k.vw;
@@ -35,36 +44,34 @@ struct PtexFilterKernel::Iter : public Ptex {
 	case 1: // rotate kernel 90 deg cw relative to data
 	    ustride = -k.stride;
 	    vstride = 1;
-	    rowskip = k.stride * k.vw + 1;
 	    pos = k.start + k.stride * (k.vw-1);
 	    rowend = k.start - k.stride;
 	    end = pos + k.uw;
-	    dstart = (resu - k.uw - k.u) * resv + k.v;
+	    dstart = k.u * resv + (resv - k.vw - k.v);
 	    drowskip = resv - k.vw;
 	    break;
 		
 	case 2: // rotate kernel 180 deg cw relative to data
 	    ustride = -1;
 	    vstride = -k.stride;
-	    rowskip = k.uw - k.stride;
 	    pos = k.start + k.stride * (k.vw-1) + k.uw-1;
 	    rowend = pos - k.uw;
 	    end = pos + vstride * k.vw;
 	    dstart = (resv - k.vw - k.v) * resu + (resu - k.uw - k.u);
-	    drowskip = resu = k.uw;
+	    drowskip = resu - k.uw;
 	    break;
 		
 	case 3: // rotate kernel 90 deg ccw relative to data
 	    ustride = k.stride;
 	    vstride = -1;
-	    rowskip = -k.stride * k.vw - 1;
-	    pos = k.start + k.stride * (k.vw-1);
-	    rowend = k.start - k.stride;
-	    end = pos + k.uw;
-	    dstart = (resv - k.vw - k.v) * resu + k.u;
+	    pos = k.start + k.uw-1;
+	    rowend = pos + k.vw * k.stride;
+	    end = pos - k.uw;
+	    dstart = (resu - k.uw - k.u) * resv + k.v;
 	    drowskip = resv - k.vw;
 	    break;
 	}
+	rowskip = pos - rowend + vstride;
 	dstart = dstart * c.ntxchannels + c.firstchan;
 	drowskip *= c.ntxchannels;
     }
@@ -96,10 +103,8 @@ struct PtexFilterKernel::TileIter : public Ptex
     int index;			// current tile index
     PtexFilterKernel tile;	// kernel current tile
 
-    //    TileIter(const PtexFilterKernel& k, int rotate, Res tileres)
-    TileIter(const PtexFilterKernel&, int, Res)
+    TileIter(const PtexFilterKernel& k, int rotate, Res tileres)
     {
-	// TODO
 	index = 0;
 	tile.set(0,0,0,0,0,0,0);
     }
@@ -310,7 +315,7 @@ namespace {
 
 void PtexFilterKernel::apply(int faceid, int rotate, const PtexFilterContext& c) const
 {
-    PtexFaceData* dh = c.tx->getData(faceid, rotate & 1 ? res : res.swappeduv());
+    PtexFaceData* dh = c.tx->getData(faceid, rotate & 1 ? res.swappeduv() : res);
     if (!dh) return;
 
     if (dh->isConstant()) {

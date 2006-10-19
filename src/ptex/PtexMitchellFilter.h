@@ -24,7 +24,7 @@ class PtexMitchellFilter : public PtexFilter, public Ptex
 	bool blend;		// face needs blending due to insufficient res.
 	int id;			// faceid
 	int rotate;		// nsteps ccw face must be rotated to align w/ main
-	Res res;		// resolution to filter face at
+	Res res;		// resolution to filter face at (unrotated)
 	operator bool() { return valid; }
 	Face() : valid(0), blend(0) {}
 	void set(int faceid, Res resval, int rotateval=0)
@@ -34,15 +34,16 @@ class PtexMitchellFilter : public PtexFilter, public Ptex
 	    id = faceid;
 	    res = resval;
 	    rotate = rotateval&3;
-	    // odd rotations require u/v swap
+	    // swap u and v res if rotation is odd
 	    if (rotateval&1) res.swapuv();
 	}
 	void clampres(Res resval)
 	{
-	    // clamp res to resval
-	    res.clamp(resval);
-	    // blend if res is not at least as high as resval
-	    if (!(res >= resval)) blend = 1;
+	    // clamp res to resval and set blend flag if < resval
+	    if (res.ulog2 > resval.ulog2) res.ulog2 = resval.ulog2;
+	    else if (res.ulog2 < resval.ulog2) blend = 1;
+	    if (res.vlog2 > resval.vlog2) res.vlog2 = resval.vlog2;
+	    else if (res.vlog2 < resval.vlog2) blend = 1;
 	}
 	void clear() { valid=0; blend=0; }
     };
