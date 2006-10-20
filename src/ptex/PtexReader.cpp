@@ -91,7 +91,8 @@ PtexReader::~PtexReader()
     orphanList(_levels);
     for (ReductionMap::iterator i = _reductions.begin(); i != _reductions.end(); i++)
 	i->second->orphan();
-
+    if (_metadata) _metadata->orphan();
+    
     inflateEnd(&_zstream);
 }
 
@@ -150,8 +151,9 @@ void PtexReader::readConstData()
     if (!_constdata) {
 	// read compressed constant data block
 	seek(_constdatapos);
-	_constdata = (uint8_t*) malloc(_pixelsize * _header.nfaces);
-	readZipBlock(_constdata, _header.constdatasize, _pixelsize * _header.nfaces);
+	int size = _pixelsize * _header.nfaces;
+	_constdata = (uint8_t*) malloc(size);
+	readZipBlock(_constdata, _header.constdatasize, size);
     }
 }
 
