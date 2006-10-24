@@ -16,13 +16,20 @@ namespace PtexInternal {
 using namespace PtexInternal;
 
 #ifndef NDEBUG
+#include <assert.h>
 template<typename T> class safevector : public std::vector<T>
 {
 public:
     safevector() : std::vector<T>() {}
     safevector(size_t n, const T& val = T()) : std::vector<T>(n, val) {}
-    const T& operator[] (size_t n) const { return std::vector<T>::at(n); }
-    T& operator[] (size_t n) { return std::vector<T>::at(n); }
+    const T& operator[] (size_t n) const {
+	assert(n >= 0 && n < std::vector<T>::size());
+	return std::vector<T>::operator[](n); 
+    }
+    T& operator[] (size_t n) {
+	assert(n >= 0 && n < std::vector<T>::size());
+	return std::vector<T>::operator[](n); 
+    }
 };
 #else
 #define safevector std::vector
@@ -360,7 +367,7 @@ protected:
 	_ok = 0;
     }
 
-    off_t tell() { return (_pos = ftello(_fp)); }
+    off_t tell() { return _pos; }
     void seek(off_t pos) 
     {
 	if (pos != _pos) {
@@ -390,10 +397,10 @@ protected:
     }
 
     uint8_t* getConstData() { if (!_constdata) readConstData(); return _constdata; }
-    FaceData* getFace(Level* level, int faceid, Res res)
+    FaceData* getFace(int levelid, Level* level, int faceid)
     {
 	FaceData*& face = level->faces[faceid];
-	if (!face) readFace(level->offsets[faceid], level->fdh[faceid], res, face);
+	if (!face) readFace(levelid, level, faceid);
 	else face->ref();
 	return face;
     }
@@ -402,6 +409,7 @@ protected:
     void readLevelInfo();
     void readConstData();
     void readLevel(int levelid, Level*& level);
+    void readFace(int levelid, Level* level, int faceid);
     void readFace(off_t pos, const FaceDataHeader& fdh, Res res, FaceData*& face);
     void readMetaData();
     void readMetaDataBlock(off_t pos, int zipsize, int memsize);
@@ -421,28 +429,29 @@ protected:
 	return index;
     }
 
-    bool _ok;
-    std::string _error;
-    FILE* _fp;
-    off_t _pos;
-    std::string _path;
-    Header _header;
-    off_t _extheaderpos;
-    off_t _faceinfopos;
+    bool _ok;			      // flag set if read error occurred)
+    std::string _error;		      // error string (if !_ok)
+    FILE* _fp;			      // file pointer
+    off_t _pos;			      // current seek position
+    std::string _path;		      // current file path
+    Header _header;		      // the header
+    off_t _extheaderpos;	      // file positions of data sections
+    off_t _faceinfopos;		      // ...
     off_t _constdatapos;
     off_t _levelinfopos;
     off_t _leveldatapos;
     off_t _metadatapos;
     off_t _editdatapos;
-    int _pixelsize;
-    uint8_t* _constdata;
-    MetaData* _metadata;
+    int _pixelsize;		      // size of a pixel in bytes
+    uint8_t* _constdata;	      // constant pixel value per face
+    MetaData* _metadata;	      // meta data (read on demand)
 
-    safevector<FaceInfo> _faceinfo;
-    safevector<uint32_t> _rfaceids;
-    safevector<LevelInfo> _levelinfo;
-    safevector<off_t> _levelpos;
-    safevector<Level*> _levels;
+    safevector<FaceInfo> _faceinfo;   // per-face header info
+    safevector<uint32_t> _rfaceids;   // faceids sorted in reduction order
+    safevector<Res> _res_r;	      // face res indexed by rfaceid
+    safevector<LevelInfo> _levelinfo; // per-level header info
+    safevector<off_t> _levelpos;      // file position of each level's data
+    safevector<Level*> _levels;	      // level data (read on demand)
 
     struct MetaEdit
     {

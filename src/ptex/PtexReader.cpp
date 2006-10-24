@@ -114,15 +114,21 @@ void PtexReader::readFaceInfo()
     if (_faceinfo.empty()) {
 	// read compressed face info block
 	seek(_faceinfopos);
-	_faceinfo.resize(_header.nfaces);
+	int nfaces = _header.nfaces;
+	_faceinfo.resize(nfaces);
 	readZipBlock(&_faceinfo[0], _header.faceinfosize, 
-		     sizeof(FaceInfo)*_header.nfaces);
+		     sizeof(FaceInfo)*nfaces);
 
 	// generate rfaceids
-	_rfaceids.resize(_header.nfaces);
-	std::vector<uint32_t> faceids_r(_header.nfaces);
-	PtexUtils::genRfaceids(&_faceinfo[0], _header.nfaces,
+	_rfaceids.resize(nfaces);
+	std::vector<uint32_t> faceids_r(nfaces);
+	PtexUtils::genRfaceids(&_faceinfo[0], nfaces,
 			       &_rfaceids[0], &faceids_r[0]);
+
+	// store face res values indexed by rfaceid
+	_res_r.resize(nfaces);
+	for (int i = 0; i < nfaces; i++)
+	    _res_r[i] = _faceinfo[faceids_r[i]].res;
     }
 }
 
@@ -333,6 +339,56 @@ void PtexReader::readLevel(int levelid, Level*& level)
 }
 
 
+void PtexReader::readFace(int levelid, Level* level, int faceid)
+{
+    // Read a face from the given level and also read nearby faces (up
+    // to BlockSize).  The goal is to read as many consecutive faces
+    // as possible to take advantage of read-ahead buffering and also
+    // minimize seeking.
+    int totalsize = level->fdh[faceid].blocksize;
+    int nfaces = level->fdh.size();
+
+    // scan backwards, then forwards looking for unread faces (up to BlockSize)
+    int first = faceid, last = faceid;
+    while (1) {
+	int f = first-1;
+	if (f < 0 || level->faces[f]) break;
+	int size = totalsize + level->fdh[f].blocksize;
+	if (size > BlockSize) break;
+	first = f;
+	totalsize = size;
+    }
+    while (1) {
+	int f = last+1;
+	if (f >= nfaces || level->faces[f]) break;
+	int size = totalsize + level->fdh[f].blocksize;
+	if (size > BlockSize) break;
+	last = f;
+	totalsize = size;
+    }
+
+    // read all faces in range
+    for (int i = first; i <= last; i++) {
+	Res res;
+	if (levelid == 0) res = _faceinfo[i].res;
+	else {
+	    // for reduction level, look up res via rfaceid
+	    // and adjust for number of reductions
+	    res = _res_r[i];
+	    res.ulog2 -= levelid;
+	    res.vlog2 -= levelid;
+	}
+	const FaceDataHeader& fdh = level->fdh[i];
+	// skip face if size is zero (which is true if face is constant)
+	if (fdh.blocksize) {
+	    FaceData*& face = level->faces[i];
+	    readFace(level->offsets[i], fdh, res, face);
+	    if (i != faceid) face->unref();
+	}
+    }
+}
+
+
 void PtexReader::readFace(off_t pos, const FaceDataHeader& fdh, Res res,
 			  FaceData*& face)
 {
@@ -445,7 +501,7 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
     if (redu == 0 && redv == 0) {
 	// no reduction - get level zero (full) res face
 	Level* level = getLevel(0);
-	FaceData* face = getFace(level, faceid, res);
+	FaceData* face = getFace(0, level, faceid);
 	level->unref();
 	return face;
     }
@@ -461,7 +517,7 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 	    // get the face data (if present)
 	    FaceData* face = 0;
 	    if (size_t(rfaceid) < level->faces.size())
-		face = getFace(level, rfaceid, res);
+		face = getFace(levelid, level, rfaceid);
 	    level->unref();
 	    if (face) return face;
 	}
