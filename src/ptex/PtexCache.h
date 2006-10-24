@@ -27,6 +27,7 @@ namespace PtexInternal {
 	      nbytesRead(0) {}
 
 	~CacheStats();
+	void print();
     };
     extern CacheStats stats;
 #endif
@@ -131,7 +132,7 @@ public:
 	  _maxData(maxMem), _dataSize(0)
     {}
 
-    virtual void release() { unref(); purgeAll(); }
+    virtual void release() { purgeAll(); unref(); }
 
 protected:
     ~PtexCacheImpl() {}
@@ -206,10 +207,12 @@ public:
     PtexCachedData(void** parent, PtexCacheImpl* cache, int size)
 	: PtexLruItem(parent), _cache(cache), _refcount(1), _size(size)
     { _cache->addData(size); }
-    void ref() { if (!_refcount++) _cache->setDataInUse(this); }
-    void unref() { if (!--_refcount) _cache->setDataUnused(this); }
+    void ref() { if (!_refcount++) setInUse(); }
+    void unref() { if (!--_refcount) setUnused(); }
     void touch() { if (!inuse()) _cache->touchData(this); }
 protected:
+    virtual void setInUse() { _cache->setDataInUse(this); }
+    virtual void setUnused() { _cache->setDataUnused(this); }
     virtual ~PtexCachedData() { _cache->removeData(_size); }
     PtexCacheImpl* _cache;
 private:

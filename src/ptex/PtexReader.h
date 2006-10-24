@@ -301,6 +301,9 @@ public:
 	}
 
     protected:
+	virtual void setInUse() { _reader->ref(); TiledFaceBase::setInUse(); }
+	virtual void setUnused() { _reader->unref(); TiledFaceBase::setUnused(); }
+
 	friend class PtexReader;
 	virtual ~TiledFace() { _reader->unref(); }
 	PtexReader* _reader;

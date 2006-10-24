@@ -1,4 +1,3 @@
-#include <assert.h> // todo - remove asserts
 #include <math.h>
 #include "PtexMitchellFilter.h"
 #include "PtexUtils.h"
@@ -332,7 +331,10 @@ void PtexMitchellFilter::evalFaces(Res res, double weight, float uw, float vw)
     int v1 = int(ceil(v - 2*vw)), v2 = int(ceil(v + 2*vw));
 
     int kuw = u2-u1, kvw = v2-v1;
-    assert(kuw <= 8 && kvw <= 8);
+    if (kuw > 8 || kvw > 8) {
+	// shouldn't happen - but just in case...
+	return;
+    }
 
     // compute kernel weights along u and v directions
     double* ukernel = (double*)alloca(kuw * sizeof(double));
@@ -342,12 +344,10 @@ void PtexMitchellFilter::evalFaces(Res res, double weight, float uw, float vw)
     double scale = weight;
 
     // skip zero entries (will save a lot of work later)
-#if 1
     while (!ukernel[0])     { ukernel++; u1++; kuw--; }
     while (!ukernel[kuw-1]) { kuw--; }
     while (!vkernel[0])     { vkernel++; v1++; kvw--; }
     while (!vkernel[kvw-1]) { kvw--; }
-#endif
 
     double sumu = 0; for (int i = 0; i < kuw; i++) sumu += ukernel[i];
     double sumv = 0; for (int i = 0; i < kvw; i++) sumv += vkernel[i];
@@ -370,7 +370,7 @@ void PtexMitchellFilter::evalFaces(Res res, double weight, float uw, float vw)
 	// merge kernel parts back in for missing/insufficient-res faces
 	if (kc && (!_cface || !(_cface.res >= res))) {
 	    // merge corner into an edge, preferably an existing one
-	    // todo - if both edges exist - then merge half into each edge?
+	    // (if both edges exist, we could merge half into each edge. is it worth it?)
 	    if (kv && _uface) 
 		// merge corner into ku across v edge
 		ku.merge(kc, kv.eidval(), _extrapolate);

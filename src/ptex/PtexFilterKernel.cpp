@@ -25,7 +25,6 @@ struct PtexFilterKernel::Iter : public Ptex {
     int dstart;			// offset to start of data
     int drowskip;		// amount of data to skip at end of row
 
-    
     Iter(const PtexFilterKernel& k, int rotate, const PtexFilterContext& c)
 	: ctx(c)
     {
@@ -100,19 +99,78 @@ struct PtexFilterKernel::Iter : public Ptex {
 
 struct PtexFilterKernel::TileIter : public Ptex
 {
-    int index;			// current tile index
-    PtexFilterKernel tile;	// kernel current tile
+    PtexFilterKernel kernels[4];  // kernel split over tiles
+    int tiles[4];		  // tiles covered by kernel
+    int ntiles;			  // number of tiles
+    int index;			  // current index
 
     TileIter(const PtexFilterKernel& k, int rotate, Res tileres)
+	: index(0)
     {
-	index = 0;
-	tile.set(0,0,0,0,0,0,0);
+	// find first tile (ignoring rotation for now)
+	int tileu = k.u >> tileres.ulog2; 
+	int tilev = k.v >> tileres.vlog2;
+	int ntilesu = k.res.ntilesu(tileres);
+	int ntilesv = k.res.ntilesv(tileres);
+
+	// find updated u, v within first tile
+	int u = k.u - tileu * tileres.u();
+	int v = k.v - tilev * tileres.v();
+
+	// set primary kernel entry and tile offsets
+	kernels[0].set(tileres, u, v, k.uw, k.vw, k.start, k.stride);
+	int tilesu[4], tilesv[4];
+	tilesu[0] = tileu; tilesv[0] = tilev;
+	ntiles = 1;
+
+	// split kernel across tile boundaries into (up to) 4 pieces
+	PtexFilterKernel ku, kv, kc;
+	kernels[0].split(ku, kv, kc);
+	if (ku) {
+	    kernels[ntiles] = ku;
+	    tilesu[ntiles] = tileu + 1;
+	    tilesv[ntiles] = tilev;
+	    ntiles++;
+	}
+	if (kv) {
+	    kernels[ntiles] = kv;
+	    tilesu[ntiles] = tileu;
+	    tilesv[ntiles] = tilev + 1;
+	    ntiles++;
+	}
+	if (kc) {
+	    kernels[ntiles] = kc;
+	    tilesu[ntiles] = tileu + 1;
+	    tilesv[ntiles] = tilev + 1;
+	    ntiles++;
+	}
+
+	// calculate (rotated) tile indices
+	switch (rotate) {
+	default:
+	case 0: // no rotation
+	    for (int i = 0; i < ntiles; i++)
+		tiles[i] = tilesv[i] * ntilesu + tilesu[i];
+	    break;
+	case 1: // rotate kernel 90 deg cw relative to data
+	    for (int i = 0; i < ntiles; i++)
+		tiles[i] = tilesu[i] * ntilesv + (ntilesv - 1 - tilesv[i]);
+	    break;
+	case 2: // rotate kernel 180 deg cw relative to data
+	    for (int i = 0; i < ntiles; i++)
+		tiles[i] = (ntilesv - 1 - tilesv[i]) * ntilesu
+		    + (ntilesu - 1 - tilesu[i]);
+	    break;
+	case 3: // rotate kernel 90 deg ccw relative to data
+	    for (int i = 0; i < ntiles; i++)
+		tiles[i] = (ntilesu - 1 - tilesu[i]) * ntilesv + tilesv[i];
+	    break;
+	}
     }
 
-    bool next()
-    {
-	return 0;
-    }
+    int tile() { return tiles[index]; }
+    const PtexFilterKernel& kernel() { return kernels[index]; }
+    bool next() { return ++index < ntiles; }
 };
 
 
@@ -315,23 +373,25 @@ namespace {
 
 void PtexFilterKernel::apply(int faceid, int rotate, const PtexFilterContext& c) const
 {
-    PtexFaceData* dh = c.tx->getData(faceid, rotate & 1 ? res.swappeduv() : res);
+    PtexFaceData* dh = c.tx->getData(faceid, (rotate & 1) ? res.swappeduv() : res);
     if (!dh) return;
 
     if (dh->isConstant()) {
 	ApplyConst(dh->getData(), c, totalWeight());
     }
     else if (dh->isTiled()) {
-	TileIter tileiter(*this, rotate, dh->tileRes());
+	Res tres = dh->tileRes();
+	TileIter tileiter(*this, rotate, (rotate & 1) ? tres.swappeduv() : tres);
 	do {
-	    PtexFaceData* th = dh->getTile(tileiter.index);
+	    PtexFaceData* th = dh->getTile(tileiter.tile());
 	    if (th->isConstant()) {
 		ApplyConst(th->getData(), c, totalWeight());
 	    }
 	    else {
-		Iter iter(tileiter.tile, rotate, c);
+		Iter iter(tileiter.kernel(), rotate, c);
 		Apply(th->getData(), iter);
 	    }
+	    th->release();
 	} while (tileiter.next());
     }
     else {

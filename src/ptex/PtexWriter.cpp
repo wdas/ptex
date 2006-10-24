@@ -46,10 +46,9 @@ PtexWriter* PtexWriter::edit(const char* path, bool incremental,
 			alphachan == r->alphaChannel() &&
 			nfaces == r->numFaces());
     if (!headerMatch) {
-	// TODO - convert existing data to new format if mismatched
 	std::stringstream str;
 	str << "PtexWriter::edit error: header doesn't match existing file: " << path;
-	str << "  Conversions not yet supported." << path;
+	str << "  Conversions not currently supported." << path;
 	error = str.str();
 	r->release();
 	return 0;

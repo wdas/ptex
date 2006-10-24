@@ -89,8 +89,10 @@ PtexReader::~PtexReader()
 
     // the rest must be orphaned since there may still be references outstanding
     orphanList(_levels);
-    for (ReductionMap::iterator i = _reductions.begin(); i != _reductions.end(); i++)
-	i->second->orphan();
+    for (ReductionMap::iterator i = _reductions.begin(); i != _reductions.end(); i++) {
+	FaceData* f = i->second;
+	if (f) f->orphan();
+    }
     if (_metadata) _metadata->orphan();
     
     inflateEnd(&_zstream);

@@ -54,13 +54,19 @@
    owner allowed), and each object holds a ref (maintained internally).
  */
 
+#include <stdlib.h>
 #include "Ptexture.h"
 #include "PtexReader.h"
 #include "PtexCache.h"
 
 #ifdef GATHER_STATS
 namespace PtexInternal {
-    CacheStats::~CacheStats()
+    CacheStats::~CacheStats() { 
+	if (getenv("PTEX_STATS"))
+	    print(); 
+    }
+    
+    void CacheStats::print()
     {
 	if (nfilesOpened || ndataAllocated || nblocksRead) {
 	    printf("Ptex Stats:\n");
