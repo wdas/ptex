@@ -17,6 +17,7 @@ namespace PtexInternal {
 	int ndataFreed;
 	int nblocksRead;
 	long int nbytesRead;
+	int nseeks;
 
 	CacheStats()
 	    : nfilesOpened(0),
@@ -24,7 +25,8 @@ namespace PtexInternal {
 	      ndataAllocated(0),
 	      ndataFreed(0),
 	      nblocksRead(0),
-	      nbytesRead(0) {}
+	      nbytesRead(0),
+	      nseeks(0)	{}
 
 	~CacheStats();
 	void print();
@@ -100,18 +102,6 @@ public:
 	}
     }
 
-    void touch(PtexLruItem* node)
-    {
-	// extract
-	node->_prev->_next = node->_next;
-	node->_next->_prev = node->_prev;
-	// add to end of list
-	node->_next = &_end;
-	node->_prev = _end._prev;
-	_end._prev->_next = node;
-	_end._prev = node;
-    }
-
     bool pop()
     {
 	if (_end._next == &_end) return 0;
@@ -128,9 +118,20 @@ class PtexCacheImpl : public PtexCache {
 public:
     PtexCacheImpl(int maxFiles, int maxMem)
 	: _refcount(1), 
-	  _maxFiles(maxFiles), _fileCount(0),
-	  _maxData(maxMem), _dataSize(0)
-    {}
+	  _maxFiles(maxFiles), _unusedFileCount(0),
+	  _maxDataSize(maxMem),
+	  _unusedDataSize(0), _unusedDataCount(0)
+    {
+	/* Allow for a minimum number of data blocks so cache doesn't
+	   thrash too much if there are any really big items in the
+	   cache pushing over the limit. It's better to go over the
+	   limit in this case and make sure there's room for at least
+	   a modest number of objects in the cache.
+	*/
+
+	// try to allow for at least 10 objects per file (up to 100 files)
+	_minDataCount = 10 * (maxFiles < 100 ? maxFiles : 100);
+    }
 
     virtual void release() { purgeAll(); unref(); }
 
@@ -139,16 +140,19 @@ protected:
 
     friend class PtexCachedFile;
     void addFile() {
-	ref(); _fileCount++; purgeFiles();
+	ref(); purgeFiles();
 #ifdef GATHER_STATS
 	stats.nfilesOpened++;
 #endif
     }
-    void setFileInUse(PtexLruItem* file) { ref(); _unusedFiles.extract(file); }
+    void setFileInUse(PtexLruItem* file) { 
+	ref(); 
+	_unusedFiles.extract(file); 
+	_unusedFileCount--;
+    }
     void setFileUnused(PtexLruItem* file);
-    void touchFile(PtexLruItem* file) { _unusedFiles.touch(file); }
     void removeFile() { 
-	_fileCount--; 
+	_unusedFileCount--;
 #ifdef GATHER_STATS
 	stats.nfilesClosed++;
 #endif
@@ -156,16 +160,21 @@ protected:
 
     friend class PtexCachedData;
     void addData(int size) {
-	ref(); _dataSize += size; purgeData(); 
+	ref(); purgeData(); 
 #ifdef GATHER_STATS
 	stats.ndataAllocated++;
 #endif
     }
-    void setDataInUse(PtexLruItem* data) { ref(); _unusedData.extract(data); }
-    void setDataUnused(PtexLruItem* data);
-    void touchData(PtexLruItem* data) { _unusedData.touch(data); }
+    void setDataInUse(PtexLruItem* data, int size) {
+	ref();
+	_unusedData.extract(data); 
+	_unusedDataCount--;
+	_unusedDataSize -= size;
+    }
+    void setDataUnused(PtexLruItem* data, int size);
     void removeData(int size) {
-	_dataSize -= size;
+	_unusedDataCount --;
+	_unusedDataSize -= size;
 #ifdef GATHER_STATS
 	stats.ndataFreed++;
 #endif
@@ -174,13 +183,25 @@ protected:
 protected:
     void ref() { _refcount++; }
     void unref() { if (!--_refcount) delete this; }
-    void purgeFiles() { while (_fileCount > _maxFiles && _unusedFiles.pop()); }
-    void purgeData() { while (_dataSize > _maxData && _unusedData.pop()); }
+    void purgeFiles() {
+	while (_unusedFileCount > _maxFiles && _unusedFiles.pop()) {
+	    // destructor will call removeFile which will decrement count
+	}
+    }
+    void purgeData() {
+	while ((_unusedDataSize > _maxDataSize) &&
+	       (_unusedDataCount > _minDataCount) &&
+	       _unusedData.pop()) 
+	{
+	    // destructor will call removeData which will decrement size and count
+	}
+    }
 
-    int _refcount;
-    int _maxFiles, _fileCount;
-    long int _maxData, _dataSize;
-    PtexLruList _unusedFiles, _unusedData;
+    int _refcount;		             // refs: owner (1) + in-use items
+    int _maxFiles, _unusedFileCount;	     // file limit, current unused file count
+    long int _maxDataSize, _unusedDataSize;  // data limit (bytes), current size
+    int _minDataCount, _unusedDataCount;     // min, current # of unused data blocks
+    PtexLruList _unusedFiles, _unusedData;   // lists of unused items
 };
 
 
@@ -192,7 +213,6 @@ public:
     { _cache->addFile(); }
     void ref() { if (!_refcount++) _cache->setFileInUse(this); }
     void unref() { if (!--_refcount) _cache->setFileUnused(this); }
-    void touch() { if (!inuse()) _cache->touchFile(this); }
 protected:
     virtual ~PtexCachedFile() { _cache->removeFile(); }
     PtexCacheImpl* _cache;
@@ -209,10 +229,9 @@ public:
     { _cache->addData(size); }
     void ref() { if (!_refcount++) setInUse(); }
     void unref() { if (!--_refcount) setUnused(); }
-    void touch() { if (!inuse()) _cache->touchData(this); }
 protected:
-    virtual void setInUse() { _cache->setDataInUse(this); }
-    virtual void setUnused() { _cache->setDataUnused(this); }
+    virtual void setInUse() { _cache->setDataInUse(this, _size); }
+    virtual void setUnused() { _cache->setDataUnused(this, _size); }
     virtual ~PtexCachedData() { _cache->removeData(_size); }
     PtexCacheImpl* _cache;
 private:

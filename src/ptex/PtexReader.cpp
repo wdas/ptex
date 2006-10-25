@@ -11,7 +11,9 @@
 PtexTexture* PtexTexture::open(const char* path, std::string& error)
 {
     PtexCache* cache = PtexCache::create(1, 1024*1024);
-    return cache->get(path, error);
+    PtexTexture* file = cache->get(path, error);
+    cache->release();
+    return file;
 }
 
 
@@ -341,55 +343,60 @@ void PtexReader::readLevel(int levelid, Level*& level)
 
 void PtexReader::readFace(int levelid, Level* level, int faceid)
 {
-    // Read a face from the given level and also read nearby faces (up
-    // to BlockSize).  The goal is to read as many consecutive faces
-    // as possible to take advantage of read-ahead buffering and also
-    // minimize seeking.
-    int totalsize = level->fdh[faceid].blocksize;
-    int nfaces = level->fdh.size();
+    // Read the given face and nearby faces if possible. The goal is
+    // to coalesce small faces into single runs of consecutive reads
+    // to minimize seeking and take advantage of read-ahead buffering.
 
-    // scan backwards, then forwards looking for unread faces (up to BlockSize)
+    // Try to read as many faces as will fit in BlockSize.  Use the
+    // in-memory size rather than the on-disk size to prevent flooding
+    // the memory cache.  And don't coalesce w/ tiled faces as these
+    // are meant to be read individually.
+
+    // scan both backwards and forwards looking for unread faces
     int first = faceid, last = faceid;
-    while (1) {
-	int f = first-1;
-	if (f < 0 || level->faces[f]) break;
-	int size = totalsize + level->fdh[f].blocksize;
-	if (size > BlockSize) break;
-	first = f;
-	totalsize = size;
-    }
-    while (1) {
-	int f = last+1;
-	if (f >= nfaces || level->faces[f]) break;
-	int size = totalsize + level->fdh[f].blocksize;
-	if (size > BlockSize) break;
-	last = f;
-	totalsize = size;
+    int totalsize = 0;
+
+    FaceDataHeader fdh = level->fdh[faceid];
+    if (fdh.encoding != enc_tiled) {
+	totalsize += unpackedSize(fdh, levelid, faceid);
+
+	int nfaces = level->fdh.size();
+	while (1) {
+	    int f = first-1;
+	    if (f < 0 || level->faces[f]) break;
+	    fdh = level->fdh[f];
+	    if (fdh.encoding == enc_tiled) break;
+	    int size = totalsize + unpackedSize(fdh, levelid, f);
+	    if (size > BlockSize) break;
+	    first = f;
+	    totalsize = size;
+	}
+	while (1) {
+	    int f = last+1;
+	    if (f >= nfaces || level->faces[f]) break;
+	    fdh = level->fdh[f];
+	    if (fdh.encoding == enc_tiled) break;
+	    int size = totalsize + unpackedSize(fdh, levelid, f);
+	    if (size > BlockSize) break;
+	    last = f;
+	    totalsize = size;
+	}
     }
 
     // read all faces in range
     for (int i = first; i <= last; i++) {
-	Res res;
-	if (levelid == 0) res = _faceinfo[i].res;
-	else {
-	    // for reduction level, look up res via rfaceid
-	    // and adjust for number of reductions
-	    res = _res_r[i];
-	    res.ulog2 -= levelid;
-	    res.vlog2 -= levelid;
-	}
-	const FaceDataHeader& fdh = level->fdh[i];
-	// skip face if size is zero (which is true if face is constant)
+	fdh = level->fdh[i];
+	// skip faces with zero size (which is true for level-0 constant faces)
 	if (fdh.blocksize) {
 	    FaceData*& face = level->faces[i];
-	    readFace(level->offsets[i], fdh, res, face);
+	    readFace(level->offsets[i], fdh, getRes(levelid, i), face);
 	    if (i != faceid) face->unref();
 	}
     }
 }
 
 
-void PtexReader::readFace(off_t pos, const FaceDataHeader& fdh, Res res,
+void PtexReader::readFace(off_t pos, FaceDataHeader fdh, Res res,
 			  FaceData*& face)
 {
     seek(pos);
@@ -442,7 +449,7 @@ void PtexReader::getData(int faceid, void* buffer, int stride)
     int rowlen = _pixelsize * resu;
     if (stride == 0) stride = rowlen;
     
-    PtexFaceData* d = getData(faceid, f.res);
+    PtexFaceData* d = getData(faceid);
     if (d->isConstant()) {
 	// fill dest buffer with pixel value
 	PtexUtils::fill(d->getData(), buffer, stride,
@@ -481,13 +488,30 @@ void PtexReader::getData(int faceid, void* buffer, int stride)
 }
 
 
+PtexFaceData* PtexReader::getData(int faceid)
+{
+    if (faceid < 0 || size_t(faceid) >= _header.nfaces) return 0;
+
+    FaceInfo& fi = _faceinfo[faceid];
+    if (fi.isConstant() || fi.res == 0) {
+	return new ConstDataPtr(getConstData() + faceid * _pixelsize, _pixelsize);
+    }
+
+    // get level zero (full) res face
+    Level* level = getLevel(0);
+    FaceData* face = getFace(0, level, faceid);
+    level->unref();
+    return face;
+}
+
+
 PtexFaceData* PtexReader::getData(int faceid, Res res)
 {
     if (faceid < 0 || size_t(faceid) >= _header.nfaces) return 0;
 
     FaceInfo& fi = _faceinfo[faceid];
     if (fi.isConstant() || res == 0) {
-	return new ConstDataPtr(getConstData() + faceid * _pixelsize);
+	return new ConstDataPtr(getConstData() + faceid * _pixelsize, _pixelsize);
     }
 
     // get precomputed reduction level (if possible)
@@ -549,6 +573,36 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 	if (psrc) psrc->release();
     }
     return face;
+}
+
+
+void PtexReader::getPixel(int faceid, int u, int v,
+			  float* result, int firstchan, int nchannels)
+{
+    memset(result, 0, nchannels);
+
+    // clip nchannels against actual number available
+    nchannels = PtexUtils::min(nchannels, 
+			       _header.nchannels-firstchan);
+    if (nchannels <= 0) return;
+
+    // get raw pixel data
+    PtexFaceData* data = getData(faceid);
+    if (!data) return;
+    void* pixel = alloca(_pixelsize);
+    data->getPixel(u, v, pixel);
+    data->release();
+
+    // adjust for firstchan offset
+    int datasize = DataSize(_header.datatype);
+    if (firstchan)
+	pixel = (char*) pixel + datasize * firstchan;
+    
+    // convert/copy to result as needed
+    if (_header.datatype == dt_float)
+	memcpy(result, pixel, datasize * nchannels);
+    else
+	ConvertToFloat(result, pixel, _header.datatype, nchannels);
 }
 
 
@@ -652,13 +706,14 @@ void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
 }
 
 
-void* PtexReader::TiledFaceBase::getPixel(int ui, int vi)
+void PtexReader::TiledFaceBase::getPixel(int ui, int vi, void* result)
 {
     int tileu = ui >> _tileres.ulog2;
     int tilev = vi >> _tileres.vlog2;
     PtexFaceData* tile = getTile(tilev * _ntilesu + tileu);
-    return tile->getPixel(ui - (tileu<<_tileres.ulog2),
-			  vi - (tilev<<_tileres.vlog2));
+    tile->getPixel(ui - (tileu<<_tileres.ulog2),
+		   vi - (tilev<<_tileres.vlog2), result);
+    tile->release();
 }
 
 

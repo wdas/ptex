@@ -23,12 +23,6 @@
    the single face data block.  For a tiled face, the file, the tiled
    face, and the current tile must all be ref'd.
 
-   * Touching an Object:
-   Objects that are used, even for an instant, should still be ref'ed
-   and unref'ed in order to keep the objects at the end of the lru
-   list.  A touch method is provided to do this efficiently in one
-   step.
-   
    * Parents, Children, and Orphans:
    Every object must be reachable by some other object, generally the
    object that created it, i.e. it's parent.  Even though the parent
@@ -75,8 +69,11 @@ namespace PtexInternal {
 	    printf("  ndataAllocated: %6d\n", ndataAllocated);
 	    printf("  ndataFreed:     %6d\n", ndataFreed);
 	    printf("  nblocksRead:    %6d\n", nblocksRead);
+	    printf("  nseeks:         %6d\n", nseeks);
 	    if (nblocksRead)
 		printf("  avgReadSize:    %6d\n", int(nbytesRead/nblocksRead));
+	    if (nseeks)
+		printf("  avgReadSeq:     %6d\n", int(nbytesRead/nseeks));
 	    printf("  MbytesRead:     %6.2f\n", nbytesRead/(1024.0*1024.0));
 	}
     }
@@ -88,14 +85,17 @@ namespace PtexInternal {
 void PtexCacheImpl::setFileUnused(PtexLruItem* file)
 {
     _unusedFiles.push(file);
+    _unusedFileCount++;
     purgeFiles();
     unref();
 }
 
 
-void PtexCacheImpl::setDataUnused(PtexLruItem* data)
+void PtexCacheImpl::setDataUnused(PtexLruItem* data, int size)
 {
     _unusedData.push(data);
+    _unusedDataCount++;
+    _unusedDataSize += size;
     purgeData();
     unref();
 }

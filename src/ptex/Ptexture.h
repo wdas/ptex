@@ -112,8 +112,7 @@ class PtexFaceData {
     virtual void release() = 0;
     virtual bool isConstant() = 0;
     virtual Ptex::Res res() = 0;
-    virtual void* getPixel(int uindex, int vindex) = 0;
-    virtual void* getPixel(float u, float v) = 0;
+    virtual void getPixel(int u, int v, void* result) = 0;
     virtual void* getData() = 0;
 
     virtual bool isTiled() = 0;
@@ -140,7 +139,9 @@ class PtexTexture {
     virtual void getData(int faceid, void* buffer, int stride) = 0;
     virtual PtexFaceData* getData(int faceid) = 0;
     virtual PtexFaceData* getData(int faceid, Ptex::Res res) = 0;
-
+    virtual void getPixel(int faceid, int u, int v,
+			  float* result, int firstchan, int nchannels) = 0;
+    
  protected:
     virtual ~PtexTexture() {}
 };

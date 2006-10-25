@@ -50,9 +50,10 @@ public:
     virtual PtexMetaData* getMetaData();
     virtual const Ptex::FaceInfo& getFaceInfo(int faceid);
     virtual void getData(int faceid, void* buffer, int stride);
-    virtual PtexFaceData* getData(int faceid)
-    { return PtexReader::getData(faceid, _faceinfo[faceid].res); }
+    virtual PtexFaceData* getData(int faceid);
     virtual PtexFaceData* getData(int faceid, Res res);
+    virtual void getPixel(int faceid, int u, int v,
+			  float* result, int firstchan, int nchannels);
 
     const char* path() const { return _path.c_str(); }
 
@@ -169,12 +170,13 @@ public:
 
     class ConstDataPtr : public PtexFaceData {
     public:
-	ConstDataPtr(void* data) : _data(data) {}
+	ConstDataPtr(void* data, int pixelsize) 
+	    : _data(data), _pixelsize(pixelsize) {}
 	virtual void release() { delete this; }
 	virtual Ptex::Res res() { return 0; }
 	virtual bool isConstant() { return true; }
-	virtual void* getPixel(int, int) { return _data; }
-	virtual void* getPixel(float, float) { return _data; }
+	virtual void getPixel(int, int, void* result)
+	{ memcpy(result, _data, _pixelsize); }
 	virtual void* getData() { return _data; }
 	virtual bool isTiled() { return false; }
 	virtual Ptex::Res tileRes() { return 0; }
@@ -182,6 +184,7 @@ public:
 
     protected:
 	void* _data;
+	int _pixelsize;
     };
 
 
@@ -204,13 +207,9 @@ public:
 	      _pixelsize(pixelsize), _data(malloc(size)) {}
 	void* data() { return _data; }
 	virtual bool isConstant() { return false; }
-	virtual void* getPixel(int uindex, int vindex)
+	virtual void getPixel(int u, int v, void* result)
 	{
-	    return (char*)_data + (vindex*_res.u() + uindex) * _pixelsize;
-	}
-	virtual void* getPixel(float u, float v)
-	{
-	    return PackedFace::getPixel(index(u, _res.u()),index(v, _res.v()));
+	    memcpy(result, (char*)_data + (v*_res.u() + u) * _pixelsize, _pixelsize);
 	}
 	virtual void* getData() { return _data; };
 	virtual bool isTiled() { return false; }
@@ -231,8 +230,7 @@ public:
 	ConstantFace(void** parent, PtexCacheImpl* cache, int pixelsize)
 	    : PackedFace(parent, cache, 0, pixelsize, pixelsize) {}
 	virtual bool isConstant() { return true; }
-	virtual void* getPixel(int, int) { return _data; }
-	virtual void* getPixel(float, float) { return _data; }
+	virtual void getPixel(int, int, void* result) { memcpy(result, _data, _pixelsize); }
 	virtual void reduce(FaceData*&, PtexReader*,
 			    Res newres, PtexUtils::ReduceFn);
     };
@@ -254,12 +252,7 @@ public:
 
 	virtual void release() { unref(); }
 	virtual bool isConstant() { return false; }
-	virtual void* getPixel(int uindex, int vindex);
-
-	virtual void* getPixel(float u, float v)
-	{
-	    return TiledFaceBase::getPixel(index(u, _res.u()),index(v, _res.v()));
-	}
+	virtual void getPixel(int u, int v, void* result);
 	virtual void* getData() { return 0; }
 	virtual bool isTiled() { return true; }
 	virtual Ptex::Res tileRes() { return _tileres; };
@@ -312,7 +305,6 @@ public:
 	virtual void setUnused() { _reader->unref(); TiledFaceBase::setUnused(); }
 
 	friend class PtexReader;
-	virtual ~TiledFace() { _reader->unref(); }
 	PtexReader* _reader;
 	safevector<FaceDataHeader> _fdh;
 	safevector<off_t> _offsets;
@@ -373,6 +365,9 @@ protected:
 	if (pos != _pos) {
 	    fseeko(_fp, pos, SEEK_SET); 
 	    _pos = pos;
+#ifdef GATHER_STATS
+	    stats.nseeks++;
+#endif
 	}
     }
     off_t seekToEnd() 
@@ -405,12 +400,32 @@ protected:
 	return face;
     }
 
+    Res getRes(int levelid, int faceid)
+    {
+	if (levelid == 0) return _faceinfo[faceid].res;
+	else {
+	    // for reduction level, look up res via rfaceid
+	    Res res = _res_r[faceid];
+	    // and adjust for number of reductions
+	    return Res(res.ulog2 - levelid, res.vlog2 - levelid);
+	}
+    }
+
+    int unpackedSize(FaceDataHeader fdh, int levelid, int faceid)
+    {
+	if (fdh.encoding == enc_constant) 
+	    // level 0 constant faces are not stored
+	    return levelid == 0 ? 0 : _pixelsize;
+	else 
+	    return getRes(levelid, faceid).size() * _pixelsize;
+    }
+
     void readFaceInfo();
     void readLevelInfo();
     void readConstData();
     void readLevel(int levelid, Level*& level);
     void readFace(int levelid, Level* level, int faceid);
-    void readFace(off_t pos, const FaceDataHeader& fdh, Res res, FaceData*& face);
+    void readFace(off_t pos, FaceDataHeader fdh, Res res, FaceData*& face);
     void readMetaData();
     void readMetaDataBlock(off_t pos, int zipsize, int memsize);
     void readEditData();
@@ -421,12 +436,6 @@ protected:
     {
 	off_t* end = offsets + noffsets;
 	while (offsets != end) { *offsets++ = pos; pos += fdh->blocksize; fdh++; }
-    }
-
-    static int index(float u, int uw)
-    {
-	int index = int(u*uw); if (index >= uw) index = uw-1;
-	return index;
     }
 
     bool _ok;			      // flag set if read error occurred)

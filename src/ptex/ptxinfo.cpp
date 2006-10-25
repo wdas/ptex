@@ -42,24 +42,24 @@ void DumpTiling(PtexFaceData* dh)
 }
 			
 
-void DumpData(Ptex::DataType dt, int nchan, PtexFaceData* dh)
+void DumpData(PtexTexture* r, int faceid)
 {
+    const Ptex::FaceInfo& f = r->getFaceInfo(faceid);
+    int nchan = r->numChannels();
     float* pixel = (float*) alloca(sizeof(float)*nchan);
-    Ptex::Res res = dh->res();
-    int ures = res.u(), vres = res.v();
+    int ures = f.res.u(), vres = f.res.v();
     std::cout << "  data (" << ures << " x " << vres << ")";
-    if (dh->isConstant()) { ures = vres = 1; }
+    if (f.isConstant()) { ures = vres = 1; }
     bool isconst = (ures == 1 && vres == 1);
     if (isconst) std::cout << ", const: ";
     else std::cout << ":";
     for (int vi = 0; vi < vres; vi++) {
 	for (int ui = 0; ui < ures; ui++) {
 	    if (!isconst) std::cout << "\n    (" << ui << ", " << vi << "): ";
-	    void* src = dh->getPixel(ui, vi);
-	    Ptex::ConvertToFloat(pixel, src, dt, nchan);
-	    for (int c=0; c < nchan; c++) {
-		printf(" %.3f", pixel[c]);
-	    }
+	    r->getPixel(faceid, ui, vi, pixel, 0, nchan);
+ 	    for (int c=0; c < nchan; c++) {
+ 		printf(" %.3f", pixel[c]);
+ 	    }
 	}
     }
     std::cout << std::endl;
@@ -223,9 +223,11 @@ int main(int argc, char** argv)
     std::cout << "numFaces: " << r->numFaces() << std::endl;
 
     PtexMetaData* meta = r->getMetaData();
-    std::cout << "numMetaKeys: " << meta->numKeys() << std::endl;
-    if (dumpmeta && meta->numKeys()) DumpMetaData(meta);
-    meta->release();
+    if (meta) {
+	std::cout << "numMetaKeys: " << meta->numKeys() << std::endl;
+	if (dumpmeta && meta->numKeys()) DumpMetaData(meta);
+	meta->release();
+    }
 
     if (dumpfaceinfo || dumpdata || dumptiling) {
 	for (int i = 0; i < r->numFaces(); i++) {
@@ -233,18 +235,16 @@ int main(int argc, char** argv)
 	    const Ptex::FaceInfo& f = r->getFaceInfo(i);
 	    DumpFaceInfo(f);
 
-	    if (dumpdata || dumptiling) {
+	    if (dumptiling) {
 		PtexFaceData* dh = r->getData(i, f.res);
-		if (dh) {
-		    if (dumptiling) DumpTiling(dh);
-		    if (dumpdata)
-			DumpData(r->dataType(), r->numChannels(), dh);
-		}
+		DumpTiling(dh);
 		dh->release();
 	    }
+	    if (dumpdata) DumpData(r, i);
 	}
     }
 
     if (dumpinternal) DumpInternal(r);
+    r->release();
     return 0;
 }

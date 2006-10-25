@@ -5,6 +5,7 @@
 
 void DumpData(Ptex::DataType dt, int nchan, PtexFaceData* dh, std::string prefix)
 {
+    void* dpixel = alloca(Ptex::DataSize(dt)*nchan);
     float* pixel = (float*) alloca(sizeof(float)*nchan);
     uint8_t* cpixel = (uint8_t*) alloca(sizeof(uint8_t)*nchan);
     Ptex::Res res = dh->res();
@@ -35,7 +36,8 @@ void DumpData(Ptex::DataType dt, int nchan, PtexFaceData* dh, std::string prefix
 	    int uimax = ures;// if (uimax > 16) uimax = 16;
 	    for (int ui = 0; ui < uimax; ui++) {
 		if (ui == 8 && ures > 16) { ui = ures-8; std::cout << "... "; }
-		Ptex::ConvertToFloat(pixel, dh->getPixel(ui, vi), dt, nchan);
+		dh->getPixel(ui, vi, dpixel);
+		Ptex::ConvertToFloat(pixel, dpixel, dt, nchan);
 		Ptex::ConvertFromFloat(cpixel, pixel, Ptex::dt_uint8, nchan);
 		for (int c=0; c < nchan; c++) {
 		    printf("%02x", cpixel[c]);

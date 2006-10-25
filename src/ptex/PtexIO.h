@@ -58,7 +58,7 @@ struct PtexIO : public Ptex {
     static const int EditDataHeaderSize = sizeof(EditDataHeader);
     static const int EditFaceDataHeaderSize = sizeof(EditFaceDataHeader);
     static const int EditMetaDataHeaderSize = sizeof(EditMetaDataHeader);
-    static const int BlockSize = 65536; // block size for file I/O
+    static const int BlockSize = 65536; // target block size for file I/O
     static const int TileSize  = 65536; // target tile size (uncompressed)
     static const int AllocaMax = 65536;	// max size for using alloca
     static bool LittleEndian() { return static_cast<const char&>(1) == 1; }
