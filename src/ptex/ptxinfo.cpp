@@ -192,8 +192,10 @@ int main(int argc, char** argv)
 
     while (--argc) {
 	if (**++argv == '-') {
-	    for (char* cp = *argv + 1; *cp; cp++) {
-		switch (*cp) {
+	    char* cp = *argv + 1;
+	    if (!*cp) usage(); // handle bare '-'
+	    while (*cp) {
+		switch (*cp++) {
 		case 'm': dumpmeta = 1; break;
 		case 'd': dumpdata = 1; break;
 		case 'f': dumpfaceinfo = 1; break;

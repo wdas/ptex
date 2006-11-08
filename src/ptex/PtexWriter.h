@@ -28,7 +28,7 @@ protected:
 
     bool open(const char* path, const char* mode,
 	      MeshType mt, DataType dt, int nchannels, int alphachan, 
-	      int nfaces, std::string& error);
+	      int nfaces, std::string& error, bool genmipmaps);
     int writeBlank(FILE* fp, int size);
     int writeBlock(FILE* fp, const void* data, int size);
     int writeZipBlock(FILE* fp, const void* data, int size, bool finish=true);
@@ -45,13 +45,13 @@ protected:
     void writeMetaData(FILE* fp, uint32_t& memsize, uint32_t& zipsize);
     void setError(const std::string& error) { _error = error; _ok = false; }
 
-    bool _ok;
-    std::string _error;
+    bool _ok;			// true if no error has occurred
+    std::string _error;		// the error text (if any)
     std::string _path;		// file path
     FILE* _fp;			// main file pointer
-    Header _header;
-    int _pixelSize;
-
+    Header _header;		// the file header
+    int _pixelSize;		// size of a pixel in bytes
+    bool _genmipmaps;		// true if mipmaps should be generated
 
     struct MetaEntry {
 	MetaDataType datatype;
@@ -68,7 +68,8 @@ class PtexMainWriter : public PtexWriterBase {
 public:
     PtexMainWriter();
     bool open(const char* path, Ptex::MeshType mt, Ptex::DataType dt,
-	      int nchannels, int alphachan, int nfaces, std::string& error);
+	      int nchannels, int alphachan, int nfaces, std::string& error, 
+	      bool genmipmaps);
 
     virtual bool close(std::string& error);
     virtual bool writeFace(int faceid, const FaceInfo& f, void* data, int stride);

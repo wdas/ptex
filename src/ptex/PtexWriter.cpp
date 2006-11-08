@@ -11,14 +11,14 @@
 PtexWriter* PtexWriter::open(const char* path, 
 			     Ptex::MeshType mt, Ptex::DataType dt,
 			     int nchannels, int alphachan, int nfaces,
-			     std::string& error)
+			     std::string& error, bool genmipmaps)
 {
     if (!PtexIO::LittleEndian()) {
 	error = "PtexWriter doesn't currently support big-endian cpu's";
 	return 0;
     }
     PtexMainWriter* w = new PtexMainWriter;
-    if (!w->open(path, mt, dt, nchannels, alphachan, nfaces, error)) {
+    if (!w->open(path, mt, dt, nchannels, alphachan, nfaces, error, genmipmaps)) {
 	w->release();
 	return 0;
     }
@@ -29,7 +29,7 @@ PtexWriter* PtexWriter::open(const char* path,
 PtexWriter* PtexWriter::edit(const char* path, bool incremental,
 			     Ptex::MeshType mt, Ptex::DataType dt,
 			     int nchannels, int alphachan, int nfaces, 
-			     std::string& error)
+			     std::string& error, bool genmipmaps)
 {
     if (!PtexIO::LittleEndian()) {
 	error = "PtexWriter doesn't currently support big-endian cpu's";
@@ -68,7 +68,7 @@ PtexWriter* PtexWriter::edit(const char* path, bool incremental,
     // non-incremental
     // make new regular writer and copy existing file as starting point
     PtexMainWriter* w = new PtexMainWriter;
-    if (!w->open(path, mt, dt, nchannels, alphachan, nfaces, error)) {
+    if (!w->open(path, mt, dt, nchannels, alphachan, nfaces, error, genmipmaps)) {
 	w->release();
 	r->release();
 	return 0;
@@ -127,7 +127,7 @@ PtexWriterBase::~PtexWriterBase()
 
 bool PtexWriterBase::open(const char* path, const char* mode, MeshType mt, DataType dt, 
 			  int nchannels, int alphachan, 
-			  int nfaces, std::string& error)
+			  int nfaces, std::string& error, bool genmipmaps)
 {
     if (mt < mt_triangle || mt > mt_quad) {
 	error = "PtexWriter error: Invalid mesh type";
@@ -171,6 +171,7 @@ bool PtexWriterBase::open(const char* path, const char* mode, MeshType mt, DataT
 
     // init state
     _pixelSize = _header.pixelSize();
+    _genmipmaps = genmipmaps;
     
     return 1;
 }
@@ -556,13 +557,13 @@ PtexMainWriter::~PtexMainWriter()
 bool PtexMainWriter::open(const char* path, 
 			  MeshType mt, DataType dt, 
 			  int nchannels, int alphachan, 
-			  int nfaces, std::string& error)
+			  int nfaces, std::string& error, bool genmipmaps)
 {
     // write to temporary file, rename into place when finished
     _finalpath = path;
     std::string tmppath = path; tmppath += ".tmp";
     if (!PtexWriterBase::open(tmppath.c_str(), "wb", mt, dt,
-			      nchannels, alphachan, nfaces, error))
+			      nchannels, alphachan, nfaces, error, genmipmaps))
 	return 0;
 
     _tmpfp = tmpfile();
@@ -626,7 +627,9 @@ bool PtexMainWriter::writeFace(int faceid, const FaceInfo& f, void* data, int st
     writeFaceData(_tmpfp, data, stride, f.res, _levels.front().fdh[faceid]);
 
     // generate first reduction (if needed)
-    if (f.res.ulog2 > MinReductionLog2 && f.res.vlog2 > MinReductionLog2) {
+    if (_genmipmaps &&
+	(f.res.ulog2 > MinReductionLog2 && f.res.vlog2 > MinReductionLog2))
+    {
 	_rpos[faceid] = ftello(_tmpfp);
 	writeReduction(_tmpfp, data, stride, f.res);
     }
@@ -667,7 +670,8 @@ void PtexMainWriter::storeConstValue(int faceid, const void* data, int stride, R
 void PtexMainWriter::finish()
 {
     // write reductions to tmp file
-    generateReductions();
+    if (_genmipmaps)
+	generateReductions();
 
     // update header
     _header.nlevels = _levels.size();
@@ -749,24 +753,6 @@ void PtexMainWriter::generateReductions()
 	}
     }
     
-#if 0
-    // Debug printouts
-    for (int i = 0; i < nfaces; i++) {
-	int faceid = _faceids_r[i];
-	FaceInfo& face = _faceinfo[faceid];
-	printf("rfaceid %d (check %d): size=%d res=%dx%d faceid=%d const=%d\n",
-	       i, _rfaceids[faceid], 
-	       PtexUtils::min(face.res.ulog2, face.res.vlog2),
-	       face.res.u(), face.res.v(), faceid,
-	       face.isConstant());
-    }
-
-    for (int i = 0; i < _levels.size(); i++) {
-	LevelRec& level = _levels[i];
-	printf("level %d: %d faces\n", i, int(level.pos.size()));
-    }
-#endif
-
     // generate and cache reductions (including const data)
     // first, find largest face and allocate tmp buffer
     int buffsize = 0;
@@ -820,7 +806,7 @@ PtexIncrWriter::~PtexIncrWriter()
 bool PtexIncrWriter::open(const char* path, Ptex::MeshType mt, Ptex::DataType dt,
 			  int nchannels, int alphachan, int nfaces, std::string& error)
 {
-    if (!PtexWriterBase::open(path, "r+b", mt, dt, nchannels, alphachan, nfaces, error))
+    if (!PtexWriterBase::open(path, "r+b", mt, dt, nchannels, alphachan, nfaces, error, false))
 	return 0;
     return 1;
 }

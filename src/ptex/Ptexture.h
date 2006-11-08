@@ -128,6 +128,7 @@ class PtexTexture {
  public:
     static PtexTexture* open(const char* path, std::string& error);
     virtual void release() = 0;
+    virtual const char* path() = 0;
     virtual Ptex::MeshType meshType() = 0;
     virtual Ptex::DataType dataType() = 0;
     virtual int alphaChannel() = 0;
@@ -151,6 +152,8 @@ class PtexCache {
  public:
     static PtexCache* create(int maxFiles=0, int maxMem=0);
     virtual void release() = 0;
+    virtual void setSearchPath(const char* path) = 0;
+    virtual const char* getSearchPath() = 0;
     virtual PtexTexture* get(const char* path, std::string& error) = 0;
     virtual void purge(PtexTexture* texture) = 0;
     virtual void purge(const char* path) = 0;
@@ -166,11 +169,11 @@ class PtexWriter {
     static PtexWriter* open(const char* path, 
 			    Ptex::MeshType mt, Ptex::DataType dt,
 			    int nchannels, int alphachan, int nfaces,
-			    std::string& error);
+			    std::string& error, bool genmipmaps=true);
     static PtexWriter* edit(const char* path, bool incremental, 
 			    Ptex::MeshType mt, Ptex::DataType dt,
 			    int nchannels, int alphachan, int nfaces,
-			    std::string& error);
+			    std::string& error, bool genmipmaps=true);
 
     virtual void release() = 0;
     

@@ -1,9 +1,61 @@
 #ifndef PtexCache_h
 #define PtexCache_h
 
+#include <pthread.h>
 #include "Ptexture.h"
+
 namespace PtexInternal {
 #include "DGDict.h"
+
+#ifndef NDEBUG
+    // debug version of mutex
+    class Mutex {
+	void check(int errcode) { assert(errcode == 0); }
+    public:
+	Mutex() {
+	    pthread_mutexattr_t attr;
+	    pthread_mutexattr_init(&attr);
+	    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
+	    pthread_mutex_init(&_mutex, &attr);
+	    pthread_mutexattr_destroy(&attr);
+	}
+	~Mutex()             { check(pthread_mutex_destroy(&_mutex)); }
+	void lock()          { check(pthread_mutex_lock(&_mutex)); _locked = 1; }
+	void unlock()        { _locked = 0; check(pthread_mutex_unlock(&_mutex)); }
+	bool locked()        { return _locked; }
+    private:
+	pthread_mutex_t _mutex;
+	int _locked;
+    };
+#else
+    class Mutex {
+    public:
+	Mutex()       { pthread_mutex_init(&_mutex, 0); }
+	~Mutex()      { pthread_mutex_destroy(&_mutex); }
+	void lock()   { pthread_mutex_lock(&_mutex); }
+	void unlock() { pthread_mutex_unlock(&_mutex); }
+    private:
+	pthread_mutex_t _mutex;
+    };
+#endif
+
+    class SpinLock {
+    public:
+	SpinLock()    { pthread_spin_init(&_spinlock, 0); }
+	~SpinLock()   { pthread_spin_destroy(&_spinlock); }
+	void lock()   { pthread_spin_lock(&_spinlock); }
+	void unlock() { pthread_spin_unlock(&_spinlock); }
+    private:
+	pthread_spinlock_t _spinlock;
+    };
+
+    class AutoLock {
+    public:
+	AutoLock(Mutex& m) : _m(m) { _m.lock(); }
+	~AutoLock()                { _m.unlock(); }
+    private:
+	Mutex& _m;
+    };
 
 #ifndef NDEBUG
 #define GATHER_STATS
@@ -30,8 +82,25 @@ namespace PtexInternal {
 
 	~CacheStats();
 	void print();
+	static void inc(int& val) {
+	    static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+	    pthread_mutex_lock(&m);
+	    val++;
+	    pthread_mutex_unlock(&m);
+	}
+	static void add(long int& val, int inc) {
+	    static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+	    pthread_mutex_lock(&m);
+	    val+=inc;
+	    pthread_mutex_unlock(&m);
+	}
     };
     extern CacheStats stats;
+#define STATS_INC(x) stats.inc(stats.x);
+#define STATS_ADD(x, y) stats.add(stats.x, y);
+#else
+#define STATS_INC(x)
+#define STATS_ADD(x, y)
 #endif
 }
 using namespace PtexInternal;
@@ -117,7 +186,7 @@ private:
 class PtexCacheImpl : public PtexCache {
 public:
     PtexCacheImpl(int maxFiles, int maxMem)
-	: _refcount(1), 
+	: _pendingDelete(false),
 	  _maxFiles(maxFiles), _unusedFileCount(0),
 	  _maxDataSize(maxMem),
 	  _unusedDataSize(0), _unusedDataCount(0)
@@ -130,62 +199,38 @@ public:
 	*/
 
 	// try to allow for at least 10 objects per file (up to 100 files)
-	_minDataCount = 10 * (maxFiles < 100 ? maxFiles : 100);
+	_minDataCount = 10 * maxFiles;
+	// but no more than 1000
+	if (_minDataCount > 1000) _minDataCount = 1000;
     }
 
-    virtual void release() { purgeAll(); unref(); }
+    virtual void release() { delete this; }
 
-protected:
-    ~PtexCacheImpl() {}
+    Mutex openlock;
+    Mutex cachelock;
 
-    friend class PtexCachedFile;
-    void addFile() {
-	ref(); purgeFiles();
-#ifdef GATHER_STATS
-	stats.nfilesOpened++;
-#endif
-    }
-    void setFileInUse(PtexLruItem* file) { 
-	ref(); 
-	_unusedFiles.extract(file); 
-	_unusedFileCount--;
-    }
+    // internal use - only call from reader classes for deferred deletion
+    void setPendingDelete() { _pendingDelete = true; }
+    void handlePendingDelete() { if (_pendingDelete) delete this; }
+
+    // internal use - only call from PtexCachedFile, PtexCachedData
+    static void addFile() { STATS_INC(nfilesOpened); }
+    void setFileInUse(PtexLruItem* file);
     void setFileUnused(PtexLruItem* file);
-    void removeFile() { 
-	_unusedFileCount--;
-#ifdef GATHER_STATS
-	stats.nfilesClosed++;
-#endif
-    }
-
-    friend class PtexCachedData;
-    void addData(int size) {
-	ref(); purgeData(); 
-#ifdef GATHER_STATS
-	stats.ndataAllocated++;
-#endif
-    }
-    void setDataInUse(PtexLruItem* data, int size) {
-	ref();
-	_unusedData.extract(data); 
-	_unusedDataCount--;
-	_unusedDataSize -= size;
-    }
+    void removeFile();
+    static void addData(int size) { STATS_INC(ndataAllocated); }
+    void setDataInUse(PtexLruItem* data, int size);
     void setDataUnused(PtexLruItem* data, int size);
-    void removeData(int size) {
-	_unusedDataCount --;
-	_unusedDataSize -= size;
-#ifdef GATHER_STATS
-	stats.ndataFreed++;
-#endif
-    }
+    void removeData(int size);
 
 protected:
-    void ref() { _refcount++; }
-    void unref() { if (!--_refcount) delete this; }
+    ~PtexCacheImpl();
+
+protected:
     void purgeFiles() {
 	while (_unusedFileCount > _maxFiles && _unusedFiles.pop()) {
-	    // destructor will call removeFile which will decrement count
+	    // note: pop will destroy item and item destructor will
+	    // call removeFile which will decrement _unusedFileCount
 	}
     }
     void purgeData() {
@@ -193,11 +238,15 @@ protected:
 	       (_unusedDataCount > _minDataCount) &&
 	       _unusedData.pop()) 
 	{
-	    // destructor will call removeData which will decrement size and count
+	    // note: pop will destroy item and item destructor will
+	    // call removeData which will decrement _unusedDataSize
+	    // and _unusedDataCount
 	}
     }
 
-    int _refcount;		             // refs: owner (1) + in-use items
+private:
+    bool _pendingDelete;	             // flag set if delete is pending
+
     int _maxFiles, _unusedFileCount;	     // file limit, current unused file count
     long int _maxDataSize, _unusedDataSize;  // data limit (bytes), current size
     int _minDataCount, _unusedDataCount;     // min, current # of unused data blocks
@@ -214,7 +263,7 @@ public:
     void ref() { if (!_refcount++) _cache->setFileInUse(this); }
     void unref() { if (!--_refcount) _cache->setFileUnused(this); }
 protected:
-    virtual ~PtexCachedFile() { _cache->removeFile(); }
+    virtual ~PtexCachedFile() {	_cache->removeFile(); }
     PtexCacheImpl* _cache;
 private:
     int _refcount;

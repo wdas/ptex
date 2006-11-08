@@ -40,7 +40,9 @@ public:
     PtexReader(void** parent, PtexCacheImpl* cache);
     bool open(const char* path, std::string& error);
 
-    virtual void release() { unref(); }
+    void setOwnsCache() { _ownsCache = true; }
+    virtual void release();
+    virtual const char* path() { return _path.c_str(); }
     virtual Ptex::MeshType meshType() { return MeshType(_header.meshtype); }
     virtual Ptex::DataType dataType() { return DataType(_header.datatype); }
     virtual int alphaChannel() { return _header.alphachan; }
@@ -55,8 +57,6 @@ public:
     virtual void getPixel(int faceid, int u, int v,
 			  float* result, int firstchan, int nchannels);
 
-    const char* path() const { return _path.c_str(); }
-
     DataType datatype() const { return _header.datatype; }
     int nchannels() const { return _header.nchannels; }
     int pixelsize() const { return _pixelsize; }
@@ -67,7 +67,7 @@ public:
     public:
 	MetaData(void** parent, PtexCacheImpl* cache, int size)
 	    : PtexCachedData(parent, cache, sizeof(*this) + size) {}
-	virtual void release() { unref(); }
+	virtual void release() { AutoLock lock(_cache->cachelock); unref(); }
 
 	virtual int numKeys() { return _entries.size(); }
 	virtual void getKey(int n, const char*& key, MetaDataType& type)
@@ -192,7 +192,7 @@ public:
     public:
 	FaceData(void** parent, PtexCacheImpl* cache, Res res, int size)
 	    : PtexCachedData(parent, cache, size), _res(res) {}
-	virtual void release() { unref(); }
+	virtual void release() { AutoLock lock(_cache->cachelock); unref(); }
 	virtual Ptex::Res res() { return _res; }
 	virtual void reduce(FaceData*&, PtexReader*,
 			    Res newres, PtexUtils::ReduceFn) = 0;
@@ -250,7 +250,14 @@ public:
 	      _pixelsize(DataSize(dt)*nchan),
 	      _tiles(_ntiles) {}
 
-	virtual void release() { unref(); }
+	virtual void release() {
+	    // Tiled faces ref the reader (directly or indirectly) and
+	    // thus may trigger cache deletion on release.  Call cache
+	    // to check for pending delete.
+	    PtexCacheImpl* cache = _cache;
+	    FaceData::release();
+	    cache->handlePendingDelete();
+	}
 	virtual bool isConstant() { return false; }
 	virtual void getPixel(int u, int v, void* result);
 	virtual void* getData() { return 0; }
@@ -294,11 +301,13 @@ public:
 	}
 	virtual PtexFaceData* getTile(int tile)
 	{
+	    AutoLock locker(_cache->cachelock);
 	    FaceData*& f = _tiles[tile];
-	    if (!f) _reader->readFace(_offsets[tile], _fdh[tile], _tileres, f);
+	    if (!f) readTile(tile, f);
 	    else f->ref();
 	    return f;
 	}
+	void readTile(int tile, FaceData*& data);
 
     protected:
 	virtual void setInUse() { _reader->ref(); TiledFaceBase::setInUse(); }
@@ -349,6 +358,9 @@ public:
     protected:
 	virtual ~Level() { orphanList(faces); }
     };
+
+    Mutex readlock;
+    Mutex reducelock;
 
 protected:
     virtual ~PtexReader();
@@ -425,9 +437,9 @@ protected:
     void readConstData();
     void readLevel(int levelid, Level*& level);
     void readFace(int levelid, Level* level, int faceid);
-    void readFace(off_t pos, FaceDataHeader fdh, Res res, FaceData*& face);
+    void readFaceData(off_t pos, FaceDataHeader fdh, Res res, FaceData*& face);
     void readMetaData();
-    void readMetaDataBlock(off_t pos, int zipsize, int memsize);
+    void readMetaDataBlock(MetaData* metadata, off_t pos, int zipsize, int memsize);
     void readEditData();
     void readEditFaceData();
     void readEditMetaData();
@@ -438,6 +450,7 @@ protected:
 	while (offsets != end) { *offsets++ = pos; pos += fdh->blocksize; fdh++; }
     }
 
+    bool _ownsCache;		      // true if reader owns the cache
     bool _ok;			      // flag set if read error occurred)
     std::string _error;		      // error string (if !_ok)
     FILE* _fp;			      // file pointer
