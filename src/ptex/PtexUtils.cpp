@@ -214,10 +214,10 @@ namespace {
 	int rowlen = uw*nchan;
 	int srowskip = 2*sstride - rowlen;
 	int drowskip = dstride - rowlen/2;
-	for (const T* end = src + vw*sstride; src < end; 
+	for (const T* end = src + vw*sstride; src != end; 
 	     src += srowskip, dst += drowskip)
-	    for (const T* rowend = src + rowlen; src < rowend; src += nchan)
-		for (const T* pixend = src+nchan; src < pixend; src++)
+	    for (const T* rowend = src + rowlen; src != rowend; src += nchan)
+		for (const T* pixend = src+nchan; src != pixend; src++)
 		    *dst++ = T(0.25 * (src[0] + src[nchan] +
 				       src[sstride] + src[sstride+nchan]));
     }
@@ -250,10 +250,10 @@ namespace {
 	int rowlen = uw*nchan;
 	int srowskip = sstride - rowlen;
 	int drowskip = dstride - rowlen/2;
-	for (const T* end = src + vw*sstride; src < end; 
+	for (const T* end = src + vw*sstride; src != end; 
 	     src += srowskip, dst += drowskip)
-	    for (const T* rowend = src + rowlen; src < rowend; src += nchan)
-		for (const T* pixend = src+nchan; src < pixend; src++)
+	    for (const T* rowend = src + rowlen; src != rowend; src += nchan)
+		for (const T* pixend = src+nchan; src != pixend; src++)
 		    *dst++ = T(0.5 * (src[0] + src[nchan]));
     }
 }
@@ -285,9 +285,9 @@ namespace {
 	int rowlen = uw*nchan;
 	int srowskip = 2*sstride - rowlen;
 	int drowskip = dstride - rowlen;
-	for (const T* end = src + vw*sstride; src < end; 
+	for (const T* end = src + vw*sstride; src != end; 
 	     src += srowskip, dst += drowskip)
-	    for (const T* rowend = src + rowlen; src < rowend; src++)
+	    for (const T* rowend = src + rowlen; src != rowend; src++)
 		*dst++ = T(0.5 * (src[0] + src[sstride]));
     }
 }
@@ -357,8 +357,8 @@ namespace {
 	sstride /= sizeof(T);
 	int rowlen = uw*nchan;
 	int rowskip = sstride - rowlen;
-	for (const T* end = src + vw*sstride; src < end; src += rowskip)
-	    for (const T* rowend = src + rowlen; src < rowend;)
+	for (const T* end = src + vw*sstride; src != end; src += rowskip)
+	    for (const T* rowend = src + rowlen; src != rowend;)
 		for (int i = 0; i < nchan; i++) buff[i] += *src++;
 	float scale = 1.0/(uw*vw);
 	for (int i = 0; i < nchan; i++) dst[i] = T(buff[i]*scale);

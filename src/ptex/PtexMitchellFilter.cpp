@@ -44,19 +44,12 @@ void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
 #if 0
     // for debugging only!
     {
-	// point sample nearest res
+	// point sample highest res
 	const FaceInfo& f = tx->getFaceInfo(faceid);
-	Res res(int(log2(1.0/uw)), int(log2(1.0/vw)));
-	if (res.ulog2 > f.res.ulog2) res.ulog2 = f.res.ulog2;
-	if (res.vlog2 > f.res.vlog2) res.vlog2 = f.res.vlog2;
-
-	PtexFaceData* dh = tx->getData(faceid, res);
-	if (dh) {
-	    DataType dt = tx->dataType();
-	    char* d = (char*) dh->getPixel(u,v) + firstchan*DataSize(dt);
-	    Ptex::ConvertToFloat(result, d, dt, nchannels);
-	    dh->release();
-	}
+	int resu = f.res.u(), resv = f.res.v();
+	int ui = PtexUtils::clamp(int(u * resu), 0, resu-1);
+	int vi = PtexUtils::clamp(int(v * resv), 0, resv-1);
+	tx->getPixel(faceid, ui, vi, result, firstchan, nchannels);
 	return;
     }
 #endif
@@ -93,6 +86,20 @@ void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
     const FaceInfo& f = tx->getFaceInfo(faceid);
     _isConstant = f.isConstant();
 
+    // if du is > 1, just return constant color for face
+    // (todo: blend w/ neighbors)
+#if 0
+    if (uw > 1 && vw > 1) {
+	PtexFaceData* data = tx->getData(faceid, 0);
+	if (data) {
+	    char* d = (char*) data->getData() + _ctx.firstchan*DataSize(_ctx.dt);
+	    Ptex::ConvertToFloat(_ctx.result, d, _ctx.dt, _ctx.nchannels);
+	    data->release();
+	}
+	return;
+    }
+#endif
+
     // clamp filter width to no larger than 0.25 (todo - handle larger filter widths)
     _ctx.uw = std::min(_ctx.uw, 0.25f);
     _ctx.vw = std::min(_ctx.vw, 0.25f);
@@ -117,8 +124,8 @@ void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
 	if (data) {
 	    char* d = (char*) data->getData() + _ctx.firstchan*DataSize(_ctx.dt);
 	    Ptex::ConvertToFloat(_ctx.result, d, _ctx.dt, _ctx.nchannels);
+	    data->release();
 	}
-	data->release();
 	return;
     }
 
@@ -152,7 +159,7 @@ void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
     }
     if (uweight) {
 	if (!_uface.blend) mweight += uweight;
-	else if (_uface.res == _vface.res) vweight += uweight;
+	else if (_vface && (_uface.res == _vface.res)) vweight += uweight;
 	else evalFaces(_uface.res, uweight);
     }
     if (vweight) {
@@ -176,62 +183,77 @@ void PtexMitchellFilter::getNeighborhood(const FaceInfo& f)
     if (_ctx.v < .5) { veid = e_bottom; vdist = _ctx.v; }
     else             { veid = e_top;    vdist = 1 - _ctx.v; }
 
-    bool nearu = udist < 1.5 * _ctx.uw;
-    bool nearv = vdist < 1.5 * _ctx.vw;
-
-    if (!nearu && !nearv) 
-	// not near an edge, no neighbors
-	return;
+    // blend width must be > 1.5 pixels
+    // 2.0 seems to be a good balance between hiding the blend and preserving detail
+    // smaller values also reduce cost by minimizing blend area
+    // (todo - try different values, tune w/ production test case)
+    static const float blend = 2.0; 
 
     // get u and v neighbors and compute blend weights
     float ublendwidth=0, vblendwidth=0;
     int ufid = f.adjfaces[ueid], vfid = f.adjfaces[veid];
     const FaceInfo* uf = 0, * vf = 0;
-    if (nearu && ufid != -1) {
-	ublendwidth = 2.0/f.res.u();
+    if (ufid != -1) {
+	// compute minimum blend width in u dir
+	ublendwidth = PtexUtils::min(blend/f.res.u(), .5f);
 	// get u neighbor face
 	uf = &_ctx.tx->getFaceInfo(ufid);
-	if (_isConstant && !uf->isConstant()) _isConstant = 0;
 	_uface.set(ufid, uf->res, f.adjedge(ueid) - ueid + 2);
 	// clamp res against desired res and check for blending
 	_uface.clampres(_face.res);
     }
-    if (nearv && vfid != -1)  {
-	vblendwidth = 2.0/f.res.v();
+    if (vfid != -1)  {
+	// compute minimum blend width in v dir
+	vblendwidth = PtexUtils::min(blend/f.res.v(), .5f);
 	// get v neighbor face
 	vf = &_ctx.tx->getFaceInfo(vfid);
-	if (_isConstant && !vf->isConstant()) _isConstant = 0;
 	_vface.set(vfid, vf->res, f.adjedge(veid) - veid + 2);
 	// clamp res against desired res and check for blending
 	_vface.clampres(_face.res);
     }
 
-    // filter w/ corner face(s) if we have both u and v neighbors
-    bool usecorner = _uface && _vface;
-
-    // smoothstep blendwidth's towards corner
-    if (usecorner) {
+    // smoothstep blendwidths towards corner
+    if (_uface && _vface) {
 	// smoothstep ublendwidth towards adj ures
 	if (_vface.res.ulog2 != _face.res.ulog2) {
-	    float adjwidth = 2.0/_vface.res.u();
+	    float adjwidth = PtexUtils::min(blend/_vface.res.u(), .5f);
 	    float wblend = PtexUtils::smoothstep(vdist, 0, 0.5);
 	    ublendwidth = ublendwidth * wblend + adjwidth * (1-wblend);
 	}
 	// smoothstep vblendwidth towards adj vres
 	if (_uface.res.vlog2 != _face.res.vlog2) {
-	    float adjwidth = 2.0/_uface.res.v();
+	    float adjwidth = PtexUtils::min(blend/_uface.res.v(), .5f);
 	    float wblend = PtexUtils::smoothstep(udist, 0, 0.5);
 	    vblendwidth = vblendwidth * wblend + adjwidth * (1-wblend);
 	}
     }
 
     // compute blend weights based on distances to edges
-    // blend width is 2 pixels / res in u or v direction
-    _ublend = 1 - PtexUtils::smoothstep(udist, 0, ublendwidth);
-    _vblend = 1 - PtexUtils::smoothstep(vdist, 0, vblendwidth);
+    bool nearu = _uface && (udist < PtexUtils::max(ublendwidth, float(4.0/_face.res.u())));
+    bool nearv = _vface && (vdist < PtexUtils::max(vblendwidth, float(4.0/_face.res.v())));
+
+    if (!nearu) {
+	_ublend = 0;
+	_uface.clear();
+    }
+    else {
+	// in blend zone w/ u
+	_ublend = 1 - PtexUtils::smoothstep(udist, 0, ublendwidth);
+	if (_isConstant && !uf->isConstant()) _isConstant = 0;
+    }
+
+    if (!nearv) {
+	_vblend = 0;
+	_vface.clear();
+    }
+    else {
+	// in blend zone w/ v
+	_vblend = 1 - PtexUtils::smoothstep(vdist, 0, vblendwidth);
+	if (_isConstant && !vf->isConstant()) _isConstant = 0;
+    }
 
     // gather corner faces if needed
-    if (usecorner) {
+    if (nearu && nearv) {
 	// gather faces around corner starting at uface
 	_cfaces.reserve(8); // (could be any number, but typically just 1 or 2)
 
@@ -265,8 +287,14 @@ void PtexMitchellFilter::getNeighborhood(const FaceInfo& f)
 	    // see if we're reguler - i.e. we have a single corner face
 	    if (_cfaces.size() == 1) {
 		_cface = _cfaces.front();
-		_cface.res.clamp(_uface.res);
-		_cface.res.clamp(_vface.res);
+
+		// clamp res against u and v neighbors and check for blending
+		_cface.clampres(_uface.res);
+		_cface.clampres(_vface.res);
+
+		// if either u or v needs blending, corner needs blending too
+		if (_uface.blend || _vface.blend)
+		    _cface.blend = true;
 	    }
 	}
 	// otherwise corner is an e.p. on a mesh boundary
@@ -321,9 +349,20 @@ void PtexMitchellFilter::evalFaces(Res res, double weight, float uw, float vw)
     // initialize kernel
     // convert u,v and filter width to (fractional) pixels
     int ures = res.u(), vres = res.v();
+
+    if (ures < 4 || vres < 4) {
+	// can't use 4x4 mitchell
+	// just use the const color for now - todo: filter based on uw,vw
+	PtexFilterKernel k;
+	k.set(0, 0, 0, 1, 1, &weight, 0);
+	k.apply(_face.id, 0, _ctx);
+	return;
+    }
+
+
     float u = _ctx.u * ures - 0.5, v = _ctx.v * vres - 0.5;
     uw *= ures; vw *= vres;
-    
+
     // find integer pixel extent: [u,v] +/- [2*uw,2*vw]
     // (mitchell is 4 units wide for a 1 unit filter period)
 
@@ -333,6 +372,7 @@ void PtexMitchellFilter::evalFaces(Res res, double weight, float uw, float vw)
     int kuw = u2-u1, kvw = v2-v1;
     if (kuw > 8 || kvw > 8) {
 	// shouldn't happen - but just in case...
+	assert(kuw <= 8 && kvw <= 8);
 	return;
     }
 

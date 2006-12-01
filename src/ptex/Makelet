@@ -2,6 +2,13 @@
 use Kida::ToolKit::FAUtilities;
 use Kida::ToolKit::Clean;
 
+my $flavor = Kida::Exposed::getGlobalVariable('Flavor');
+if ($flavor =~ /debug/) {
+  setLocalDefaults( 'CPP', 'flags+', {Linux => '-fkeep-inline-functions'});
+  setLocalDefaults( 'Exe', 'flags+', {Linux => '-fkeep-inline-functions -g'});
+  setLocalDefaults( 'SharedLib', 'flags+', {Linux => '-fkeep-inline-functions -g'});
+}
+
 my $headers = Headers(input => [ 'Ptexture.h', 'PtexHalf.h', 'PtexUtils.h' ]);
 
 my $libinputs = ['PtexCache.cpp',
@@ -44,7 +51,6 @@ my $all = VirtualTarget( name =>'all',
 
 Install(name=>'installhdr',input=>[$headers]);
 
-my $flavor = Kida::Exposed::getGlobalVariable('Flavor');
 my $installs = [ $Ptex_a, $Ptex_so, $utils, $htmls];
 if ($flavor =~ /(debug|insure)/i) {
   push(@$installs, $tests);

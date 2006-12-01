@@ -118,7 +118,7 @@ public:
     {
 	for (typename T::iterator i=list.begin(); i != list.end(); i++) {
 	    PtexLruItem* obj = *i;
-	    if (obj) obj->orphan();
+	    if (obj) { obj->orphan(); *i = 0; }
 	}
     }
 
@@ -128,7 +128,7 @@ protected:
     virtual ~PtexLruItem()
     {
 	// detach from parent (if any)
-	if (_parent) *_parent = 0;
+	if (_parent) { assert(!_parent || *_parent == this); *_parent = 0; }
 	// unlink from lru list (if in list)
 	if (_prev) {
 	    _prev->_next = _next; 
@@ -218,7 +218,7 @@ public:
     void setFileInUse(PtexLruItem* file);
     void setFileUnused(PtexLruItem* file);
     void removeFile();
-    static void addData(int size) { STATS_INC(ndataAllocated); }
+    static void addData() { STATS_INC(ndataAllocated); }
     void setDataInUse(PtexLruItem* data, int size);
     void setDataUnused(PtexLruItem* data, int size);
     void removeData(int size);
@@ -275,10 +275,11 @@ class PtexCachedData : public PtexLruItem
 public:
     PtexCachedData(void** parent, PtexCacheImpl* cache, int size)
 	: PtexLruItem(parent), _cache(cache), _refcount(1), _size(size)
-    { _cache->addData(size); }
+    { _cache->addData(); }
     void ref() { if (!_refcount++) setInUse(); }
     void unref() { if (!--_refcount) setUnused(); }
 protected:
+    void incSize(int size) { _size += size; }
     virtual void setInUse() { _cache->setDataInUse(this, _size); }
     virtual void setUnused() { _cache->setDataUnused(this, _size); }
     virtual ~PtexCachedData() { _cache->removeData(_size); }

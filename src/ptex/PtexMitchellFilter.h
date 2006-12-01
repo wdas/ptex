@@ -9,7 +9,7 @@ class PtexMitchellFilter : public PtexFilter, public Ptex
 {
  public:
     PtexMitchellFilter(float sharpness)
-	: _extrapolate(true)
+	: _extrapolate(false)
     {
 	setSharpness(sharpness);
     }

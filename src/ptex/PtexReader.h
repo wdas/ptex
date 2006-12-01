@@ -239,21 +239,26 @@ public:
     class TiledFaceBase : public FaceData {
     public:
 	TiledFaceBase(void** parent, PtexCacheImpl* cache, Res res,
-		      Res tileres, DataType dt, int nchan, int size)
-	    : FaceData(parent, cache, res, size),
+		      Res tileres, DataType dt, int nchan)
+	    : FaceData(parent, cache, res, sizeof(*this)),
 	      _tileres(tileres),
 	      _dt(dt),
 	      _nchan(nchan),
-	      _ntilesu(_res.ntilesu(tileres)),
-	      _ntilesv(_res.ntilesv(tileres)),
-	      _ntiles(_ntilesu*_ntilesv),
-	      _pixelsize(DataSize(dt)*nchan),
-	      _tiles(_ntiles) {}
+	      _pixelsize(DataSize(dt)*nchan)
+	{
+	    _ntilesu = _res.ntilesu(tileres);
+	    _ntilesv = _res.ntilesv(tileres);
+	    _ntiles = _ntilesu*_ntilesv;
+	    _tiles.resize(_ntiles);
+	    incSize(sizeof(FaceData*)*_ntiles);
+	}
 
 	virtual void release() {
 	    // Tiled faces ref the reader (directly or indirectly) and
 	    // thus may trigger cache deletion on release.  Call cache
 	    // to check for pending delete.
+	    // Note: release() may delete "this", so save _cache in
+	    // local var.
 	    PtexCacheImpl* cache = _cache;
 	    FaceData::release();
 	    cache->handlePendingDelete();
@@ -289,14 +294,12 @@ public:
 	TiledFace(void** parent, PtexCacheImpl* cache, Res res,
 		  Res tileres, PtexReader* reader)
 	    : TiledFaceBase(parent, cache, res, tileres, 
-			    reader->datatype(), reader->nchannels(),
-			    sizeof(*this) + _ntiles*(sizeof(FaceDataHeader)+
-						     sizeof(off_t)+
-						     sizeof(FaceData*))),
-	      _reader(reader),
-	      _fdh(_ntiles),
-	      _offsets(_ntiles)
+			    reader->datatype(), reader->nchannels()),
+	      _reader(reader)
 	{
+	    _fdh.resize(_ntiles),
+	    _offsets.resize(_ntiles);
+	    incSize((sizeof(FaceDataHeader)+sizeof(off_t))*_ntiles);
 	    _reader->ref();
 	}
 	virtual PtexFaceData* getTile(int tile)
@@ -325,8 +328,7 @@ public:
 	TiledReducedFace(void** parent, PtexCacheImpl* cache, Res res, 
 			 Res tileres, DataType dt, int nchan,
 			 TiledFaceBase* parentface, PtexUtils::ReduceFn reducefn)
-	    : TiledFaceBase(parent, cache, res, tileres, dt, nchan,
-			    sizeof(*this) + _ntiles*sizeof(FaceData*)),
+	    : TiledFaceBase(parent, cache, res, tileres, dt, nchan),
 	      _parentface(parentface),
 	      _reducefn(reducefn)
 	{

@@ -103,7 +103,10 @@ PtexReader::~PtexReader()
 	FaceData* f = i->second;
 	if (f) f->orphan();
     }
-    if (_metadata) _metadata->orphan();
+    if (_metadata) {
+	_metadata->orphan();
+	_metadata = 0;
+    }
     
     inflateEnd(&_zstream);
 
@@ -743,7 +746,7 @@ void PtexReader::PackedFace::reduce(FaceData*& face, PtexReader* r,
 				    Res newres, PtexUtils::ReduceFn reducefn)
 {
     // get reduce lock and make sure we still need to reduce
-    AutoLock locker(r->reducelock);
+    AutoLock rlocker(r->reducelock);
     if (face) {
 	// another thread must have generated it while we were waiting
 	AutoLock locker(_cache->cachelock);
@@ -759,6 +762,7 @@ void PtexReader::PackedFace::reduce(FaceData*& face, PtexReader* r,
     // reduce and copy into new face
     reducefn(_data, _pixelsize * _res.u(), _res.u(), _res.v(),
 	     pf->_data, _pixelsize * newres.u(), dt, nchan);
+    AutoLock clocker(_cache->cachelock);
     face = pf;
 }
 
@@ -779,9 +783,10 @@ void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
 				       Res newres, PtexUtils::ReduceFn reducefn)
 {
     // get reduce lock and make sure we still need to reduce
-    AutoLock locker(r->reducelock);
+    AutoLock rlocker(r->reducelock);
     if (face) {
 	// another thread must have generated it while we were waiting
+	AutoLock locker(_cache->cachelock);
 	face->ref();
 	return; 
     }
@@ -860,6 +865,7 @@ void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
 	newface = new TiledReducedFace((void**)&face, _cache, newres, newtileres,
 				       _dt, _nchan, this, reducefn);
     }
+    AutoLock clocker(_cache->cachelock);
     face = newface;
 }
 
@@ -886,13 +892,14 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
 	return face;
     }
 
-    // first, get all tiles and check if they are constant (with the same value)
+    // first, get all parent tiles for this tile
+    // and check if they are constant (with the same value)
     int pntilesu = _parentface->ntilesu();
     int pntilesv = _parentface->ntilesv();
-    int nu = pntilesu / _ntilesu;
-    int nv = pntilesv / _ntilesv;
+    int nu = pntilesu / _ntilesu; // num parent tiles for this tile in u dir
+    int nv = pntilesv / _ntilesv; // num parent tiles for this tile in v dir
 
-    int ntiles = nu*nv;
+    int ntiles = nu*nv; // num parent tiles for this tile
     PtexFaceData** tiles = (PtexFaceData**) alloca(ntiles * sizeof(PtexFaceData*));
     bool allConstant = true;
     int ptile = (tile/_ntilesu) * nv * pntilesu + (tile%_ntilesu) * nu;
@@ -907,6 +914,14 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
 	i++;
 	ptile += i%nu? 1 : pntilesu - nu + 1;
     }
+    
+    // make sure another thread didn't make the tile while we were checking
+    if (face) {
+	face->ref();
+	_cache->cachelock.unlock();
+	return face;
+    }
+
     if (allConstant) {
 	// allocate a new constant face
 	face = new ConstantFace((void**)&face, _cache, _pixelsize);
@@ -919,7 +934,7 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
 
 	// generate reduction from parent tiles
 	int ptileures = _parentface->tileres().u();
-	int ptilevres = _tileres.v();
+	int ptilevres = _parentface->tileres().v();
 	int sstride = ptileures * _pixelsize;
 	int dstride = _tileres.u() * _pixelsize;
 	int dstepu = dstride/nu;

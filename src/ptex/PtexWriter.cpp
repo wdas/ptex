@@ -465,10 +465,10 @@ void PtexWriterBase::writeFaceData(FILE* fp, const void* data, int stride,
 	int datasize = 0;
 	const char* rowp = (const char*) data;
 	const char* rowpend = rowp + ntilesv * tilevstride;
-	for (; rowp < rowpend; rowp += tilevstride) {
+	for (; rowp != rowpend; rowp += tilevstride) {
 	    const char* p = rowp;
 	    const char* pend = p + ntilesu * tileustride;
-	    for (; p < pend; tdh++, p += tileustride) {
+	    for (; p != pend; tdh++, p += tileustride) {
 		// determine if tile is constant
 		if (PtexUtils::isConstant(p, stride, tileures, tilevres, _pixelSize))
 		    writeConstFaceBlock(tilefp, p, *tdh);

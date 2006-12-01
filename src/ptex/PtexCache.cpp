@@ -210,8 +210,10 @@ public:
 	FileMap::iterator iter = _files.find(filename);
 	if (iter != _files.end()) {
 	    PtexReader* reader = iter->second;
-	    if (reader && intptr_t(reader) != -1)
+	    if (reader && intptr_t(reader) != -1) {
 		reader->orphan();
+		iter->second = 0;
+	    }
 	    _files.erase(iter);
 	}
     }
@@ -222,8 +224,10 @@ public:
 	FileMap::iterator iter = _files.begin();
 	while (iter != _files.end()) {
 	    PtexReader* reader = iter->second;
-	    if (reader && intptr_t(reader) != -1)
+	    if (reader && intptr_t(reader) != -1) {
 		reader->orphan();
+		iter->second = 0;
+	    }
 	    iter = _files.erase(iter);
 	}
     }
@@ -252,75 +256,77 @@ PtexTexture* PtexReaderCache::get(const char* filename, std::string& error)
 {
     AutoLock locker(cachelock); 
 
-    PtexReader* volatile& reader = _files[filename];
+    // lookup reader in map
+    PtexReader* reader = _files[filename];
     if (reader) {
 	// -1 means previous open attempt failed
 	if (intptr_t(reader) == -1) return 0;
-
 	reader->ref();
 	return reader;
     }
     else {
-	PtexReader* newReader; // keep new reader local until finished
 	bool ok = true;
 
-	{
-	    // get open lock and make sure we still need to open
-	    // temporarily release cache lock while we open acquire open lock
-	    cachelock.unlock();
-	    AutoLock openlocker(openlock);
-	    cachelock.lock();
+	// get open lock and make sure we still need to open
+	// temporarily release cache lock while we open acquire open lock
+	cachelock.unlock();
+	AutoLock openlocker(openlock);
+	cachelock.lock();
 
-	    if (reader) {
-		// another thread must have opened it while we were waiting
-		if (intptr_t(reader) == -1) return 0;
-		reader->ref();
-		return reader; 
-	    }
-		
-	    // go ahead and open the file		
-	    newReader = new PtexReader((void**)&reader, this);
+	// lookup entry again (it might have changed in another thread)
+	PtexReader** entry = &_files[filename];
 
-	    // temporarily release cache lock while we open the file
-	    cachelock.unlock();
-	    char tmppath[PATH_MAX+1];
-	    if (filename[0] != '/' && !_searchdirs.empty()) {
-		// file is relative, search in searchpath
-		bool found = false;
-		struct stat statbuf;
-		for (int i = 0, size = _searchdirs.size(); i < size; i++) {
-		    snprintf(tmppath, sizeof(tmppath), "%s/%s", _searchdirs[i].c_str(), filename);
-		    if (stat(tmppath, &statbuf) == 0) {
-			found = true;
-			filename = tmppath;
-			break;
-		    }
-		}
-		if (!found) {
-		    error = "Can't find ptex file: ";
-		    error += filename;
-		    ok = false;
-		}
-	    }
-	    if (ok) ok = newReader->open(filename, error);
-
-	    // reacqure cache lock
-	    cachelock.lock();
+	if (*entry) {
+	    // another thread opened it while we were waiting
+	    if (intptr_t(*entry) == -1) return 0;
+	    (*entry)->ref();
+	    return *entry; 
 	}
+		
+	// make a new reader
+	reader = new PtexReader((void**)entry, this);
+
+	// temporarily release cache lock while we open the file
+	cachelock.unlock();
+	char tmppath[PATH_MAX+1];
+	if (filename[0] != '/' && !_searchdirs.empty()) {
+	    // file is relative, search in searchpath
+	    bool found = false;
+	    struct stat statbuf;
+	    for (int i = 0, size = _searchdirs.size(); i < size; i++) {
+		snprintf(tmppath, sizeof(tmppath), "%s/%s", _searchdirs[i].c_str(), filename);
+		if (stat(tmppath, &statbuf) == 0) {
+		    found = true;
+		    filename = tmppath;
+		    break;
+		}
+	    }
+	    if (!found) {
+		error = "Can't find ptex file: ";
+		error += filename;
+		ok = false;
+	    }
+	}
+	if (ok) ok = reader->open(filename, error);
+
+	// reacqure cache lock
+	cachelock.lock();
+
 	    
 	if (!ok) {
 	    // open failed, clear parent ptr and unref to delete
-	    newReader->orphan();
-	    newReader->unref();
-	    (intptr_t&)reader = -1; // flag for future lookups
+	    reader->orphan();
+	    reader->unref();
+	    *entry = (PtexReader*)-1; // flag for future lookups
 	    return 0;
 	}
 	    
 	// successful open, record in _files map entry
-	reader = newReader;
+	*entry = reader;
 
-	// cleanup map every so often so it doesn't get HUGE
-	// from being filled with blank entries from dead files
+	// Cleanup map every so often so it doesn't get HUGE
+	// from being filled with blank entries from dead files.
+	// Note: this must be done while we still have the open lock!
 	if (++_cleanupCount >= 1000) {
 	    _cleanupCount = 0;
 	    removeBlankEntries();
