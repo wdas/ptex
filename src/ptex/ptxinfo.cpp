@@ -232,10 +232,12 @@ int main(int argc, char** argv)
     }
 
     if (dumpfaceinfo || dumpdata || dumptiling) {
+	int texels = 0;
 	for (int i = 0; i < r->numFaces(); i++) {
 	    std::cout << "face " << i << ":";
 	    const Ptex::FaceInfo& f = r->getFaceInfo(i);
 	    DumpFaceInfo(f);
+	    texels += f.res.size();
 
 	    if (dumptiling) {
 		PtexFaceData* dh = r->getData(i, f.res);
@@ -244,6 +246,7 @@ int main(int argc, char** argv)
 	    }
 	    if (dumpdata) DumpData(r, i);
 	}
+	std::cout << "texels: " << texels << std::endl;
     }
 
     if (dumpinternal) DumpInternal(r);

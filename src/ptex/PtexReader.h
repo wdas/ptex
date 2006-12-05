@@ -337,7 +337,8 @@ public:
 	virtual PtexFaceData* getTile(int tile);
 
     protected:
-	virtual ~TiledReducedFace() { _parentface->unref(); }
+	virtual void setInUse() { _parentface->ref(); TiledFaceBase::setInUse(); }
+	virtual void setUnused() { _parentface->unref(); TiledFaceBase::setUnused(); }
 	TiledFaceBase* _parentface;
 	PtexUtils::ReduceFn* _reducefn;
     };

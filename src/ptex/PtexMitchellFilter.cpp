@@ -86,19 +86,10 @@ void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
     const FaceInfo& f = tx->getFaceInfo(faceid);
     _isConstant = f.isConstant();
 
-    // if du is > 1, just return constant color for face
-    // (todo: blend w/ neighbors)
-#if 0
-    if (uw > 1 && vw > 1) {
-	PtexFaceData* data = tx->getData(faceid, 0);
-	if (data) {
-	    char* d = (char*) data->getData() + _ctx.firstchan*DataSize(_ctx.dt);
-	    Ptex::ConvertToFloat(_ctx.result, d, _ctx.dt, _ctx.nchannels);
-	    data->release();
-	}
-	return;
-    }
-#endif
+    // todo:
+    // if du and dv are > .25, then get the (blurred) constant data and lerp between neighbors
+    // for du between .25 and .5 do trilinear
+
 
     // clamp filter width to no larger than 0.25 (todo - handle larger filter widths)
     _ctx.uw = std::min(_ctx.uw, 0.25f);
@@ -351,8 +342,11 @@ void PtexMitchellFilter::evalFaces(Res res, double weight, float uw, float vw)
     int ures = res.u(), vres = res.v();
 
     if (ures < 4 || vres < 4) {
-	// can't use 4x4 mitchell
-	// just use the const color for now - todo: filter based on uw,vw
+	// can't use 4x4 mitchell, just do bilinear interp.
+	// this should only happen for very small faces so smooth filtering shouldn't
+	// be needed (fingers crossed)
+
+	// todo - build 2x2 bilinear kernel
 	PtexFilterKernel k;
 	k.set(0, 0, 0, 1, 1, &weight, 0);
 	k.apply(_face.id, 0, _ctx);
