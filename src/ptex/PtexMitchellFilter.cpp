@@ -1,4 +1,5 @@
 #include <math.h>
+#include <assert.h>
 #include "PtexMitchellFilter.h"
 #include "PtexUtils.h"
 

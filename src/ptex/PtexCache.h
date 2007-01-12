@@ -2,6 +2,7 @@
 #define PtexCache_h
 
 #include <pthread.h>
+#include <assert.h>
 #include "Ptexture.h"
 
 namespace PtexInternal {
