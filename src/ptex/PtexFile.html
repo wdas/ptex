@@ -6,8 +6,32 @@
   <title>Ptex File Format Specification</title>
 </head>
 <body>
-<h1>Ptex File Format Specification Version 1 (prelim-16)<br>
+<h1>Ptex File Format Specification Version 1.1<br>
 </h1>
+Revision history:<br>
+<table style="text-align: left;" border="1" cellpadding="2"
+ cellspacing="2">
+  <tbody>
+    <tr>
+      <td style="vertical-align: top;">1.0<br>
+      </td>
+      <td style="vertical-align: top;">9/29/06<br>
+      </td>
+      <td style="vertical-align: top;">Initial Release<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">1.1<br>
+      </td>
+      <td style="vertical-align: top;">2/27/07<br>
+      </td>
+      <td style="vertical-align: top;">"Edit face data" amended to
+included precomputed constant value<br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br>
 <br>
 <h3>General Notes:</h3>
 <ul>
@@ -43,13 +67,12 @@ filtering.&nbsp;&nbsp; Reduction levels are stored premultiplied.</li>
 implemented in
 zlib's compress and uncompress functions.&nbsp; Differencing (where
 each value is replaced by the difference between the value and the
-preceeding value) may be used where indicated to achieve
+preceeding value) is used where indicated to achieve
 better compression.<br>
   </li>
   <li>All data is stored in "little endian" format.</li>
-  <li>Face data is stored in v-major order with the first sample being
-u=v=0.&nbsp; Note: there is no notion of top, bottom, left, or right as
-in typical image formats.</li>
+  <li>Face data is stored in v-major order with the first sample corresponding to
+u=v=0.  This is considered the bottom-left corner with u pointing right and v pointing up.</li>
   <li>Triangle mesh data is stored in a packed triangle form (still in
 v-major order, but rows become progressively shorter).<br>
   </li>
@@ -62,7 +85,10 @@ compression.<br>
 </ul>
 <h3><br>
 </h3>
-<h3>File Structure</h3>
+<h3>General File Structure</h3>
+
+The file is composed of a number of data blocks stored in the order listed in the table below: <p>
+
 <table style="text-align: left;" border="1" cellpadding="2"
  cellspacing="2">
   <tbody>
@@ -164,12 +190,12 @@ alpha channel<br>
     </tr>
     <tr>
       <td style="vertical-align: top;">nchannels</td>
-      <td style="vertical-align: top;">uint32</td>
+      <td style="vertical-align: top;">uint16</td>
       <td style="vertical-align: top;">number of data channels</td>
     </tr>
     <tr>
       <td style="vertical-align: top;">nlevels</td>
-      <td style="vertical-align: top;">uint32</td>
+      <td style="vertical-align: top;">uint16</td>
       <td style="vertical-align: top;">number of levels</td>
     </tr>
     <tr>
@@ -206,6 +232,12 @@ alpha channel<br>
       <td style="vertical-align: top;">uint32<br>
       </td>
       <td style="vertical-align: top;">size of Level Info block </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">(reserved)</td>
+      <td style="vertical-align: top;">uint32</td>
+      <td style="vertical-align: top;">must be zero<br>
+      </td>
     </tr>
     <tr>
       <td style="vertical-align: top;">leveldatasize</td>
@@ -630,6 +662,15 @@ section)<br>
       <td style="vertical-align: top;">uint32</td>
       <td style="vertical-align: top;">(as described in Level Data
 section)<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">constval<br>
+      </td>
+      <td style="vertical-align: top;">uint8[pixelsize]<br>
+      </td>
+      <td style="vertical-align: top;">constant value (average pixel
+value, as described in Constant Data section)<br>
       </td>
     </tr>
     <tr>

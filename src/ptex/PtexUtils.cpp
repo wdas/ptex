@@ -346,6 +346,50 @@ void PtexUtils::copy(const void* src, int sstride, void* dst, int dstride,
 }
 
 
+namespace {
+    template<typename T>
+    inline void blend(const T* src, float weight, T* dst, int rowlen, int nchan)
+    {
+	for (const T* end = src + rowlen * nchan; src != end; dst++)
+	    *dst = *dst + T(weight * *src++);
+    }
+
+    template<typename T>
+    inline void blendflip(const T* src, float weight, T* dst, int rowlen, int nchan)
+    {
+	dst += (rowlen-1) * nchan;
+	for (const T* end = src + rowlen * nchan; src != end;) {
+	    for (int i = 0; i < nchan; i++, dst++)
+		*dst = *dst + T(weight * *src++);
+	    dst -= nchan*2;
+	}
+    }
+}
+
+
+void PtexUtils::blend(const void* src, float weight, void* dst, bool flip,
+		      int rowlen, DataType dt, int nchan)
+{
+    switch (dt<<1 | flip) {
+    case (dt_uint8<<1):      ::blend((const uint8_t*) src, weight,
+				     (uint8_t*) dst, rowlen, nchan); break;
+    case (dt_uint8<<1 | 1):  ::blendflip((const uint8_t*) src, weight,
+					 (uint8_t*) dst, rowlen, nchan); break;
+    case (dt_half<<1):       ::blend((const PtexHalf*) src, weight,
+				     (PtexHalf*) dst, rowlen, nchan); break;
+    case (dt_half<<1 | 1):   ::blendflip((const PtexHalf*) src, weight,
+					 (PtexHalf*) dst, rowlen, nchan); break;
+    case (dt_uint16<<1):     ::blend((const uint16_t*) src, weight,
+				     (uint16_t*) dst, rowlen, nchan); break;
+    case (dt_uint16<<1 | 1): ::blendflip((const uint16_t*) src, weight,
+					 (uint16_t*) dst, rowlen, nchan); break;
+    case (dt_float<<1):      ::blend((const float*) src, weight,
+				     (float*) dst, rowlen, nchan); break;
+    case (dt_float<<1 | 1):  ::blendflip((const float*) src, weight,
+					 (float*) dst, rowlen, nchan); break;
+    }
+}
+
 
 namespace {
     template<typename T>
@@ -395,6 +439,83 @@ namespace {
 	}
     };
 }
+
+
+namespace {
+    template<typename T>
+    inline void multalpha(T* data, int npixels, int nchannels, int alphachan, double scale)
+    {
+	int alphaoffset; // offset to alpha chan from data ptr
+	int nchanmult;   // number of channels to alpha-multiply
+	if (alphachan == 0) {
+	    // first channel is alpha chan: mult the rest of the channels
+	    data++;
+	    alphaoffset = -1;
+	    nchanmult = nchannels - 1; 
+	}
+	else {
+	    // mult all channels up to alpha chan
+	    alphaoffset = alphachan;
+	    nchanmult = alphachan;
+	}
+	
+	for (T* end = data + npixels*nchannels; data != end; data += nchannels) {
+	    double aval = scale * data[alphaoffset];
+	    for (int i = 0; i < nchanmult; i++)	data[i] = T(data[i] * aval);
+	}
+    }
+}
+
+void PtexUtils::multalpha(void* data, int npixels, DataType dt, int nchannels, int alphachan)
+{
+    double scale = OneValueInv(dt);
+    switch(dt) {
+    case dt_uint8:  ::multalpha((uint8_t*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_half:   ::multalpha((uint16_t*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_uint16: ::multalpha((PtexHalf*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_float:  ::multalpha((float*) data, npixels, nchannels, alphachan, scale); break;
+    }
+}
+
+
+namespace {
+    template<typename T>
+    inline void divalpha(T* data, int npixels, int nchannels, int alphachan, double scale)
+    {
+	int alphaoffset; // offset to alpha chan from data ptr
+	int nchandiv;    // number of channels to alpha-divide
+	if (alphachan == 0) {
+	    // first channel is alpha chan: div the rest of the channels
+	    data++;
+	    alphaoffset = -1;
+	    nchandiv = nchannels - 1; 
+	}
+	else {
+	    // div all channels up to alpha chan
+	    alphaoffset = alphachan;
+	    nchandiv = alphachan;
+	}
+	
+	for (T* end = data + npixels*nchannels; data != end; data += nchannels) {
+	    T alpha = data[alphaoffset];
+	    if (!alpha) continue; // don't divide by zero!
+	    double aval = scale / alpha;
+	    for (int i = 0; i < nchandiv; i++)	data[i] = T(data[i] * aval);
+	}
+    }
+}
+
+void PtexUtils::divalpha(void* data, int npixels, DataType dt, int nchannels, int alphachan)
+{
+    double scale = OneValue(dt);
+    switch(dt) {
+    case dt_uint8:  ::divalpha((uint8_t*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_half:   ::divalpha((uint16_t*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_uint16: ::divalpha((PtexHalf*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_float:  ::divalpha((float*) data, npixels, nchannels, alphachan, scale); break;
+    }
+}
+
 
 void PtexUtils::genRfaceids(const FaceInfo* faces, int nfaces,
 			    uint32_t* rfaceids, uint32_t* faceids)

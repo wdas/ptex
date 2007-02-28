@@ -70,6 +70,8 @@ class PtexMitchellFilter : public PtexFilter, public Ptex
     {
 	evalFaces(res, weight, 1.0/res.u(), 1.0/res.v()); 
     }
+    void evalLargeDu(float du, float weight);
+    void evalLargeDuFace(int faceid, int level, float weight);
 
     PtexFilterContext _ctx;	// filter context
 

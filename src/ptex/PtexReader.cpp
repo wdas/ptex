@@ -8,10 +8,10 @@
 
 
 
-PtexTexture* PtexTexture::open(const char* path, std::string& error)
+PtexTexture* PtexTexture::open(const char* path, std::string& error, bool premultiply)
 {
     // create a private cache and use it to open the file
-    PtexCache* cache = PtexCache::create(1, 1024*1024);
+    PtexCache* cache = PtexCache::create(1, 1024*1024, premultiply);
     PtexTexture* file = cache->get(path, error);
 
     // make reader own the cache (so it will delete it later)
@@ -74,8 +74,9 @@ bool PtexReader::open(const char* path, std::string& error)
 }
 
 
-PtexReader::PtexReader(void** parent, PtexCacheImpl* cache)
+PtexReader::PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply)
     : PtexCachedFile(parent, cache),
+      _premultiply(premultiply),
       _ownsCache(false),
       _ok(true),
       _fp(0),
@@ -192,6 +193,9 @@ void PtexReader::readConstData()
 	int size = _pixelsize * _header.nfaces;
 	_constdata = (uint8_t*) malloc(size);
 	readZipBlock(_constdata, _header.constdatasize, size);
+	if (_premultiply && _header.hasAlpha())
+	    PtexUtils::multalpha(_constdata, _header.nfaces, _header.datatype,
+				 _header.nchannels, _header.alphachan);
     }
 }
 
@@ -239,6 +243,9 @@ void PtexReader::readMetaData()
     // store meta data
     _cache->cachelock.lock();
     _metadata = newmeta;
+
+    // clean up unused data
+    _cache->purgeData();
 }
 
 
@@ -299,18 +306,19 @@ void PtexReader::readEditFaceData()
     f = efdh.faceinfo;
     f.flags |= FaceInfo::flag_hasedits;
 
-    if (f.isConstant()) {
-	// read const edits now
-	readBlock(_constdata + _pixelsize * faceid, _pixelsize);
-    }
-    else {
-	// otherwise record header info for later
-	_faceedits.push_back(FaceEdit());
-	FaceEdit& e = _faceedits.back();
-	e.pos = tell();
-	e.faceid = faceid;
-	e.fdh = efdh.fdh;
-    }
+    // read const value now
+    uint8_t* constdata = _constdata + _pixelsize * faceid;
+    readBlock(constdata, _pixelsize);
+    if (_premultiply && _header.hasAlpha())
+	PtexUtils::multalpha(constdata, 1, _header.datatype,
+			     _header.nchannels, _header.alphachan);
+
+    // update header info for remaining data
+    _faceedits.push_back(FaceEdit());
+    FaceEdit& e = _faceedits.back();
+    e.pos = tell();
+    e.faceid = faceid;
+    e.fdh = efdh.fdh;
 }
 
 
@@ -405,6 +413,9 @@ void PtexReader::readLevel(int levelid, Level*& level)
     // don't assign to result until level data is fully initialized
     _cache->cachelock.lock();
     level = newlevel;
+
+    // clean up unused data
+    _cache->purgeData();
 }
 
 
@@ -475,7 +486,7 @@ void PtexReader::readFace(int levelid, Level* level, int faceid)
 	// skip faces with zero size (which is true for level-0 constant faces)
 	if (fdh.blocksize) {
 	    FaceData*& face = level->faces[i];
-	    readFaceData(level->offsets[i], fdh, getRes(levelid, i), face);
+	    readFaceData(level->offsets[i], fdh, getRes(levelid, i), levelid, face);
 	    if (i != faceid) extraFaces.push_back(face);
 	}
     }
@@ -504,12 +515,15 @@ void PtexReader::TiledFace::readTile(int tile, FaceData*& data)
     // TODO - bundle tile reads (see readFace)
 
     // go ahead and read the face data
-    _reader->readFaceData(_offsets[tile], _fdh[tile], _tileres, data);
+    _reader->readFaceData(_offsets[tile], _fdh[tile], _tileres, _levelid, data);
     _cache->cachelock.lock();
+
+    // clean up unused data
+    _cache->purgeData();
 }
 
 
-void PtexReader::readFaceData(off_t pos, FaceDataHeader fdh, Res res,
+void PtexReader::readFaceData(off_t pos, FaceDataHeader fdh, Res res, int levelid,
 			      FaceData*& face)
 {
     // keep new face local until fully initialized
@@ -521,6 +535,9 @@ void PtexReader::readFaceData(off_t pos, FaceDataHeader fdh, Res res,
 	{
 	    ConstantFace* pf = new ConstantFace((void**)&face, _cache, _pixelsize);
 	    readBlock(pf->data(), _pixelsize);
+	    if (levelid==0 && _premultiply && _header.hasAlpha())
+		PtexUtils::multalpha(pf->data(), 1, _header.datatype,
+				     _header.nchannels, _header.alphachan);
 	    newface = pf;
 	}
 	break;
@@ -530,7 +547,7 @@ void PtexReader::readFaceData(off_t pos, FaceDataHeader fdh, Res res,
 	    readBlock(&tileres, sizeof(tileres));
 	    uint32_t tileheadersize;
 	    readBlock(&tileheadersize, sizeof(tileheadersize));
-	    TiledFace* tf = new TiledFace((void**)&face, _cache, res, tileres, this);
+	    TiledFace* tf = new TiledFace((void**)&face, _cache, res, tileres, levelid, this);
 	    readZipBlock(&tf->_fdh[0], tileheadersize, FaceDataHeaderSize * tf->_ntiles);
 	    computeOffsets(tell(), tf->_ntiles, &tf->_fdh[0], &tf->_offsets[0]);
 	    newface = tf;
@@ -551,6 +568,9 @@ void PtexReader::readFaceData(off_t pos, FaceDataHeader fdh, Res res,
 	    PtexUtils::interleave(tmp, uw * DataSize(_header.datatype), uw, vw,
 				  pf->data(), uw * _pixelsize,
 				  _header.datatype, _header.nchannels);
+	    if (levelid==0 && _premultiply && _header.hasAlpha())
+		PtexUtils::multalpha(pf->data(), npixels, _header.datatype,
+				     _header.nchannels, _header.alphachan);
 	    newface = pf;
 	}
 	break;
@@ -630,7 +650,7 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
     if (faceid < 0 || size_t(faceid) >= _header.nfaces) return 0;
 
     FaceInfo& fi = _faceinfo[faceid];
-    if (fi.isConstant() || res == 0) {
+    if ((fi.isConstant() && res >= 0) || res == 0) {
 	return new ConstDataPtr(getConstData() + faceid * _pixelsize, _pixelsize);
     }
 
@@ -653,8 +673,9 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 	_cache->cachelock.unlock();
 	return face;
     }
-    else if (redu == redv && !fi.hasEdits()) {
-	// reduction is symmetric and face has no edits, access reduction level
+    else if (redu == redv && !fi.hasEdits() && res >= 0) {
+	// reduction is symmetric and non-negative 
+	// and face has no edits => access data from reduction level (if present)
 	int levelid = redu;
 	if (size_t(levelid) < _levels.size()) {
 	    Level* level = getLevel(levelid);
@@ -686,29 +707,148 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
     // unlock cache - getData and reduce will handle their own locking
     _cache->cachelock.unlock();
     
-    if (redu > redv) {
+    // determine which direction to blend
+    bool blendu;
+    if (redu == redv) {
+	// for symmetric face blends, alternate u and v blending
+	blendu = (res.ulog2 & 1);
+    }
+    else if (redu > redv) blendu = 1;
+    else blendu = 0;
+
+    // see if full-face neighborhood blending is needed
+    if (blendu ? res.ulog2 < 0 : res.vlog2 < 0) {
+	// already down to a single pixel in at blend dimension
+	// blend w/ neighbors instead of reducing
+	blendFaces(face, faceid, res, blendu);
+	return face;
+    }
+
+    if (blendu) {
 	// get next-higher u-res and reduce in u
 	PtexFaceData* psrc = getData(faceid, Res(res.ulog2+1, res.vlog2));
 	FaceData* src = dynamic_cast<FaceData*>(psrc);
+	assert(src);
 	if (src) src->reduce(face, this, res, PtexUtils::reduceu);
 	if (psrc) psrc->release();
     }
-    else if (redu < redv) {
+    else {
 	// get next-higher v-res and reduce in v
 	PtexFaceData* psrc = getData(faceid, Res(res.ulog2, res.vlog2+1));
 	FaceData* src = dynamic_cast<FaceData*>(psrc);
+	assert(src);
 	if (src) src->reduce(face, this, res, PtexUtils::reducev);
 	if (psrc) psrc->release();
     }
-    else { // redu == redv
-	// get next-higher res and reduce (in both u and v
+
+#if 0
+    // This happens rarely (only when the symmetric reduction is not
+    // already on-disk), and it's not clear whether it's better
+    // (faster) than separate uni-directional reductions anyway.  Can
+    // re-enable later and test.  Having one less case means less can go wrong!
+    else { // redu == redv => symmetric reduction
+	// get next-higher res and reduce (in both u and v)
 	PtexFaceData* psrc = getData(faceid, Res(res.ulog2+1, res.vlog2+1));
 	FaceData* src = dynamic_cast<FaceData*>(psrc);
+	assert(src);
 	if (src) src->reduce(face, this, res, PtexUtils::reduce);
 	if (psrc) psrc->release();
     }
+#endif
 
     return face;
+}
+
+
+void PtexReader::blendFaces(FaceData*& face, int faceid, Res res, bool blendu)
+{
+    Res pres;   // parent res, 1 higher in blend direction
+    int length; // length of blend edge (1xN or Nx1)
+    int e1, e2; // neighboring edge ids
+    if (blendu) {
+	assert(res.ulog2 < 0); // res >= 0 requires reduction, not blending
+	length = (res.vlog2 <= 0 ? 1 : res.v());
+	e1 = e_bottom; e2 = e_top;
+	pres = Res(res.ulog2+1, res.vlog2);
+    }
+    else {
+	assert(res.vlog2 < 0);
+	length = (res.ulog2 <= 0 ? 1 : res.u());
+	e1 = e_right; e2 = e_left;
+	pres = Res(res.ulog2, res.vlog2+1);
+    }
+
+    // get neighbor face ids
+    FaceInfo& f = _faceinfo[faceid];
+    int nf1 = f.adjfaces[e1], nf2 = f.adjfaces[e2];
+
+    // compute rotation of faces relative to current
+    int r1 = (f.adjedge(e1)-e1+2)&3;
+    int r2 = (f.adjedge(e2)-e2+2)&3;
+
+    // swap u and v res for faces rotated +/- 90 degrees
+    Res pres1 = pres, pres2 = pres;
+    if (r1 & 1) pres1.swapuv();
+    if (r2 & 1) pres2.swapuv();
+
+    // ignore faces that have insufficient res (unlikely, but possible)
+    if (nf1 >= 0 && !(_faceinfo[nf1].res >= pres)) nf1 = -1;
+    if (nf2 >= 0 && !(_faceinfo[nf2].res >= pres)) nf2 = -1;
+
+    // get parent face data
+    int nf = 1;			// number of faces to blend (1 to 3)
+    bool flip[3];		// true if long dimension needs to be flipped
+    PtexFaceData* psrc[3];	// the face data
+    psrc[0] = getData(faceid, pres);
+    flip[0] = 0;		// don't flip main face
+    if (nf1 >= 0) {
+	// face must be flipped if rot is 1 or 2 for blendu, or 2 or 3 for blendv
+	// thus, just add the blendu bool val to align the ranges and check bit 1
+	// also, no need to flip if length is zero
+	flip[nf] = length ? (r1 + blendu) & 1 : 0;
+	psrc[nf++] = getData(nf1, pres1);
+    }
+    if (nf2 >= 0) {
+	flip[nf] = length ? (r2 + blendu) & 1 : 0;
+	psrc[nf++] = getData(nf2, pres2);
+    }
+
+    // get reduce lock and make sure we still need to reduce
+    AutoLock rlocker(reducelock);
+    if (face) {
+	// another thread must have generated it while we were waiting
+	AutoLock locker(_cache->cachelock);
+	face->ref();
+    }
+    else {
+	// allocate a new face data (1 x N or N x 1)
+	DataType dt = datatype();
+	int nchan = nchannels();
+	int size = _pixelsize * length;
+	PackedFace* pf = new PackedFace((void**)&face, _cache, res,
+					_pixelsize, size);
+	void* data = pf->getData();
+	if (nf == 1) {
+	    // no neighbors - just copy face
+	    memcpy(data, psrc[0]->getData(), size);
+	}
+	else {
+	    double weight = 1.0 / nf;
+	    memset(data, 0, size);
+	    for (int i = 0; i < nf; i++)
+		PtexUtils::blend(psrc[i]->getData(), weight, data, flip[i],
+				 length, dt, nchan);
+	}
+
+	AutoLock clocker(_cache->cachelock);
+	face = pf;
+
+	// clean up unused data
+	_cache->purgeData();
+    }
+
+    // release parent data
+    for (int i = 0; i < nf; i++) psrc[i]->release();
 }
 
 
@@ -724,6 +864,37 @@ void PtexReader::getPixel(int faceid, int u, int v,
 
     // get raw pixel data
     PtexFaceData* data = getData(faceid);
+    if (!data) return;
+    void* pixel = alloca(_pixelsize);
+    data->getPixel(u, v, pixel);
+    data->release();
+
+    // adjust for firstchan offset
+    int datasize = DataSize(_header.datatype);
+    if (firstchan)
+	pixel = (char*) pixel + datasize * firstchan;
+    
+    // convert/copy to result as needed
+    if (_header.datatype == dt_float)
+	memcpy(result, pixel, datasize * nchannels);
+    else
+	ConvertToFloat(result, pixel, _header.datatype, nchannels);
+}
+
+
+void PtexReader::getPixel(int faceid, int u, int v,
+			  float* result, int firstchan, int nchannels, 
+			  Ptex::Res res)
+{
+    memset(result, 0, nchannels);
+
+    // clip nchannels against actual number available
+    nchannels = PtexUtils::min(nchannels, 
+			       _header.nchannels-firstchan);
+    if (nchannels <= 0) return;
+
+    // get raw pixel data
+    PtexFaceData* data = getData(faceid, res);
     if (!data) return;
     void* pixel = alloca(_pixelsize);
     data->getPixel(u, v, pixel);
@@ -764,6 +935,9 @@ void PtexReader::PackedFace::reduce(FaceData*& face, PtexReader* r,
 	     pf->_data, _pixelsize * newres.u(), dt, nchan);
     AutoLock clocker(_cache->cachelock);
     face = pf;
+
+    // clean up unused data
+    _cache->purgeData();
 }
 
 
@@ -806,11 +980,19 @@ void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
     // keep new face local until fully initialized
     FaceData* volatile newface = 0;
 
-    // propagate the tile res to the reduction
-    // but make sure tile isn't larger than the new face!
-    Res newtileres = _tileres;
-    if (newtileres.ulog2 > newres.ulog2) newtileres.ulog2 = newres.ulog2;
-    if (newtileres.vlog2 > newres.vlog2) newtileres.vlog2 = newres.vlog2;
+    // don't tile if either dimension is 1 (rare, would complicate blendFaces too much)
+    Res newtileres;
+    if (newres.ulog2 == 1 || newres.vlog2 == 1) {
+	newtileres = newres;
+    }
+    else {
+	// propagate the tile res to the reduction
+	newtileres = _tileres;
+	// but make sure tile isn't larger than the new face!
+	if (newtileres.ulog2 > newres.ulog2) newtileres.ulog2 = newres.ulog2;
+	if (newtileres.vlog2 > newres.vlog2) newtileres.vlog2 = newres.vlog2;
+    }
+
 
     // determine how many tiles we will have on the reduction
     int newntiles = newres.ntiles(newtileres);
@@ -867,6 +1049,9 @@ void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
     }
     AutoLock clocker(_cache->cachelock);
     face = newface;
+
+    // clean up unused data
+    _cache->purgeData();
 }
 
 

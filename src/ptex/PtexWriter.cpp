@@ -602,7 +602,7 @@ bool PtexMainWriter::close(std::string& error)
     return 1;
 }
 
-bool PtexMainWriter::writeFace(int faceid, const FaceInfo& f, void* data, int stride)
+bool PtexMainWriter::writeFace(int faceid, const FaceInfo& f, const void* data, int stride)
 {
     if (!_ok) return 0;
     if (faceid < 0 || size_t(faceid) >= _faceinfo.size()) {
@@ -626,6 +626,23 @@ bool PtexMainWriter::writeFace(int faceid, const FaceInfo& f, void* data, int st
     // write face data
     writeFaceData(_tmpfp, data, stride, f.res, _levels.front().fdh[faceid]);
 
+    // premultiply (if needed) before making reductions; use temp copy of data
+    uint8_t* temp = 0;
+    if (_header.hasAlpha()) {
+	// first copy to temp buffer
+	int rowlen = f.res.u() * _pixelSize, nrows = f.res.v();
+	temp = (uint8_t*) malloc(rowlen * nrows);
+	PtexUtils::copy(data, stride, temp, rowlen, nrows, rowlen);
+
+	// multiply alpha
+	PtexUtils::multalpha(temp, f.res.size(), _header.datatype, _header.nchannels,
+			     _header.alphachan);
+
+	// override source buffer
+	data = temp;
+	stride = rowlen;
+    }
+
     // generate first reduction (if needed)
     if (_genmipmaps &&
 	(f.res.ulog2 > MinReductionLog2 && f.res.vlog2 > MinReductionLog2))
@@ -636,11 +653,13 @@ bool PtexMainWriter::writeFace(int faceid, const FaceInfo& f, void* data, int st
     else {
 	storeConstValue(faceid, data, stride, f.res);
     }
+
+    if (temp) free(temp);
     return 1;
 }
 
 
-bool PtexMainWriter::writeConstantFace(int faceid, const FaceInfo& f, void* data)
+bool PtexMainWriter::writeConstantFace(int faceid, const FaceInfo& f, const void* data)
 {
     if (!_ok) return 0;
     if (faceid < 0 || size_t(faceid) >= _faceinfo.size()) {
@@ -661,8 +680,11 @@ bool PtexMainWriter::writeConstantFace(int faceid, const FaceInfo& f, void* data
 void PtexMainWriter::storeConstValue(int faceid, const void* data, int stride, Res res)
 {
     // compute average value and store in _constdata block
-    PtexUtils::average(data, stride, res.u(), res.v(), &_constdata[faceid*_pixelSize],
+    uint8_t* constdata = &_constdata[faceid*_pixelSize];
+    PtexUtils::average(data, stride, res.u(), res.v(), constdata,
 		       _header.datatype, _header.nchannels);
+    if (_header.hasAlpha())
+	PtexUtils::divalpha(constdata, 1, _header.datatype, _header.nchannels, _header.alphachan);
 }
 
 
@@ -812,7 +834,7 @@ bool PtexIncrWriter::open(const char* path, Ptex::MeshType mt, Ptex::DataType dt
 }
 
 
-bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, void* data, int stride)
+bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, const void* data, int stride)
 {
     // handle constant case
     bool isconst = PtexUtils::isConstant(data, stride, f.res.u(), f.res.v(), _pixelSize);
@@ -820,13 +842,13 @@ bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, void* data, int st
 }
 
 
-bool PtexIncrWriter::writeConstantFace(int faceid, const FaceInfo& f, void* data)
+bool PtexIncrWriter::writeConstantFace(int faceid, const FaceInfo& f, const void* data)
 {
     return writeFace(faceid, f, data, 0, true);
 }
 
 
-bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, void* data, int stride,
+bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, const void* data, int stride,
 			       bool isConst)
 {
     if (faceid < 0 || size_t(faceid) >= _header.nfaces) return 0;
@@ -837,13 +859,49 @@ bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, void* data, int st
     edh.edittype = et_editfacedata;
     efdh.faceid = faceid;
     efdh.faceinfo = f;
-    efdh.faceinfo.flags = 0;
+    efdh.faceinfo.flags = isConst ? FaceInfo::flag_constant : 0;
 
     // record position and skip headers
     fseeko(_fp, 0, SEEK_END);
     off_t pos = ftello(_fp);
     writeBlank(_fp, sizeof(edh) + sizeof(efdh));
     
+    // write const val
+    if (isConst) {
+	writeBlock(_fp, data, _pixelSize);
+    }
+    else {
+	// must compute constant (average) val first
+	uint8_t* constval = (uint8_t*) malloc(_pixelSize);
+
+	if (_header.hasAlpha()) {
+	    // must premult alpha before averaging
+	    // first copy to temp buffer
+	    int rowlen = f.res.u() * _pixelSize, nrows = f.res.v();
+	    uint8_t* temp = (uint8_t*) malloc(rowlen * nrows);
+	    PtexUtils::copy(data, stride, temp, rowlen, nrows, rowlen);
+
+	    // multiply alpha
+	    PtexUtils::multalpha(temp, f.res.size(), _header.datatype, _header.nchannels,
+				 _header.alphachan);
+	    // average
+	    PtexUtils::average(temp, rowlen, f.res.u(), f.res.v(), constval,
+			       _header.datatype, _header.nchannels);
+	    // unmult alpha
+	    PtexUtils::divalpha(constval, 1, _header.datatype, _header.nchannels,
+				_header.alphachan);
+	    free(temp);
+	}
+	else {
+	    // average
+	    PtexUtils::average(data, stride, f.res.u(), f.res.v(), constval,
+			       _header.datatype, _header.nchannels);
+	}
+	// write const val
+	writeBlock(_fp, constval, _pixelSize);
+	free(constval);
+    }
+
     // write face data
     if (isConst)
 	writeConstFaceBlock(_fp, data, efdh.fdh);

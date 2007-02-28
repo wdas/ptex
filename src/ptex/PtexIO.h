@@ -17,10 +17,12 @@ struct PtexIO : public Ptex {
 	uint32_t faceinfosize;
 	uint32_t constdatasize;
 	uint32_t levelinfosize;
+	uint32_t reserved;
 	uint64_t leveldatasize;
 	uint32_t metadatazipsize;
 	uint32_t metadatamemsize;
-	int pixelSize() { return DataSize(datatype) * nchannels; }
+	int pixelSize() const { return DataSize(datatype) * nchannels; }
+	bool hasAlpha() const { return alphachan >= 0 && alphachan < nchannels; }
     };
     struct LevelInfo {
 	uint64_t leveldatasize;

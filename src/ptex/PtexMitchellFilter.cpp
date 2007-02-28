@@ -87,10 +87,25 @@ void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
     const FaceInfo& f = tx->getFaceInfo(faceid);
     _isConstant = f.isConstant();
 
-    // todo:
-    // if du and dv are > .25, then get the (blurred) constant data and lerp between neighbors
-    // for du between .25 and .5 do trilinear
+#if 0
+    // if du and dv are > .25, then eval using the constant per-face data
+    float minw = std::min(uw, vw);
+    if (minw > .25) {
+	/* for minw between .25 and 1, lerp w/ regular eval */
+	if (minw <= 1) {
+	    float blend = (minw-.25)/.75; // lerp amount
+	    evalLargeDu(1.0, weight * blend);
 
+	    // continue w/ regular eval, but weighted by lerp val
+	    weight *= (1-blend);
+	}
+	else {
+	    // minw > 1, just do large du eval
+	    evalLargeDu(minw, weight);
+	    return;
+	}
+    }
+#endif
 
     // clamp filter width to no larger than 0.25 (todo - handle larger filter widths)
     _ctx.uw = std::min(_ctx.uw, 0.25f);
@@ -175,19 +190,20 @@ void PtexMitchellFilter::getNeighborhood(const FaceInfo& f)
     if (_ctx.v < .5) { veid = e_bottom; vdist = _ctx.v; }
     else             { veid = e_top;    vdist = 1 - _ctx.v; }
 
-    // blend width must be > 1.5 pixels
-    // 2.0 seems to be a good balance between hiding the blend and preserving detail
-    // smaller values also reduce cost by minimizing blend area
-    // (todo - try different values, tune w/ production test case)
-    static const float blend = 2.0; 
+    // blend zone starts at 1.5 texels in (at the current res)
+    // to keep the kernel from accessing samples from the low-res face
+    static const float blendstart = 1.5; // dist from edge (in texels) to start blending 
+    static const float blendend = 2.5;   // dist from edge (in texels) to stop blending 
 
     // get u and v neighbors and compute blend weights
-    float ublendwidth=0, vblendwidth=0;
+    float ublendstart=0, ublendend=0, vblendstart=0, vblendend=0;
     int ufid = f.adjfaces[ueid], vfid = f.adjfaces[veid];
     const FaceInfo* uf = 0, * vf = 0;
     if (ufid != -1) {
-	// compute minimum blend width in u dir
-	ublendwidth = PtexUtils::min(blend/f.res.u(), .5f);
+	// compute blend distances in u dir
+	float texel = 1.0/_face.res.u();
+	ublendstart = PtexUtils::min(blendstart*texel, .375f);
+	ublendend = PtexUtils::min(blendend*texel, 0.5f);
 	// get u neighbor face
 	uf = &_ctx.tx->getFaceInfo(ufid);
 	_uface.set(ufid, uf->res, f.adjedge(ueid) - ueid + 2);
@@ -195,8 +211,10 @@ void PtexMitchellFilter::getNeighborhood(const FaceInfo& f)
 	_uface.clampres(_face.res);
     }
     if (vfid != -1)  {
-	// compute minimum blend width in v dir
-	vblendwidth = PtexUtils::min(blend/f.res.v(), .5f);
+	// compute blend distances in v dir
+	float texel = 1.0/_face.res.v();
+	vblendstart = PtexUtils::min(blendstart*texel, .375f);
+	vblendend = PtexUtils::min(blendend*texel, 0.5f);
 	// get v neighbor face
 	vf = &_ctx.tx->getFaceInfo(vfid);
 	_vface.set(vfid, vf->res, f.adjedge(veid) - veid + 2);
@@ -208,21 +226,27 @@ void PtexMitchellFilter::getNeighborhood(const FaceInfo& f)
     if (_uface && _vface) {
 	// smoothstep ublendwidth towards adj ures
 	if (_vface.res.ulog2 != _face.res.ulog2) {
-	    float adjwidth = PtexUtils::min(blend/_vface.res.u(), .5f);
-	    float wblend = PtexUtils::smoothstep(vdist, 0, 0.5);
-	    ublendwidth = ublendwidth * wblend + adjwidth * (1-wblend);
+	    float texel = 1.0/_vface.res.u();
+	    float adjstart = PtexUtils::min(blendstart*texel, .375f);
+	    float adjend = PtexUtils::min(blendend*texel, .5f);
+	    float wblend = PtexUtils::smoothstep(vdist, vblendstart, vblendend);
+	    ublendstart = ublendstart * wblend + adjstart * (1-wblend);
+	    ublendend = ublendend * wblend + adjend * (1-wblend);
 	}
 	// smoothstep vblendwidth towards adj vres
 	if (_uface.res.vlog2 != _face.res.vlog2) {
-	    float adjwidth = PtexUtils::min(blend/_uface.res.v(), .5f);
-	    float wblend = PtexUtils::smoothstep(udist, 0, 0.5);
-	    vblendwidth = vblendwidth * wblend + adjwidth * (1-wblend);
+	    float texel = 1.0/_uface.res.v();
+	    float adjstart = PtexUtils::min(blendstart*texel, .375f);
+	    float adjend = PtexUtils::min(blendend*texel, .5f);
+	    float wblend = PtexUtils::smoothstep(udist, ublendstart, ublendend);
+	    vblendstart = vblendstart * wblend + adjstart * (1-wblend);
+	    vblendend = vblendend * wblend + adjend * (1-wblend);
 	}
     }
 
     // compute blend weights based on distances to edges
-    bool nearu = _uface && (udist < PtexUtils::max(ublendwidth, float(4.0/_face.res.u())));
-    bool nearv = _vface && (vdist < PtexUtils::max(vblendwidth, float(4.0/_face.res.v())));
+    bool nearu = _uface && (udist < ublendend);
+    bool nearv = _vface && (vdist < vblendend);
 
     if (!nearu) {
 	_ublend = 0;
@@ -230,7 +254,7 @@ void PtexMitchellFilter::getNeighborhood(const FaceInfo& f)
     }
     else {
 	// in blend zone w/ u
-	_ublend = 1 - PtexUtils::smoothstep(udist, 0, ublendwidth);
+	_ublend = 1 - PtexUtils::qsmoothstep(udist, ublendstart, ublendend);
 	if (_isConstant && !uf->isConstant()) _isConstant = 0;
     }
 
@@ -240,7 +264,7 @@ void PtexMitchellFilter::getNeighborhood(const FaceInfo& f)
     }
     else {
 	// in blend zone w/ v
-	_vblend = 1 - PtexUtils::smoothstep(vdist, 0, vblendwidth);
+	_vblend = 1 - PtexUtils::qsmoothstep(vdist, vblendstart, vblendend);
 	if (_isConstant && !vf->isConstant()) _isConstant = 0;
     }
 
@@ -429,3 +453,66 @@ void PtexMitchellFilter::evalFaces(Res res, double weight, float uw, float vw)
 }
 
 
+void PtexMitchellFilter::evalLargeDu(float w, float weight)
+{
+    // eval using the constant per-face values
+    // use "blended" values based on filter size
+    int level = int(ceil(log2(1.0/w)));
+    if (level > 0) level = 0;
+    static int minlev = 5;
+    if (level < minlev) { minlev = level; printf("%d\n", minlev); }
+    switch (level) {
+    case 0:   level = -1; break;
+    case -1:  level = -2; break;
+    case -2:  level = -7; break;
+    default:
+    case -3:  level = -28; break;
+    }
+    // get face
+    const FaceInfo& f = _ctx.tx->getFaceInfo(_ctx.faceid);
+
+    // get u and v neighbors
+    EdgeId ueid, veid;
+    float ublend, vblend; // lerp amounts: 0 at texel center, 0.5 at boundary
+    if (_ctx.u < .5) { ueid = e_left;   ublend = .5 - _ctx.u; } 
+    else             { ueid = e_right;  ublend = _ctx.u - .5; }
+    if (_ctx.v < .5) { veid = e_bottom; vblend = .5 - _ctx.v; }
+    else             { veid = e_top;    vblend = _ctx.v - .5; }
+    int ufid = f.adjfaces[ueid], vfid = f.adjfaces[veid], cfid = -1;
+
+    if (ufid >= 0 && vfid >= 0) {
+	// get corner face from u face (just get first face for an e.p.)
+	EdgeId ceid = f.adjedge(ueid);
+	int dir = (ueid+1)%4==veid? 3 : 1; // ccw or cw
+	int eid = EdgeId((ceid + dir) % 4);
+	const FaceInfo& uf = _ctx.tx->getFaceInfo(ufid);
+	cfid = uf.adjfaces[eid];
+    }
+
+    // apply lerp weights to each of the faces
+    double mweight = weight * (1 - ublend) * (1 - vblend); // main face
+    double uweight = weight * ublend * (1 - vblend);       // u blend
+    double vweight = weight * (1 - ublend) * vblend;       // v blend
+    double cweight = weight * ublend * vblend;	           // corner blend
+
+    // for missing faces, push weight across boundary
+    if (cfid >= 0) {
+	evalLargeDuFace(cfid, level, cweight);
+    } else {
+	if (ufid >= 0) uweight += cweight;
+	else vweight += cweight;
+    }
+    if (vfid >= 0) evalLargeDuFace(vfid, level, vweight); else mweight += vweight;
+    if (ufid >= 0) evalLargeDuFace(ufid, level, uweight); else mweight += uweight;
+    evalLargeDuFace(_ctx.faceid, level, mweight);
+}
+
+
+void PtexMitchellFilter::evalLargeDuFace(int faceid, int level, float weight)
+{
+    PtexFaceData* dh = _ctx.tx->getData(faceid, Res(level,level));
+    if (dh) {
+	PtexFilterKernel::applyConst(dh->getData(), _ctx, weight);
+	dh->release();
+    }
+}

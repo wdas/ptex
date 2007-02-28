@@ -26,6 +26,7 @@ class PtexFilterKernel : public Ptex {
     void split(PtexFilterKernel& ku, PtexFilterKernel& kv, PtexFilterKernel& kc);
     void merge(PtexFilterKernel& k, EdgeId eid, bool extrapolate);
     void apply(int faceid, int rotateval, const PtexFilterContext& c) const;
+    static void applyConst(void* data, const PtexFilterContext& c, double weight);
 
     class Iter; friend class Iter;
     class TileIter; friend class TileIter;

@@ -72,8 +72,8 @@ public:
 	      bool genmipmaps);
 
     virtual bool close(std::string& error);
-    virtual bool writeFace(int faceid, const FaceInfo& f, void* data, int stride);
-    virtual bool writeConstantFace(int faceid, const FaceInfo& f, void* data);
+    virtual bool writeFace(int faceid, const FaceInfo& f, const void* data, int stride);
+    virtual bool writeConstantFace(int faceid, const FaceInfo& f, const void* data);
 
 protected:
     virtual ~PtexMainWriter();
@@ -112,11 +112,11 @@ class PtexIncrWriter : public PtexWriterBase {
     bool open(const char* path, Ptex::MeshType mt, Ptex::DataType dt,
 	      int nchannels, int alphachan, int nfaces, std::string& error);
 
-    virtual bool writeFace(int faceid, const FaceInfo& f, void* data, int stride);
-    virtual bool writeConstantFace(int faceid, const FaceInfo& f, void* data);
+    virtual bool writeFace(int faceid, const FaceInfo& f, const void* data, int stride);
+    virtual bool writeConstantFace(int faceid, const FaceInfo& f, const void* data);
 
  protected:
-    bool writeFace(int faceid, const FaceInfo &f, void* data, int stride, bool isConst);
+    bool writeFace(int faceid, const FaceInfo &f, const void* data, int stride, bool isConst);
     virtual void finish();
     virtual ~PtexIncrWriter();
 };

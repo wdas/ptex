@@ -42,7 +42,7 @@
    the parent no longer sees it.
 
    * Cache LifeTime:
-   When a cache is released from it's owner, it will delete itself but
+   When a cache is released from its owner, it will delete itself but
    only after all objects it owns are no longer in use.  To do this, a
    ref count on the cache is used.  The owner holds 1 ref (only one
    owner allowed), and each object holds a ref (maintained internally).
@@ -126,7 +126,6 @@ void PtexCacheImpl::setFileUnused(PtexLruItem* file)
     assert(cachelock.locked());
     _unusedFiles.push(file);
     _unusedFileCount++;
-    purgeFiles();
 }
 
 void PtexCacheImpl::removeFile()
@@ -150,12 +149,11 @@ void PtexCacheImpl::setDataUnused(PtexLruItem* data, int size)
     _unusedData.push(data);
     _unusedDataCount++;
     _unusedDataSize += size;
-    purgeData();
 }
 
 void PtexCacheImpl::removeData(int size) {
     // cachelock should be locked, but might not be if cache is being deleted
-    _unusedDataCount --;
+    _unusedDataCount--;
     _unusedDataSize -= size;
     STATS_INC(ndataFreed);
 }
@@ -164,9 +162,9 @@ void PtexCacheImpl::removeData(int size) {
 class PtexReaderCache : public PtexCacheImpl
 {
 public:
-    PtexReaderCache(int maxFiles, int maxMem)
+    PtexReaderCache(int maxFiles, int maxMem, bool premultiply)
 	: PtexCacheImpl(maxFiles, maxMem),
-	  _cleanupCount(0)
+	  _cleanupCount(0), _premultiply(premultiply)
     {}
 
     virtual void setSearchPath(const char* path) 
@@ -249,6 +247,7 @@ private:
     typedef DGDict<PtexReader*> FileMap;
     FileMap _files;
     int _cleanupCount;
+    bool _premultiply;
 };
 
 
@@ -284,7 +283,7 @@ PtexTexture* PtexReaderCache::get(const char* filename, std::string& error)
 	}
 		
 	// make a new reader
-	reader = new PtexReader((void**)entry, this);
+	reader = new PtexReader((void**)entry, this, _premultiply);
 
 	// temporarily release cache lock while we open the file
 	cachelock.unlock();
@@ -309,12 +308,12 @@ PtexTexture* PtexReaderCache::get(const char* filename, std::string& error)
 	}
 	if (ok) ok = reader->open(filename, error);
 
-	// reacqure cache lock
+	// reacquire cache lock
 	cachelock.lock();
-
 	    
 	if (!ok) {
 	    // open failed, clear parent ptr and unref to delete
+	    *entry = reader; // to pass parent check in orphan()
 	    reader->orphan();
 	    reader->unref();
 	    *entry = (PtexReader*)-1; // flag for future lookups
@@ -323,6 +322,9 @@ PtexTexture* PtexReaderCache::get(const char* filename, std::string& error)
 	    
 	// successful open, record in _files map entry
 	*entry = reader;
+
+	// clean up unused files
+	purgeFiles();
 
 	// Cleanup map every so often so it doesn't get HUGE
 	// from being filled with blank entries from dead files.
@@ -335,11 +337,11 @@ PtexTexture* PtexReaderCache::get(const char* filename, std::string& error)
     return reader;
 }
 
-PtexCache* PtexCache::create(int maxFiles, int maxMem)
+PtexCache* PtexCache::create(int maxFiles, int maxMem, bool premultiply)
 {
     if (maxFiles <= 0) maxFiles = 100;
     if (maxMem <= 0) maxMem = 1024*1024*100;
-    return new PtexReaderCache(maxFiles, maxMem);
+    return new PtexReaderCache(maxFiles, maxMem, premultiply);
 }
 
 

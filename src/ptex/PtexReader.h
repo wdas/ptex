@@ -37,7 +37,7 @@ public:
 
 class PtexReader : public PtexCachedFile, public PtexTexture, public PtexIO {
 public:
-    PtexReader(void** parent, PtexCacheImpl* cache);
+    PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply);
     bool open(const char* path, std::string& error);
 
     void setOwnsCache() { _ownsCache = true; }
@@ -56,6 +56,9 @@ public:
     virtual PtexFaceData* getData(int faceid, Res res);
     virtual void getPixel(int faceid, int u, int v,
 			  float* result, int firstchan, int nchannels);
+    virtual void getPixel(int faceid, int u, int v,
+			  float* result, int firstchan, int nchannels, 
+			  Ptex::Res res);
 
     DataType datatype() const { return _header.datatype; }
     int nchannels() const { return _header.nchannels; }
@@ -291,16 +294,16 @@ public:
 
     class TiledFace : public TiledFaceBase {
     public:
-	TiledFace(void** parent, PtexCacheImpl* cache, Res res,
-		  Res tileres, PtexReader* reader)
+	TiledFace(void** parent, PtexCacheImpl* cache, Res res, Res tileres,
+		  int levelid, PtexReader* reader)
 	    : TiledFaceBase(parent, cache, res, tileres, 
 			    reader->datatype(), reader->nchannels()),
-	      _reader(reader)
+	      _reader(reader),
+	      _levelid(levelid)
 	{
 	    _fdh.resize(_ntiles),
 	    _offsets.resize(_ntiles);
 	    incSize((sizeof(FaceDataHeader)+sizeof(off_t))*_ntiles);
-	    _reader->ref();
 	}
 	virtual PtexFaceData* getTile(int tile)
 	{
@@ -313,11 +316,9 @@ public:
 	void readTile(int tile, FaceData*& data);
 
     protected:
-	virtual void setInUse() { _reader->ref(); TiledFaceBase::setInUse(); }
-	virtual void setUnused() { _reader->unref(); TiledFaceBase::setUnused(); }
-
 	friend class PtexReader;
 	PtexReader* _reader;
+	int _levelid;
 	safevector<FaceDataHeader> _fdh;
 	safevector<off_t> _offsets;
     };	    
@@ -334,11 +335,13 @@ public:
 	{
 	    _parentface->ref(); 
 	}
+	~TiledReducedFace()
+	{
+	    _parentface->unref();
+	}
 	virtual PtexFaceData* getTile(int tile);
 
     protected:
-	virtual void setInUse() { _parentface->ref(); TiledFaceBase::setInUse(); }
-	virtual void setUnused() { _parentface->unref(); TiledFaceBase::setUnused(); }
 	TiledFaceBase* _parentface;
 	PtexUtils::ReduceFn* _reducefn;
     };
@@ -440,7 +443,7 @@ protected:
     void readConstData();
     void readLevel(int levelid, Level*& level);
     void readFace(int levelid, Level* level, int faceid);
-    void readFaceData(off_t pos, FaceDataHeader fdh, Res res, FaceData*& face);
+    void readFaceData(off_t pos, FaceDataHeader fdh, Res res, int levelid, FaceData*& face);
     void readMetaData();
     void readMetaDataBlock(MetaData* metadata, off_t pos, int zipsize, int memsize);
     void readEditData();
@@ -452,7 +455,9 @@ protected:
 	off_t* end = offsets + noffsets;
 	while (offsets != end) { *offsets++ = pos; pos += fdh->blocksize; fdh++; }
     }
+    void blendFaces(FaceData*& face, int faceid, Res res, bool blendu);
 
+    bool _premultiply;		      // true if reader should premultiply the alpha chan
     bool _ownsCache;		      // true if reader owns the cache
     bool _ok;			      // flag set if read error occurred)
     std::string _error;		      // error string (if !_ok)

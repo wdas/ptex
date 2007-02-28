@@ -31,13 +31,18 @@ struct Ptex {
 				 Ptex::DataType dt, int numChannels);
 
     struct Res {
-	uint8_t ulog2, vlog2; // log2(ures), log2(vres)
+	// Pixel resolution stored in log form (log2(ures), log2(vres))
+	// Note: res values can be negative but faces will
+	// always be stored with a res >= 0 (i.e. at least 1 pixel).  The
+	// negative res values are only used for accessing
+	// face-blended reductions.
+	int8_t ulog2, vlog2;
 	Res() : ulog2(0), vlog2(0) {}
-	Res(uint8_t ulog2, uint8_t vlog2) : ulog2(ulog2), vlog2(vlog2) {}
+	Res(int8_t ulog2, int8_t vlog2) : ulog2(ulog2), vlog2(vlog2) {}
 	Res(uint16_t value) { val() = value; }
 	
-	int u() const { return 1<<ulog2; }
-	int v() const { return 1<<vlog2; }
+	int u() const { return ulog2 > 0 ? 1<<ulog2 : 1; }
+	int v() const { return vlog2 > 0 ? 1<<vlog2 : 1; }
 	uint16_t& val() { return *(uint16_t*)this; }
 	const uint16_t& val() const { return *(uint16_t*)this; }
 	int size() const { return u() * v(); }
@@ -59,7 +64,7 @@ struct Ptex {
 	Res res;		// resolution of face
 	uint8_t adjedges;       // adjacent edges, 2 bits per edge
 	uint8_t flags;		// flags (internal use)
-	int32_t adjfaces[4];	// adjecent faces (-1 == no adjacent face)
+	int32_t adjfaces[4];	// adjacent faces (-1 == no adjacent face)
 
 	FaceInfo() : res(), adjedges(0), flags(0) 
 	{ 
@@ -126,7 +131,7 @@ class PtexFaceData {
 
 class PtexTexture {
  public:
-    static PtexTexture* open(const char* path, std::string& error);
+    static PtexTexture* open(const char* path, std::string& error, bool premultiply=0);
     virtual void release() = 0;
     virtual const char* path() = 0;
     virtual Ptex::MeshType meshType() = 0;
@@ -142,6 +147,9 @@ class PtexTexture {
     virtual PtexFaceData* getData(int faceid, Ptex::Res res) = 0;
     virtual void getPixel(int faceid, int u, int v,
 			  float* result, int firstchan, int nchannels) = 0;
+    virtual void getPixel(int faceid, int u, int v,
+			  float* result, int firstchan, int nchannels,
+			  Ptex::Res res) = 0;
     
  protected:
     virtual ~PtexTexture() {}
@@ -150,7 +158,7 @@ class PtexTexture {
 
 class PtexCache {
  public:
-    static PtexCache* create(int maxFiles=0, int maxMem=0);
+    static PtexCache* create(int maxFiles=0, int maxMem=0, bool premultiply=0);
     virtual void release() = 0;
     virtual void setSearchPath(const char* path) = 0;
     virtual const char* getSearchPath() = 0;
@@ -184,8 +192,8 @@ class PtexWriter {
     virtual void writeMeta(const char* key, const float* value, int count) = 0;
     virtual void writeMeta(const char* key, const double* value, int count) = 0;
     virtual void writeMeta(PtexMetaData* data) = 0;
-    virtual bool writeFace(int faceid, const Ptex::FaceInfo& info, void* data, int stride=0) = 0;
-    virtual bool writeConstantFace(int faceid, const Ptex::FaceInfo& info, void* data) = 0;
+    virtual bool writeFace(int faceid, const Ptex::FaceInfo& info, const void* data, int stride=0) = 0;
+    virtual bool writeConstantFace(int faceid, const Ptex::FaceInfo& info, const void* data) = 0;
     virtual bool close(std::string& error) = 0;
 
  protected:

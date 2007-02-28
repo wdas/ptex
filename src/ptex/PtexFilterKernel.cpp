@@ -385,7 +385,7 @@ void PtexFilterKernel::apply(int faceid, int rotate, const PtexFilterContext& c)
 	do {
 	    PtexFaceData* th = dh->getTile(tileiter.tile());
 	    if (th->isConstant()) {
-		ApplyConst(th->getData(), c, totalWeight());
+		ApplyConst(th->getData(), c, tileiter.kernel().totalWeight());
 	    }
 	    else {
 		Iter iter(tileiter.kernel(), rotate, c);
@@ -400,3 +400,10 @@ void PtexFilterKernel::apply(int faceid, int rotate, const PtexFilterContext& c)
     }
     dh->release();
 }
+
+
+void PtexFilterKernel::applyConst(void* data, const PtexFilterContext& c, double weight)
+{
+    ApplyConst(data, c, weight);
+}
+
