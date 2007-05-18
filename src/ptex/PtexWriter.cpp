@@ -36,68 +36,91 @@ PtexWriter* PtexWriter::edit(const char* path, bool incremental,
 	return 0;
     }
 
-    // open existing file
-    PtexTexture* r = PtexTexture::open(path, error);
-    if (!r) return 0;
-
-    // make sure header matches
-    bool headerMatch = (mt == r->meshType() && dt == r->dataType() &&
-			nchannels == r->numChannels() &&
-			alphachan == r->alphaChannel() &&
-			nfaces == r->numFaces());
-    if (!headerMatch) {
-	std::stringstream str;
-	str << "PtexWriter::edit error: header doesn't match existing file: " << path;
-	str << "  Conversions not currently supported." << path;
-	error = str.str();
-	r->release();
-	return 0;
-      }
-
     if (incremental) {
-	// incremental writer: close reader and append to existing file
-	r->release();
+	// make new incremental writer
 	PtexIncrWriter* w = new PtexIncrWriter;
+	// open existing file (if any)
 	if (!w->open(path, mt, dt, nchannels, alphachan, nfaces, error)) {
-	    w->release();
-	    return 0;
+	    if (errno != ENOENT) {
+		w->release();
+		return 0;
+	    }
+	    // create new (empty) file
+	    PtexWriter* e = PtexWriter::open(path, mt, dt, nchannels, alphachan, nfaces,
+					     error, genmipmaps);
+	    bool ok = e && e->close(error);
+	    if (e) e->release();
+	    if (!ok) {
+		w->release();
+		return 0;
+	    }
+	    // retry open
+	    if (!w->open(path, mt, dt, nchannels, alphachan, nfaces, error)) {
+		w->release();
+		return 0;
+	    }
 	}
 	return w;
     }
+    else {
+	// non-incremental
+	// open existing file (if any)
+	PtexTexture* r = PtexTexture::open(path, error);
+	if (!r && errno != ENOENT) return 0;
 
-    // non-incremental
-    // make new regular writer and copy existing file as starting point
-    PtexMainWriter* w = new PtexMainWriter;
-    if (!w->open(path, mt, dt, nchannels, alphachan, nfaces, error, genmipmaps)) {
-	w->release();
-	r->release();
-	return 0;
-    }
-
-    // copy meta data
-    PtexMetaData* meta = r->getMetaData();
-    w->writeMeta(meta);
-    meta->release();
-
-    // copy face data
-    int pixelsize = nchannels * Ptex::DataSize(dt);
-    for (int i = 0; i < nfaces; i++) {
-	const Ptex::FaceInfo& info = r->getFaceInfo(i);
-	int size = pixelsize * info.res.size();
-	if (info.isConstant()) {
-	    PtexFaceData* data = r->getData(i);
-	    w->writeConstantFace(i, info, data->getData());
-	    data->release();
-	} else {
-	    void* data = malloc(size);
-	    r->getData(i, data, 0);
-	    w->writeFace(i, info, data, 0);
-	    free(data);
+	// make sure header matches
+	if (r) {
+	    bool headerMatch = (mt == r->meshType() &&
+				dt == r->dataType() &&
+				nchannels == r->numChannels() &&
+				alphachan == r->alphaChannel() &&
+				nfaces == r->numFaces());
+	    if (!headerMatch) {
+		std::stringstream str;
+		str << "PtexWriter::edit error: header doesn't match existing file: " << path;
+		str << "  Conversions not currently supported." << path;
+		error = str.str();
+		r->release();
+		return 0;
+	    }
 	}
-    }
 
-    r->release();
-    return w;
+	// make new regular writer
+	PtexMainWriter* w = new PtexMainWriter;
+	if (!w->open(path, mt, dt, nchannels, alphachan, nfaces, error, genmipmaps)) {
+	    w->release();
+	    if (r) r->release();
+	    return 0;
+	}
+
+	// copy existing file (if any) as starting point
+	if (r) {
+	    // copy meta data
+	    PtexMetaData* meta = r->getMetaData();
+	    w->writeMeta(meta);
+	    meta->release();
+
+	    // copy face data
+	    int pixelsize = nchannels * Ptex::DataSize(dt);
+	    for (int i = 0; i < nfaces; i++) {
+		const Ptex::FaceInfo& info = r->getFaceInfo(i);
+		int size = pixelsize * info.res.size();
+		if (info.isConstant()) {
+		    PtexFaceData* data = r->getData(i);
+		    w->writeConstantFace(i, info, data->getData());
+		    data->release();
+		} else {
+		    void* data = malloc(size);
+		    r->getData(i, data, 0);
+		    w->writeFace(i, info, data, 0);
+		    free(data);
+		}
+	    }
+
+	    r->release();
+	}
+	return w;
+    }
 }
 
 
@@ -112,7 +135,7 @@ PtexWriterBase::PtexWriterBase()
 }
 
 
-PtexWriterBase::~PtexWriterBase()
+void PtexWriterBase::release()
 {
     if (_ok) {
 	std::string error;
@@ -121,13 +144,18 @@ PtexWriterBase::~PtexWriterBase()
 	}
     }
     if (_fp) fclose(_fp);
+    delete this;
+}
+
+PtexWriterBase::~PtexWriterBase()
+{
     deflateEnd(&_zstream);
 }
 
 
-bool PtexWriterBase::open(const char* path, const char* mode, MeshType mt, DataType dt, 
-			  int nchannels, int alphachan, 
-			  int nfaces, std::string& error, bool genmipmaps)
+bool PtexWriterBase::create(const char* path, MeshType mt, DataType dt, 
+			    int nchannels, int alphachan, 
+			    int nfaces, std::string& error, bool genmipmaps)
 {
     if (mt < mt_triangle || mt > mt_quad) {
 	error = "PtexWriter error: Invalid mesh type";
@@ -149,17 +177,15 @@ bool PtexWriterBase::open(const char* path, const char* mode, MeshType mt, DataT
 	return 0;
     }
 
-    _fp = fopen(path, mode);
+    _fp = fopen(path, "wb");
     if (!_fp) {
 	std::stringstream str;
-	str << "Can't open ptex file: " << path << "\n" << strerror(errno);
+	str << "Can't create ptex file: " << path << "\n" << strerror(errno);
 	error = str.str();
 	return 0;
     }
 
     // record header attributes
-    _ok = true;
-    _path = path;
     _header.magic = Magic;
     _header.version = 1;
     _header.meshtype = mt;
@@ -170,9 +196,61 @@ bool PtexWriterBase::open(const char* path, const char* mode, MeshType mt, DataT
     _header.nlevels = 0;
 
     // init state
+    _ok = true;
+    _path = path;
     _pixelSize = _header.pixelSize();
     _genmipmaps = genmipmaps;
     
+    return 1;
+}
+
+
+bool PtexWriterBase::append(const char* path, MeshType mt, DataType dt, 
+			    int nchannels, int alphachan, 
+			    int nfaces, std::string& error)
+{
+    _fp = fopen(path, "r+b");
+    if (!_fp) {
+	std::stringstream str;
+	str << "Can't append to ptex file: " << path << "\n" << strerror(errno);
+	error = str.str();
+	return 0;
+    }
+
+    // read existing header
+    if (!fread(&_header, HeaderSize, 1, _fp) || _header.magic != Magic) {
+	std::stringstream str;
+	str << "Not a ptex file: " << path;
+	error = str.str();
+	return 0;
+    }
+    if (_header.version != 1) {
+	std::stringstream str;
+	str << "Unsupported ptex file version (" << _header.version << "): "
+	    << path;
+	error = str.str();
+	return 0;
+    }
+
+    // compare w/ new attributes
+    bool headerMatch = (mt == _header.meshtype &&
+			dt == _header.datatype &&
+			nchannels == _header.nchannels &&
+			alphachan == int(_header.alphachan) &&
+			nfaces == int(_header.nfaces));
+    if (!headerMatch) {
+	std::stringstream str;
+	str << "PtexWriter error: header doesn't match existing file: " << path;
+	    str << "  Conversions not currently supported." << path;
+	    error = str.str();
+	    return 0;
+    }
+    rewind(_fp);
+
+    // init state
+    _ok = true;
+    _path = path;
+    _pixelSize = _header.pixelSize();
     return 1;
 }
 
@@ -529,15 +607,18 @@ void PtexWriterBase::writeMetaData(FILE* fp, uint32_t& memsize, uint32_t& zipsiz
 	MetaEntry& val = iter->second;
 	uint8_t keysize = key.size()+1, datatype = val.datatype;
 	uint32_t datasize = val.data.size();
-	writeZipBlock(_fp, &keysize, sizeof(keysize), 0);
-	writeZipBlock(_fp, key.c_str(), keysize, 0);
-	writeZipBlock(_fp, &datatype, sizeof(datatype), 0);
-	writeZipBlock(_fp, &datasize, sizeof(datasize), 0);
-	writeZipBlock(_fp, &val.data[0], datasize, 0);
+	writeZipBlock(_fp, &keysize, sizeof(keysize), false);
+	writeZipBlock(_fp, key.c_str(), keysize, false);
+	writeZipBlock(_fp, &datatype, sizeof(datatype), false);
+	writeZipBlock(_fp, &datasize, sizeof(datasize), false);
+	writeZipBlock(_fp, &val.data[0], datasize, false);
 	memsize += (sizeof(keysize) + keysize + sizeof(datatype)
 		    + sizeof(datasize) + datasize);
     }
-    zipsize = writeZipBlock(fp, 0, 0, 1);
+    if (memsize) {
+	// finish zip block
+	zipsize = writeZipBlock(fp, 0, 0, /*finish*/ true);
+    }
 }
 
 
@@ -562,8 +643,8 @@ bool PtexMainWriter::open(const char* path,
     // write to temporary file, rename into place when finished
     _finalpath = path;
     std::string tmppath = path; tmppath += ".tmp";
-    if (!PtexWriterBase::open(tmppath.c_str(), "wb", mt, dt,
-			      nchannels, alphachan, nfaces, error, genmipmaps))
+    if (!PtexWriterBase::create(tmppath.c_str(), mt, dt, nchannels, alphachan, nfaces,
+				error, genmipmaps))
 	return 0;
 
     _tmpfp = tmpfile();
@@ -828,7 +909,7 @@ PtexIncrWriter::~PtexIncrWriter()
 bool PtexIncrWriter::open(const char* path, Ptex::MeshType mt, Ptex::DataType dt,
 			  int nchannels, int alphachan, int nfaces, std::string& error)
 {
-    if (!PtexWriterBase::open(path, "r+b", mt, dt, nchannels, alphachan, nfaces, error, false))
+    if (!PtexWriterBase::append(path, mt, dt, nchannels, alphachan, nfaces, error))
 	return 0;
     return 1;
 }
@@ -837,6 +918,7 @@ bool PtexIncrWriter::open(const char* path, Ptex::MeshType mt, Ptex::DataType dt
 bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, const void* data, int stride)
 {
     // handle constant case
+    if (stride == 0) stride = f.res.u()*_pixelSize;
     bool isconst = PtexUtils::isConstant(data, stride, f.res.u(), f.res.v(), _pixelSize);
     return writeFace(faceid, f, data, stride, isconst);
 }
@@ -867,17 +949,18 @@ bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
     writeBlank(_fp, sizeof(edh) + sizeof(efdh));
     
     // write const val
+    int constsize = _pixelSize;
     if (isConst) {
-	writeBlock(_fp, data, _pixelSize);
+	writeBlock(_fp, data, constsize);
     }
     else {
 	// must compute constant (average) val first
-	uint8_t* constval = (uint8_t*) malloc(_pixelSize);
+	uint8_t* constval = (uint8_t*) malloc(constsize);
 
 	if (_header.hasAlpha()) {
 	    // must premult alpha before averaging
 	    // first copy to temp buffer
-	    int rowlen = f.res.u() * _pixelSize, nrows = f.res.v();
+	    int rowlen = f.res.u() * constsize, nrows = f.res.v();
 	    uint8_t* temp = (uint8_t*) malloc(rowlen * nrows);
 	    PtexUtils::copy(data, stride, temp, rowlen, nrows, rowlen);
 
@@ -898,7 +981,7 @@ bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
 			       _header.datatype, _header.nchannels);
 	}
 	// write const val
-	writeBlock(_fp, constval, _pixelSize);
+	writeBlock(_fp, constval, constsize);
 	free(constval);
     }
 
@@ -909,7 +992,7 @@ bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
 	writeFaceData(_fp, data, stride, f.res, efdh.fdh);
 
     // update editsize in header
-    edh.editsize = sizeof(efdh) + efdh.fdh.blocksize;
+    edh.editsize = sizeof(efdh) + constsize + efdh.fdh.blocksize;
 
     // rewind and write headers
     fseeko(_fp, pos, SEEK_SET);

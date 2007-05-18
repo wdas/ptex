@@ -19,16 +19,17 @@ public:
     virtual void writeMeta(const char* key, const double* value, int count);
     virtual void writeMeta(PtexMetaData* data);
     virtual bool close(std::string& error);
-    virtual void release() { delete this; }
+    virtual void release();
 
 protected:
     virtual void finish() = 0;
     PtexWriterBase();
     virtual ~PtexWriterBase();
 
-    bool open(const char* path, const char* mode,
-	      MeshType mt, DataType dt, int nchannels, int alphachan, 
-	      int nfaces, std::string& error, bool genmipmaps);
+    bool create(const char* path, MeshType mt, DataType dt, int nchannels, int alphachan,
+		int nfaces, std::string& error, bool genmipmaps);
+    bool append(const char* path, MeshType mt, DataType dt, int nchannels, int alphachan,
+		int nfaces, std::string& error);
     int writeBlank(FILE* fp, int size);
     int writeBlock(FILE* fp, const void* data, int size);
     int writeZipBlock(FILE* fp, const void* data, int size, bool finish=true);
