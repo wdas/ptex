@@ -8,6 +8,44 @@
 #include "PtexWriter.h"
 
 
+namespace {
+    std::string fileError(const char* message, const char* path)
+    {
+	std::stringstream str;
+	str << message << path << "\n" << strerror(errno);
+	return str.str();
+    }
+
+    FILE* createTempFile(std::string& error)
+    {
+	// choose temp dir
+	static const char* tempdir = 0;
+	if (!tempdir) {
+	    tempdir = getenv("TEMP");
+	    if (!tempdir) tempdir = getenv("TMP");
+	    if (!tempdir) tempdir = "/tmp";
+	    tempdir = strdup(tempdir);
+	}
+
+	// build filename template
+	char path[PATH_MAX];
+	snprintf(path, PATH_MAX, "%s/ptexXXXXXX", tempdir);
+
+	// create unique temp file
+	int fd = mkstemp(path);
+	FILE* fp = (fd != -1) ? fdopen(fd, "rb+") : 0;
+	if (!fp) {
+	    error = fileError("Can't create temp file: ", path);
+	    return 0;
+	}
+
+	// unlink file (it will get deleted on close)
+	unlink(path);
+	return fp;
+    }
+}
+
+
 PtexWriter* PtexWriter::open(const char* path, 
 			     Ptex::MeshType mt, Ptex::DataType dt,
 			     int nchannels, int alphachan, int nfaces,
@@ -529,7 +567,12 @@ void PtexWriterBase::writeFaceData(FILE* fp, const void* data, int stride,
 	writeFaceBlock(fp, data, stride, res, fdh);
     } else {
 	// write tiles to new tmpfile
-	FILE* tilefp = tmpfile();
+	std::string error;
+	FILE* tilefp = createTempFile(error);
+	if (!tilefp) {
+	    setError(error.c_str());
+	    return;
+	}
 
 	// alloc tile header
 	std::vector<FaceDataHeader> tileHeader(ntiles);
@@ -647,11 +690,8 @@ bool PtexMainWriter::open(const char* path,
 				error, genmipmaps))
 	return 0;
 
-    _tmpfp = tmpfile();
-    if (!_tmpfp) {
-	error = "PtexWriter error: Can't create tmpfile";
-	return 0;
-    }
+    _tmpfp = createTempFile(error);
+    if (!_tmpfp) return 0;
 
     _levels.reserve(20);
     _levels.resize(1);
