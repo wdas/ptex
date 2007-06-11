@@ -948,8 +948,12 @@ void PtexReader::ConstantFace::reduce(FaceData*& face, PtexReader*,
     // get cache lock (just to protect the ref count)
     AutoLock locker(_cache->cachelock);
 
-    ref();
-    face = this;
+    // must make a new constant face (even though it's identical to this one)
+    // because it will be owned by a different reduction level
+    // and will therefore have a different parent
+    ConstantFace* pf = new ConstantFace((void**)&face, _cache, _pixelsize);
+    memcpy(pf->_data, _data, _pixelsize);
+    face = pf;
 }
 
 
