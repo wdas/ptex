@@ -471,8 +471,8 @@ void PtexUtils::multalpha(void* data, int npixels, DataType dt, int nchannels, i
     double scale = OneValueInv(dt);
     switch(dt) {
     case dt_uint8:  ::multalpha((uint8_t*) data, npixels, nchannels, alphachan, scale); break;
-    case dt_half:   ::multalpha((uint16_t*) data, npixels, nchannels, alphachan, scale); break;
-    case dt_uint16: ::multalpha((PtexHalf*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_uint16: ::multalpha((uint16_t*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_half:   ::multalpha((PtexHalf*) data, npixels, nchannels, alphachan, scale); break;
     case dt_float:  ::multalpha((float*) data, npixels, nchannels, alphachan, scale); break;
     }
 }
@@ -510,8 +510,8 @@ void PtexUtils::divalpha(void* data, int npixels, DataType dt, int nchannels, in
     double scale = OneValue(dt);
     switch(dt) {
     case dt_uint8:  ::divalpha((uint8_t*) data, npixels, nchannels, alphachan, scale); break;
-    case dt_half:   ::divalpha((uint16_t*) data, npixels, nchannels, alphachan, scale); break;
-    case dt_uint16: ::divalpha((PtexHalf*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_uint16: ::divalpha((uint16_t*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_half:   ::divalpha((PtexHalf*) data, npixels, nchannels, alphachan, scale); break;
     case dt_float:  ::divalpha((float*) data, npixels, nchannels, alphachan, scale); break;
     }
 }
