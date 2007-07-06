@@ -1,12 +1,24 @@
 #ifndef PtexWriter_h
 #define PtexWriter_h
 
+/* 
+   CONFIDENTIAL INFORMATION: This software is the confidential and
+   proprietary information of Walt Disney Animation Studios ("Disney").
+   This software is owned by Disney and may not be used, disclosed,
+   reproduced or distributed for any purpose without prior written
+   authorization and license from Disney. Reproduction of any section of
+   this software must include this legend and all copyright notices.
+   (c) Disney. All rights reserved.
+*/
+
 #include <zlib.h>
 #include <map>
 #include <vector>
 #include <stdio.h>
 #include "Ptexture.h"
 #include "PtexIO.h"
+#include "PtexReader.h"
+#include "PtexLockFile.h"
 
 
 class PtexWriterBase : public PtexWriter, public PtexIO {
@@ -21,22 +33,26 @@ public:
     virtual bool close(std::string& error);
     virtual void release();
 
+    bool ok(std::string& error) {
+	if (!_ok) error = getError();
+	return _ok;
+    }
+
 protected:
     virtual void finish() = 0;
-    PtexWriterBase();
+    PtexWriterBase(const char* path, PtexLockFile lock, FILE* fp,
+		   Ptex::MeshType mt, Ptex::DataType dt,
+		   int nchannels, int alphachan, int nfaces,
+		   bool compress);
     virtual ~PtexWriterBase();
 
-    bool create(const char* path, MeshType mt, DataType dt, int nchannels, int alphachan,
-		int nfaces, std::string& error, bool genmipmaps);
-    bool append(const char* path, MeshType mt, DataType dt, int nchannels, int alphachan,
-		int nfaces, std::string& error);
     int writeBlank(FILE* fp, int size);
     int writeBlock(FILE* fp, const void* data, int size);
     int writeZipBlock(FILE* fp, const void* data, int size, bool finish=true);
     int readBlock(FILE* fp, void* data, int size);
     int copyBlock(FILE* dst, FILE* src, off_t pos, int size);
     Res calcTileRes(Res faceres);
-    void addMetaData(const char* key, MetaDataType t, const void* value, int size);
+    virtual void addMetaData(const char* key, MetaDataType t, const void* value, int size);
     void writeConstFaceBlock(FILE* fp, const void* data, FaceDataHeader& fdh);
     void writeFaceBlock(FILE* fp, const void* data, int stride, Res res,
 		       FaceDataHeader& fdh);
@@ -45,14 +61,16 @@ protected:
     void writeReduction(FILE* fp, const void* data, int stride, Res res);
     void writeMetaData(FILE* fp, uint32_t& memsize, uint32_t& zipsize);
     void setError(const std::string& error) { _error = error; _ok = false; }
+    std::string getError() { return _error + "\nPtex file: " + _path; }
 
+    PtexLockFile _lock;		// lockfile to prevent write conflict
     bool _ok;			// true if no error has occurred
     std::string _error;		// the error text (if any)
     std::string _path;		// file path
     FILE* _fp;			// main file pointer
+    FILE* _tilefp;		// temp file for writing tiles
     Header _header;		// the file header
     int _pixelSize;		// size of a pixel in bytes
-    bool _genmipmaps;		// true if mipmaps should be generated
 
     struct MetaEntry {
 	MetaDataType datatype;
@@ -67,10 +85,9 @@ protected:
 
 class PtexMainWriter : public PtexWriterBase {
 public:
-    PtexMainWriter();
-    bool open(const char* path, Ptex::MeshType mt, Ptex::DataType dt,
-	      int nchannels, int alphachan, int nfaces, std::string& error, 
-	      bool genmipmaps);
+    PtexMainWriter(const char* path, PtexLockFile lock, bool newfile,
+		   Ptex::MeshType mt, Ptex::DataType dt,
+		   int nchannels, int alphachan, int nfaces, bool genmipmaps);
 
     virtual bool close(std::string& error);
     virtual bool writeFace(int faceid, const FaceInfo& f, const void* data, int stride);
@@ -78,12 +95,20 @@ public:
 
 protected:
     virtual ~PtexMainWriter();
+    virtual void addMetaData(const char* key, MetaDataType t, const void* value, int size)
+    {
+	PtexWriterBase::addMetaData(key, t, value, size);
+	_hasNewData = true;
+    }
 
 private:
     virtual void finish();
     void generateReductions();
     void storeConstValue(int faceid, const void* data, int stride, Res res);
 
+    std::string _newpath;		  // path to ".new" file
+    bool _hasNewData;			  // true if data has been written
+    bool _genmipmaps;			  // true if mipmaps should be generated
     std::vector<FaceInfo> _faceinfo;	  // info about each face
     std::vector<uint8_t> _constdata;	  // constant data for each face
     std::vector<uint32_t> _rfaceids;	  // faceid reordering for reduction levels
@@ -102,22 +127,20 @@ private:
     std::vector<LevelRec> _levels;	  // info about each level
     std::vector<off_t> _rpos;		  // reduction file positions
 
-    std::string _finalpath;	          // final path (base _path has ".tmp" appended)
-    FILE* _tmpfp;			  // temp file pointer (on /tmp, not _tmppath!)
+    PtexReader* _reader;	          // reader for accessing existing data in file
 };
 
 
 class PtexIncrWriter : public PtexWriterBase {
  public:
-    PtexIncrWriter();
-    bool open(const char* path, Ptex::MeshType mt, Ptex::DataType dt,
-	      int nchannels, int alphachan, int nfaces, std::string& error);
+    PtexIncrWriter(const char* path, PtexLockFile lock, FILE* fp,
+		   Ptex::MeshType mt, Ptex::DataType dt,
+		   int nchannels, int alphachan, int nfaces);
 
     virtual bool writeFace(int faceid, const FaceInfo& f, const void* data, int stride);
     virtual bool writeConstantFace(int faceid, const FaceInfo& f, const void* data);
 
  protected:
-    bool writeFace(int faceid, const FaceInfo &f, const void* data, int stride, bool isConst);
     virtual void finish();
     virtual ~PtexIncrWriter();
 };

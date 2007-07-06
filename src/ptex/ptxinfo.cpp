@@ -1,3 +1,12 @@
+/* 
+   CONFIDENTIAL INFORMATION: This software is the confidential and
+   proprietary information of Walt Disney Animation Studios ("Disney").
+   This software is owned by Disney and may not be used, disclosed,
+   reproduced or distributed for any purpose without prior written
+   authorization and license from Disney. Reproduction of any section of
+   this software must include this legend and all copyright notices.
+   (c) Disney. All rights reserved.
+*/
 #include <string>
 #include <alloca.h>
 #include <iostream>
@@ -159,6 +168,7 @@ void DumpInternal(PtexTexture* tx)
 	      << "  leveldatasize: " << h.leveldatasize << std::endl
 	      << "  metadatazipsize: " << h.metadatazipsize << std::endl
 	      << "  metadatamemsize: " << h.metadatamemsize << std::endl;
+
     std::cout << "Level info:\n";
     for (int i = 0; i < h.nlevels; i++) {
 	const PtexIO::LevelInfo& l = r->levelinfo(i);
@@ -223,6 +233,13 @@ int main(int argc, char** argv)
     if (r->alphaChannel() == -1) std::cout << "(none)" << std::endl;
     else std::cout << r->alphaChannel() << std::endl;
     std::cout << "numFaces: " << r->numFaces() << std::endl;
+
+    int hasEdits = 0;
+    for (int i = 0, nfaces=r->numFaces(); i < nfaces; i++) 
+	if (r->getFaceInfo(i).hasEdits()) hasEdits++;
+    std::cout << "  hasFaceEdits: " << (hasEdits? "yes" : "no");
+    if (hasEdits) std::cout << " (" << hasEdits << " faces)";
+    std::cout << std::endl;
 
     PtexMetaData* meta = r->getMetaData();
     if (meta) {

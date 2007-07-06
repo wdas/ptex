@@ -1,6 +1,16 @@
 #ifndef PtexIO_h
 #define PtexIO_h
 
+/* 
+   CONFIDENTIAL INFORMATION: This software is the confidential and
+   proprietary information of Walt Disney Animation Studios ("Disney").
+   This software is owned by Disney and may not be used, disclosed,
+   reproduced or distributed for any purpose without prior written
+   authorization and license from Disney. Reproduction of any section of
+   this software must include this legend and all copyright notices.
+   (c) Disney. All rights reserved.
+*/
+
 #include "Ptexture.h"
 
 struct PtexIO : public Ptex {
@@ -39,10 +49,6 @@ struct PtexIO : public Ptex {
 	FaceDataHeader() : blocksize(0), encoding(Encoding(0)) {}
     };
     enum EditType { et_editfacedata, et_editmetadata };
-    struct EditDataHeader {
-	EditType edittype;
-	uint32_t editsize;
-    };
     struct EditFaceDataHeader {
 	uint32_t faceid;
 	FaceInfo faceinfo;
@@ -57,7 +63,6 @@ struct PtexIO : public Ptex {
     static const int HeaderSize = sizeof(Header);
     static const int LevelInfoSize = sizeof(LevelInfo);
     static const int FaceDataHeaderSize = sizeof(FaceDataHeader);
-    static const int EditDataHeaderSize = sizeof(EditDataHeader);
     static const int EditFaceDataHeaderSize = sizeof(EditFaceDataHeader);
     static const int EditMetaDataHeaderSize = sizeof(EditMetaDataHeader);
     static const int BlockSize = 16384; // target block size for file I/O

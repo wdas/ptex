@@ -17,7 +17,8 @@ my $libinputs = ['PtexCache.cpp',
 		 'PtexMitchellFilter.cpp',
 		 'PtexReader.cpp',
 		 'PtexUtils.cpp',
-		 'PtexWriter.cpp'];
+		 'PtexWriter.cpp',
+		 'PtexLockFile.cpp'];
 
 my $Ptex_a = StaticLib(name	  => 'libPtex.a',
 		       input 	  => CPPs(input => $libinputs,

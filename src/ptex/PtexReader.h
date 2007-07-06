@@ -1,6 +1,15 @@
 #ifndef PtexReader_h
 #define PtexReader_h
 
+/* 
+   CONFIDENTIAL INFORMATION: This software is the confidential and
+   proprietary information of Walt Disney Animation Studios ("Disney").
+   This software is owned by Disney and may not be used, disclosed,
+   reproduced or distributed for any purpose without prior written
+   authorization and license from Disney. Reproduction of any section of
+   this software must include this legend and all copyright notices.
+   (c) Disney. All rights reserved.
+*/
 #include <stdio.h>
 #include <zlib.h>
 #include <vector>
@@ -399,7 +408,7 @@ protected:
 	seek(_pos + bytes);
     }
 
-    bool readBlock(void* data, int size);
+    bool readBlock(void* data, int size, bool reportError=true);
     bool readZipBlock(void* data, int zipsize, int unzipsize);
     Level* getLevel(int levelid)
     {

@@ -1,3 +1,13 @@
+/* 
+   CONFIDENTIAL INFORMATION: This software is the confidential and
+   proprietary information of Walt Disney Animation Studios ("Disney").
+   This software is owned by Disney and may not be used, disclosed,
+   reproduced or distributed for any purpose without prior written
+   authorization and license from Disney. Reproduction of any section of
+   this software must include this legend and all copyright notices.
+   (c) Disney. All rights reserved.
+*/
+
 #include <iostream>
 #include <sstream>
 #include <errno.h>
@@ -276,19 +286,22 @@ void PtexReader::readMetaDataBlock(MetaData* metadata, off_t pos, int zipsize, i
 
 void PtexReader::readEditData()
 {
-    off_t end = seekToEnd();
     seek(_editdatapos);
-    while (tell() != end) {
+    // read until eof
+    while (1) {
 	// read the edit data header
-	EditDataHeader edh;
-	if (!readBlock(&edh, EditDataHeaderSize)) return;
+	uint8_t edittype = et_editmetadata;
+	uint32_t editsize;
+	if (!readBlock(&edittype, sizeof(edittype), /*reporterror*/ false)) return;
+	if (!readBlock(&editsize, sizeof(editsize), /*reporterror*/ false)) return;
+	if (!editsize) return;
 	off_t pos = tell();
-	switch (edh.edittype) {
+	switch (edittype) {
 	case et_editfacedata:   readEditFaceData(); break;
 	case et_editmetadata:   readEditMetaData(); break;
 	}
 	// advance to next edit
-	seek(pos + edh.editsize);
+	seek(pos + editsize);
     }    
 }
 
@@ -308,17 +321,19 @@ void PtexReader::readEditFaceData()
 
     // read const value now
     uint8_t* constdata = _constdata + _pixelsize * faceid;
-    readBlock(constdata, _pixelsize);
+    if (!readBlock(constdata, _pixelsize)) return;
     if (_premultiply && _header.hasAlpha())
 	PtexUtils::multalpha(constdata, 1, _header.datatype,
 			     _header.nchannels, _header.alphachan);
 
     // update header info for remaining data
-    _faceedits.push_back(FaceEdit());
-    FaceEdit& e = _faceedits.back();
-    e.pos = tell();
-    e.faceid = faceid;
-    e.fdh = efdh.fdh;
+    if (!f.isConstant()) {
+	_faceedits.push_back(FaceEdit());
+	FaceEdit& e = _faceedits.back();
+	e.pos = tell();
+	e.faceid = faceid;
+	e.fdh = efdh.fdh;
+    }
 }
 
 
@@ -337,7 +352,7 @@ void PtexReader::readEditMetaData()
 }
 
 
-bool PtexReader::readBlock(void* data, int size)
+bool PtexReader::readBlock(void* data, int size, bool reporterror)
 {
     int result = fread(data, size, 1, _fp);
     if (result == 1) {
@@ -346,7 +361,8 @@ bool PtexReader::readBlock(void* data, int size)
 	STATS_ADD(nbytesRead, size);
 	return 1;
     }
-    setError("PtexReader error: read failed (EOF)");
+    if (reporterror)
+	setError("PtexReader error: read failed (EOF)");
     return 0;
 }
 
@@ -582,6 +598,8 @@ void PtexReader::readFaceData(off_t pos, FaceDataHeader fdh, Res res, int leveli
 
 void PtexReader::getData(int faceid, void* buffer, int stride)
 {
+    if (!_ok) return;
+
     // note - all locking is handled in called getData methods
     FaceInfo& f = _faceinfo[faceid];
     int resu = f.res.u(), resv = f.res.v();
@@ -589,6 +607,7 @@ void PtexReader::getData(int faceid, void* buffer, int stride)
     if (stride == 0) stride = rowlen;
     
     PtexFaceData* d = getData(faceid);
+    if (!d) return;
     if (d->isConstant()) {
 	// fill dest buffer with pixel value
 	PtexUtils::fill(d->getData(), buffer, stride,
@@ -608,6 +627,7 @@ void PtexReader::getData(int faceid, void* buffer, int stride)
 	    char* dsttile = dsttilerow;
 	    for (int j = 0; j < ntilesu; j++) {
 		PtexFaceData* t = d->getTile(tile++);
+		if (!t) { i = ntilesv; break; }
 		if (t->isConstant())
 		    PtexUtils::fill(t->getData(), dsttile, stride,
 				    tileures, tilevres, _pixelsize);
@@ -630,8 +650,9 @@ void PtexReader::getData(int faceid, void* buffer, int stride)
 PtexFaceData* PtexReader::getData(int faceid)
 {
     if (faceid < 0 || size_t(faceid) >= _header.nfaces) return 0;
+    if (!_ok) return 0;
 
-   FaceInfo& fi = _faceinfo[faceid];
+    FaceInfo& fi = _faceinfo[faceid];
     if (fi.isConstant() || fi.res == 0) {
 	return new ConstDataPtr(getConstData() + faceid * _pixelsize, _pixelsize);
     }
@@ -647,6 +668,7 @@ PtexFaceData* PtexReader::getData(int faceid)
 
 PtexFaceData* PtexReader::getData(int faceid, Res res)
 {
+    if (!_ok) return 0;
     if (faceid < 0 || size_t(faceid) >= _header.nfaces) return 0;
 
     FaceInfo& fi = _faceinfo[faceid];

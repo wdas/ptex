@@ -1,5 +1,16 @@
 #ifndef PtexMitchellFilter_h
 #define PtexMitchellFilter_h
+
+/* 
+   CONFIDENTIAL INFORMATION: This software is the confidential and
+   proprietary information of Walt Disney Animation Studios ("Disney").
+   This software is owned by Disney and may not be used, disclosed,
+   reproduced or distributed for any purpose without prior written
+   authorization and license from Disney. Reproduction of any section of
+   this software must include this legend and all copyright notices.
+   (c) Disney. All rights reserved.
+*/
+
 #include "Ptexture.h"
 #include "PtexFilterContext.h"
 #include "PtexFilterKernel.h"
