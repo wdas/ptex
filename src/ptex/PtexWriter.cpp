@@ -784,8 +784,10 @@ void PtexMainWriter::finish()
 		    int size = _pixelSize * info.res.size();
 		    if (info.isConstant()) {
 			PtexFaceData* data = _reader->getData(i);
-			writeConstantFace(i, info, data->getData());
-			data->release();
+			if (data) {
+			    writeConstantFace(i, info, data->getData());
+			    data->release();
+			}
 		    } else {
 			void* data = malloc(size);
 			_reader->getData(i, data, 0);
@@ -946,6 +948,30 @@ PtexIncrWriter::PtexIncrWriter(const char* path, PtexLockFile lock, FILE* fp,
     // a full save (which ultimately it always should be).  With a compressed
     // incremental save, the data would be compressed twice and decompressed once
     // on every save vs. just compressing once.
+
+    // make sure existing header matches
+    PtexIO::Header header;
+    if (!fread(&header, PtexIO::HeaderSize, 1, fp) || header.magic != Magic) {
+	std::stringstream str;
+	str << "Not a ptex file: " << path;
+	setError(str.str());
+	return;
+    }
+    
+    bool headerMatch = (mt == header.meshtype &&
+			dt == header.datatype &&
+			nchannels == header.nchannels &&
+			alphachan == int(header.alphachan) &&
+			nfaces == int(header.nfaces));
+    if (!headerMatch) {
+	std::stringstream str;
+	str << "PtexWriter::edit error: header doesn't match existing file, "
+	    << "conversions not currently supported";
+	setError(str.str());
+	return;
+    }
+
+    // seek to end of file to append
     fseeko(_fp, 0, SEEK_END);
 }
 
