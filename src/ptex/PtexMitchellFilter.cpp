@@ -79,7 +79,7 @@ void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
       d) cface res: local res clamped to res of u, v and corner faces
       Notes:
       - for all evals, adjacent faces are included if they have sufficent
-      resolution; otherwise missing pixel values are extrapolated from local face
+      resolution; otherwise missing pixel values are taken from local face
       - reuse evals that have the same res
       
       u,v blend factors are 0..1 (smoothstepped) over blend region
@@ -279,6 +279,7 @@ void PtexMitchellFilter::getNeighborhood(const FaceInfo& f)
     }
 
     // gather corner faces if needed
+    _interior = false;
     if (nearu && nearv) {
 	// gather faces around corner starting at uface
 	_cfaces.reserve(8); // (could be any number, but typically just 1 or 2)
@@ -310,7 +311,8 @@ void PtexMitchellFilter::getNeighborhood(const FaceInfo& f)
 	}
 	// if we reached the vface, corner is an interior point
 	if (cfid == _vface.id) {
-	    // see if we're reguler - i.e. we have a single corner face
+	    _interior = true;
+	    // see if we're regular - i.e. we have a single corner face
 	    if (_cfaces.size() == 1) {
 		_cface = _cfaces.front();
 
@@ -437,21 +439,38 @@ void PtexMitchellFilter::evalFaces(Res res, double weight, float uw, float vw)
 
     if (ku || kv) {
 	// merge kernel parts back in for missing/insufficient-res faces
-	if (kc && (!_cface || !(_cface.res >= res))) {
-	    // merge corner into an edge, preferably an existing one
-	    // (if both edges exist, we could merge half into each edge. is it worth it?)
-	    if (kv && _uface) 
-		// merge corner into ku across v edge
-		ku.merge(kc, kv.eidval(), _extrapolate);
-	    else
-		// merge corner into kv across u edge
-		kv.merge(kc, ku.eidval(), _extrapolate);
+	if (kc) {
+	    if (!_cface && _interior) {
+		// valence-3 interior case
+		// clear corner and renormalize kernel
+		double amt = 1.0/(1 - kc.totalWeight()/weight);
+		kc.clear();
+		for (double *kp = kbuffer, *end = kbuffer + kuw*kvw; kp != end; kp++)
+		    *kp *= amt;
+	    }
+	    else if (!_cface || !(_cface.res >= res)) {
+		// merge corner into u and/or v faces
+		if (kv && _uface) {
+		    if (_vface) {
+			// merge corner 50% into ku and kv faces
+			ku.merge(kc, kv.eidval(), 0.5);
+			kv.merge(kc, ku.eidval(), 0.5);
+		    }
+		    else {
+			// merge corner into ku across v edge
+			ku.merge(kc, kv.eidval());
+		    }
+		} else {
+		    // merge corner into kv across u edge
+		    kv.merge(kc, ku.eidval());
+		}
+	    }
 	}
 	// merge boundary edges into main kernel
 	if (ku && (!_uface || !(_uface.res >= res)))
-	    k.merge(ku, ku.eidval(), _extrapolate);
+	    k.merge(ku, ku.eidval());
 	if (kv && (!_vface || !(_vface.res >= res)))
-	    k.merge(kv, kv.eidval(), _extrapolate);
+	    k.merge(kv, kv.eidval());
 
 	if (ku) ku.apply(_uface.id, _uface.rotate, _ctx);
 	if (kv) kv.apply(_vface.id, _vface.rotate, _ctx);

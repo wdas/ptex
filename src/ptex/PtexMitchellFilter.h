@@ -20,7 +20,6 @@ class PtexMitchellFilter : public PtexFilter, public Ptex
 {
  public:
     PtexMitchellFilter(float sharpness)
-	: _extrapolate(false)
     {
 	setSharpness(sharpness);
     }
@@ -87,6 +86,7 @@ class PtexMitchellFilter : public PtexFilter, public Ptex
     PtexFilterContext _ctx;	// filter context
 
     bool _isConstant;		// true if neighborhood is constant
+    bool _interior;		// true if corner point is an interior point
     float _ublend, _vblend;	// u,v edge blending weights (0=none, 1=full blend)
     Face _face, _uface, _vface;	// main face and neighboring faces
     Face _cface;		// corner face (only valid if just one face)
@@ -94,7 +94,6 @@ class PtexMitchellFilter : public PtexFilter, public Ptex
 
     float _sharpness;		// current filter sharpness
     double _filter[7];		// filter coefficients for current sharpness
-    bool _extrapolate;		// extrapolate beyond filter edges
 };
 
 #endif
