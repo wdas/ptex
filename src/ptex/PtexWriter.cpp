@@ -779,22 +779,20 @@ void PtexMainWriter::finish()
 	for (int i = 0, nfaces = _header.nfaces; i < nfaces; i++) {
 	    if (_faceinfo[i].flags == uint8_t(-1)) {
 		// copy face data
-		for (int i = 0; i < nfaces; i++) {
-		    const Ptex::FaceInfo& info = _reader->getFaceInfo(i);
-		    int size = _pixelSize * info.res.size();
-		    if (info.isConstant()) {
-			PtexFaceData* data = _reader->getData(i);
-			if (data) {
-			    writeConstantFace(i, info, data->getData());
-			    data->release();
-			}
-		    } else {
-			void* data = malloc(size);
-			_reader->getData(i, data, 0);
-			writeFace(i, info, data, 0);
-			free(data);
-		    }
-		}
+                const Ptex::FaceInfo& info = _reader->getFaceInfo(i);
+                int size = _pixelSize * info.res.size();
+                if (info.isConstant()) {
+                    PtexFaceData* data = _reader->getData(i);
+                    if (data) {
+                        writeConstantFace(i, info, data->getData());
+                        data->release();
+                    }
+                } else {
+                    void* data = malloc(size);
+                    _reader->getData(i, data, 0);
+                    writeFace(i, info, data, 0);
+                    free(data);
+                }
 	    }
 	}
     }
