@@ -33,7 +33,7 @@ namespace PtexInternal {
 	}
 	~Mutex()             { check(pthread_mutex_destroy(&_mutex)); }
 	void lock()          { check(pthread_mutex_lock(&_mutex)); _locked = 1; }
-	void unlock()        { _locked = 0; check(pthread_mutex_unlock(&_mutex)); }
+	void unlock()        { assert(_locked); _locked = 0; check(pthread_mutex_unlock(&_mutex)); }
 	bool locked()        { return _locked; }
     private:
 	pthread_mutex_t _mutex;
@@ -279,8 +279,8 @@ public:
     PtexCachedFile(void** parent, PtexCacheImpl* cache)
 	: PtexLruItem(parent), _cache(cache), _refcount(1)
     { _cache->addFile(); }
-    void ref() { if (!_refcount++) _cache->setFileInUse(this); }
-    void unref() { if (!--_refcount) _cache->setFileUnused(this); }
+    void ref() { assert(_cache->cachelock.locked()); if (!_refcount++) _cache->setFileInUse(this); }
+    void unref() { assert(_cache->cachelock.locked()); if (!--_refcount) _cache->setFileUnused(this); }
 protected:
     virtual ~PtexCachedFile() {	_cache->removeFile(); }
     PtexCacheImpl* _cache;
@@ -295,8 +295,8 @@ public:
     PtexCachedData(void** parent, PtexCacheImpl* cache, int size)
 	: PtexLruItem(parent), _cache(cache), _refcount(1), _size(size)
     { _cache->addData(); }
-    void ref() { if (!_refcount++) _cache->setDataInUse(this, _size); }
-    void unref() { if (!--_refcount) _cache->setDataUnused(this, _size); }
+    void ref() { assert(_cache->cachelock.locked()); if (!_refcount++) _cache->setDataInUse(this, _size); }
+    void unref() { assert(_cache->cachelock.locked()); if (!--_refcount) _cache->setDataUnused(this, _size); }
 protected:
     void incSize(int size) { _size += size; }
     virtual ~PtexCachedData() { _cache->removeData(_size); }

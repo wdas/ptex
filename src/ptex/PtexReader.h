@@ -342,6 +342,7 @@ public:
 	      _parentface(parentface),
 	      _reducefn(reducefn)
 	{
+	    AutoLock locker(_cache->cachelock);
 	    _parentface->ref(); 
 	}
 	~TiledReducedFace()
