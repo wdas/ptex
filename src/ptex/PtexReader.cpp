@@ -227,10 +227,14 @@ void PtexReader::readMetaData()
     // get read lock and make sure we still need to read
     AutoLock locker(readlock);
     if (_metadata) {
-	_cache->cachelock.lock();
 	// another thread must have read it while we were waiting
-	_metadata->ref();
-	return;
+	_cache->cachelock.lock();
+	// make sure it's still there now that we have the lock
+	if (_metadata) {
+	    _metadata->ref();
+	    return;
+	}
+	_cache->cachelock.unlock();
     }
 
 
@@ -404,8 +408,12 @@ void PtexReader::readLevel(int levelid, Level*& level)
     if (level) {
 	// another thread must have read it while we were waiting
 	_cache->cachelock.lock();
-	level->ref();
-	return;
+	// make sure it's still there now that we have the lock
+	if (level) {
+	    level->ref();
+	    return;
+	}
+	_cache->cachelock.unlock();
     }
 
     // go ahead and read the level
@@ -447,8 +455,12 @@ void PtexReader::readFace(int levelid, Level* level, int faceid)
     if (face) {
 	// another thread must have read it while we were waiting
 	_cache->cachelock.lock();
-	face->ref();
-	return; 
+	// make sure it's still there now that we have the lock
+	if (face) {
+	    face->ref();
+	    return; 
+	}
+	_cache->cachelock.unlock();
     }
 
     // Go ahead and read the face, and read nearby faces if
@@ -524,8 +536,12 @@ void PtexReader::TiledFace::readTile(int tile, FaceData*& data)
     if (data) {
 	// another thread must have read it while we were waiting
 	_cache->cachelock.lock();
-	data->ref();
-	return; 
+	// make sure it's still there now that we have the lock
+	if (data) {
+	    data->ref();
+	    return; 
+	}
+	_cache->cachelock.unlock();
     }
     
     // TODO - bundle tile reads (see readFace)
@@ -840,28 +856,35 @@ void PtexReader::blendFaces(FaceData*& face, int faceid, Res res, bool blendu)
     if (face) {
 	// another thread must have generated it while we were waiting
 	AutoLock locker(_cache->cachelock);
-	face->ref();
+	// make sure it's still there now that we have the lock
+	if (face) {
+	    face->ref();
+	    // release parent data
+	    for (int i = 0; i < nf; i++) psrc[i]->release();
+	    return;
+	}
+    }
+
+    // allocate a new face data (1 x N or N x 1)
+    DataType dt = datatype();
+    int nchan = nchannels();
+    int size = _pixelsize * length;
+    PackedFace* pf = new PackedFace((void**)&face, _cache, res,
+				    _pixelsize, size);
+    void* data = pf->getData();
+    if (nf == 1) {
+	// no neighbors - just copy face
+	memcpy(data, psrc[0]->getData(), size);
     }
     else {
-	// allocate a new face data (1 x N or N x 1)
-	DataType dt = datatype();
-	int nchan = nchannels();
-	int size = _pixelsize * length;
-	PackedFace* pf = new PackedFace((void**)&face, _cache, res,
-					_pixelsize, size);
-	void* data = pf->getData();
-	if (nf == 1) {
-	    // no neighbors - just copy face
-	    memcpy(data, psrc[0]->getData(), size);
-	}
-	else {
-	    double weight = 1.0 / nf;
-	    memset(data, 0, size);
-	    for (int i = 0; i < nf; i++)
-		PtexUtils::blend(psrc[i]->getData(), weight, data, flip[i],
-				 length, dt, nchan);
-	}
+	double weight = 1.0 / nf;
+	memset(data, 0, size);
+	for (int i = 0; i < nf; i++)
+	    PtexUtils::blend(psrc[i]->getData(), weight, data, flip[i],
+			     length, dt, nchan);
+    }
 
+    {
 	AutoLock clocker(_cache->cachelock);
 	face = pf;
 
@@ -942,9 +965,12 @@ void PtexReader::PackedFace::reduce(FaceData*& face, PtexReader* r,
     AutoLock rlocker(r->reducelock);
     if (face) {
 	// another thread must have generated it while we were waiting
-	AutoLock locker(_cache->cachelock);
-	face->ref();
-	return; 
+	AutoLock clocker(_cache->cachelock);
+	// make sure it's still there now that we have the lock
+	if (face) {
+	    face->ref();
+	    return; 
+	}
     }
 
     // allocate a new face and reduce image
@@ -986,9 +1012,12 @@ void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
     AutoLock rlocker(r->reducelock);
     if (face) {
 	// another thread must have generated it while we were waiting
-	AutoLock locker(_cache->cachelock);
-	face->ref();
-	return; 
+	AutoLock clocker(_cache->cachelock);
+	// make sure it's still there now that we have the lock
+	if (face) {
+	    face->ref();
+	    return; 
+	}
     }
 
     /* Tiled reductions should generally only be anisotropic (just u
@@ -1130,6 +1159,8 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
     if (face) {
 	face->ref();
 	_cache->cachelock.unlock();
+	// release the tiles
+	for (int i = 0; i < ntiles; i++) tiles[i]->release();
 	return face;
     }
 
