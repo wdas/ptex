@@ -177,6 +177,13 @@ public:
 	  _cleanupCount(0), _premultiply(premultiply)
     {}
 
+    ~PtexReaderCache()
+    {
+	// orphan all files since we're about to delete the file table
+	// and we don't want the base dtor to try to access it
+	purgeAll();
+    }
+
     virtual void setSearchPath(const char* path) 
     {
 	// get the open lock since the path is used during open operations
