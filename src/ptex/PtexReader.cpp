@@ -80,6 +80,12 @@ bool PtexReader::open(const char* path, std::string& error)
     readLevelInfo();
     readEditData();
 
+    // an error occurred while reading the file
+    if (!_ok) {
+	error = _error;
+	return 0;
+    }
+
     return 1;
 }
 
