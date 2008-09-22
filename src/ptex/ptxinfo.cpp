@@ -249,7 +249,7 @@ int main(int argc, char** argv)
     }
 
     if (dumpfaceinfo || dumpdata || dumptiling) {
-	int texels = 0;
+	uint64_t texels = 0;
 	for (int i = 0; i < r->numFaces(); i++) {
 	    std::cout << "face " << i << ":";
 	    const Ptex::FaceInfo& f = r->getFaceInfo(i);
