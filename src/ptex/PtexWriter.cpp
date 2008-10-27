@@ -693,9 +693,10 @@ bool PtexMainWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
 	return writeConstantFace(faceid, f, data);
 
     // non-constant case
-    if (size_t(faceid) >= _faceinfo.size()) return 0;
     _faceinfo[faceid] = f;
-    _faceinfo[faceid].flags = 0;
+
+    // clear non-user-settable flags
+    _faceinfo[faceid].flags &= FaceInfo::flag_subface;
 
     // record position of current face
     _levels.front().pos[faceid] = ftello(_fp);
@@ -749,7 +750,12 @@ bool PtexMainWriter::writeConstantFace(int faceid, const FaceInfo& f, const void
     // store face value in constant block
     if (size_t(faceid) >= _faceinfo.size()) return 0;
     _faceinfo[faceid] = f;
-    _faceinfo[faceid].flags = FaceInfo::flag_constant;
+
+    // clear non-user-settable flags
+    _faceinfo[faceid].flags &= FaceInfo::flag_subface;
+
+    // set constant flag
+    _faceinfo[faceid].flags |= FaceInfo::flag_constant;
     memcpy(&_constdata[faceid*_pixelSize], data, _pixelSize);
     _hasNewData = true;
     return 1;
@@ -803,6 +809,9 @@ void PtexMainWriter::finish()
 		_faceinfo[i].flags = FaceInfo::flag_constant;
 	}
     }
+
+    // flag faces w/ constant neighborhoods
+    // TODO
 
     // write reductions to tmp file
     if (_genmipmaps)

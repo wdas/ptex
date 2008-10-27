@@ -28,7 +28,16 @@ void DumpFaceInfo(const Ptex::FaceInfo& f)
 	      << f.adjedge(1) << ' '
 	      << f.adjedge(2) << ' '
 	      << f.adjedge(3)
-	      << "  flags: " << int(f.flags) << "\n";
+	      << "  flags:";
+    // output flag names
+    if (f.flags == 0) std::cout << " (none)";
+    else {
+	if (f.isSubface()) std::cout << " subface";
+	if (f.isConstant()) std::cout << " constant";
+	if (f.isNeighborhoodConstant()) std::cout << " nbconstant";
+	if (f.hasEdits()) std::cout << " hasedits";
+    }
+    std::cout << std::endl;
 }
 
 

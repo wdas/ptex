@@ -85,7 +85,8 @@ struct Ptex {
 	    adjfaces[0] = adjfaces[1] = adjfaces[2] = adjfaces[3] = -1; 
 	}
 
-	FaceInfo(Res res, int adjfaces[4], int adjedges[4]) : res(res)
+	FaceInfo(Res res, int adjfaces[4], int adjedges[4], bool isSubface=false)
+	    : res(res), flags(isSubface ? flag_subface : 0)
 	{
 	    setadjfaces(adjfaces[0], adjfaces[1], adjfaces[2], adjfaces[3]);
 	    setadjedges(adjedges[0], adjedges[1], adjedges[2], adjedges[3]);
@@ -93,13 +94,15 @@ struct Ptex {
 
 	EdgeId adjedge(int eid) const { return EdgeId((adjedges >> (2*eid)) & 3); }
 	bool isConstant() const { return flags & flag_constant; }
+	bool isNeighborhoodConstant() const { return flags & flag_nbconstant; }
 	bool hasEdits() const { return flags & flag_hasedits; }
+	bool isSubface() const { return flags & flag_subface; }
 
 	void setadjfaces(int f0, int f1, int f2, int f3)
 	{ adjfaces[0] = f0, adjfaces[1] = f1, adjfaces[2] = f2; adjfaces[3] = f3; }
 	void setadjedges(int e0, int e1, int e2, int e3)
 	{ adjedges = (e0&3) | ((e1&3)<<2) | ((e2&3)<<4) | ((e3&3)<<6); }
-	enum { flag_constant = 1, flag_hasedits = 2 };
+	enum { flag_constant = 1, flag_hasedits = 2, flag_nbconstant = 4, flag_subface = 8 };
     };
 };
 
