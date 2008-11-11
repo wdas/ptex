@@ -1,4 +1,5 @@
 #include <alloca.h>
+#include "PtexUtils.h"
 #include "PtexHalf.h"
 #include "PtexSeparableKernel.h"
 
@@ -50,8 +51,39 @@ namespace {
     };
 
 
+    // apply to 1..4 channels (unrolled channel loop) of packed data (nTxChan==nChan)
     template<class T, int nChan>
-    void Apply(PtexSeparableKernel& k, double* result, void* data, int /*nChan*/, int nTxChan)
+    void Apply(PtexSeparableKernel& k, double* result, void* data, int /*nChan*/, int /*nTxChan*/)
+    {
+	double* rowResult = (double*) alloca(nChan*sizeof(double));
+	int rowlen = k.ures * nChan;
+	int datalen = k.uw * nChan;
+	int rowskip = rowlen - datalen;
+	double* kvp = k.kv;
+	T* p = (T*)data + (k.v * k.ures + k.u) * nChan;
+	T* pEnd = p + k.vw * rowlen;
+	while (p != pEnd)
+	{
+	    double* kup = k.ku;
+	    T* pRowEnd = p + datalen;
+	    // just mult and copy first element
+	    VecMult<T,nChan>()(rowResult, p, *kup++);
+	    p += nChan;
+	    // accumulate remaining elements
+	    while (p != pRowEnd) {
+		// rowResult[i] = p[i] * ku[u] for i in {0..n-1}
+		VecAccum<T,nChan>()(rowResult, p, *kup++);
+		p += nChan;
+	    }
+	    // result[i] += rowResult[i] * kv[v] for i in {0..n-1}
+	    VecAccum<double,nChan>()(result, rowResult, *kvp++);
+	    p += rowskip;
+	}
+    }
+
+    // apply to 1..4 channels (unrolled channel loop) w/ pixel stride
+    template<class T, int nChan>
+    void ApplyS(PtexSeparableKernel& k, double* result, void* data, int /*nChan*/, int nTxChan)
     {
 	double* rowResult = (double*) alloca(nChan*sizeof(double));
 	int rowlen = k.ures * nTxChan;
@@ -79,6 +111,7 @@ namespace {
 	}
     }
 
+    // apply to N channels (general case)
     template<class T>
     void ApplyN(PtexSeparableKernel& k, double* result, void* data, int nChan, int nTxChan)
     {
@@ -108,36 +141,48 @@ namespace {
 	}
     }
 
+    // apply to 1..4 channels, unrolled
+    template<class T, int nChan>
+    void ApplyConst(double weight, double* result, void* data, int /*nChan*/)
+    {
+	// result[i] += data[i] * weight for i in {0..n-1}
+	VecAccum<T,nChan>()(result, (T*) data, weight);
+    }
+
+    // apply to N channels (general case)
+    template<class T>
+    void ApplyConstN(double weight, double* result, void* data, int nChan)
+    {
+	// result[i] += data[i] * weight for i in {0..n-1}
+	VecAccumN<T>()(result, (T*) data, nChan, weight);
+    }
 }
 
 
 
 PtexSeparableKernel::ApplyFn
-PtexSeparableKernel::getApplyFn(Ptex::DataType dt, int nChan)
-{
-    if (nChan > 4) nChan = 0;
-    switch(nChan<<2|dt) {
-    case (0<<2|Ptex::dt_uint8):  return ApplyN<uint8_t>;
-    case (0<<2|Ptex::dt_uint16): return ApplyN<uint16_t>;
-    case (0<<2|Ptex::dt_half):   return ApplyN<PtexHalf>;
-    case (0<<2|Ptex::dt_float):  return ApplyN<float>;
-    case (1<<2|Ptex::dt_uint8):  return Apply<uint8_t, 1>;
-    case (1<<2|Ptex::dt_uint16): return Apply<uint16_t,1>;
-    case (1<<2|Ptex::dt_half):   return Apply<PtexHalf,1>;
-    case (1<<2|Ptex::dt_float):  return Apply<float,   1>;
-    case (2<<2|Ptex::dt_uint8):  return Apply<uint8_t, 2>;
-    case (2<<2|Ptex::dt_uint16): return Apply<uint16_t,2>;
-    case (2<<2|Ptex::dt_half):   return Apply<PtexHalf,2>;
-    case (2<<2|Ptex::dt_float):  return Apply<float,   2>;
-    case (3<<2|Ptex::dt_uint8):  return Apply<uint8_t, 3>;
-    case (3<<2|Ptex::dt_uint16): return Apply<uint16_t,3>;
-    case (3<<2|Ptex::dt_half):   return Apply<PtexHalf,3>;
-    case (3<<2|Ptex::dt_float):  return Apply<float,   3>;
-    case (4<<2|Ptex::dt_uint8):  return Apply<uint8_t, 4>;
-    case (4<<2|Ptex::dt_uint16): return Apply<uint16_t,4>;
-    case (4<<2|Ptex::dt_half):   return Apply<PtexHalf,4>;
-    case (4<<2|Ptex::dt_float):  return Apply<float,   4>;
-    }
-    return 0;
-}
+PtexSeparableKernel::applyFunctions[] = {
+    // nChan == nTxChan
+    ApplyN<uint8_t>, ApplyN<uint16_t>, ApplyN<PtexHalf>, ApplyN<float>,
+    Apply<uint8_t, 1>, Apply<uint16_t,1>, Apply<PtexHalf,1>, Apply<float,   1>,
+    Apply<uint8_t, 2>, Apply<uint16_t,2>, Apply<PtexHalf,2>, Apply<float,   2>,
+    Apply<uint8_t, 3>, Apply<uint16_t,3>, Apply<PtexHalf,3>, Apply<float,   3>,
+    Apply<uint8_t, 4>, Apply<uint16_t,4>, Apply<PtexHalf,4>, Apply<float,   4>,
 
+    // nChan != nTxChan (need pixel stride)
+    ApplyN<uint8_t>, ApplyN<uint16_t>, ApplyN<PtexHalf>, ApplyN<float>,
+    ApplyS<uint8_t, 1>, ApplyS<uint16_t,1>, ApplyS<PtexHalf,1>, ApplyS<float,   1>,
+    ApplyS<uint8_t, 2>, ApplyS<uint16_t,2>, ApplyS<PtexHalf,2>, ApplyS<float,   2>,
+    ApplyS<uint8_t, 3>, ApplyS<uint16_t,3>, ApplyS<PtexHalf,3>, ApplyS<float,   3>,
+    ApplyS<uint8_t, 4>, ApplyS<uint16_t,4>, ApplyS<PtexHalf,4>, ApplyS<float,   4>,
+};
+
+
+PtexSeparableKernel::ApplyConstFn
+PtexSeparableKernel::applyConstFunctions[] = {
+    ApplyConstN<uint8_t>, ApplyConstN<uint16_t>, ApplyConstN<PtexHalf>, ApplyConstN<float>,
+    ApplyConst<uint8_t, 1>, ApplyConst<uint16_t,1>, ApplyConst<PtexHalf,1>, ApplyConst<float,   1>,
+    ApplyConst<uint8_t, 2>, ApplyConst<uint16_t,2>, ApplyConst<PtexHalf,2>, ApplyConst<float,   2>,
+    ApplyConst<uint8_t, 3>, ApplyConst<uint16_t,3>, ApplyConst<PtexHalf,3>, ApplyConst<float,   3>,
+    ApplyConst<uint8_t, 4>, ApplyConst<uint16_t,4>, ApplyConst<PtexHalf,4>, ApplyConst<float,   4>,
+};

@@ -58,11 +58,6 @@ public:
 	reallocV(buffer);
     }
 
-    static double accumulate(double* p, int n)
-    {
-	return std::accumulate(p, p+n, 0.0);
-    }
-
     double weight() const
     {
 	return accumulate(ku, uw) * accumulate(kv, vw);
@@ -244,8 +239,31 @@ public:
 	vres /= 2;
     }
 
+    void apply(double* dst, void* data, DataType dt, int nChan, int nTxChan)
+    {
+	// dispatch specialized apply function
+	ApplyFn fn = applyFunctions[(nChan!=nTxChan)*20 + ((unsigned)nChan<=4)*nChan*4 + dt];
+	fn(*this, dst, data, nChan, nTxChan);
+    }
+
+    void applyConst(double* dst, void* data, DataType dt, int nChan)
+    {
+	// dispatch specialized apply function
+	ApplyConstFn fn = applyConstFunctions[((unsigned)nChan<=4)*nChan*4 + dt];
+	fn(weight(), dst, data, nChan);
+    }
+
+private:
     typedef void (*ApplyFn)(PtexSeparableKernel& k, double* dst, void* data, int nChan, int nTxChan);
-    static ApplyFn getApplyFn(DataType dt, int nChan);
+    typedef void (*ApplyConstFn)(double weight, double* dst, void* data, int nChan);
+    static ApplyFn applyFunctions[40];
+    static ApplyConstFn applyConstFunctions[20];
+    static inline double accumulate(const double* p, int n)
+    {
+	double result = 0;
+	for (const double* e = p + n; p != e; p++) result += *p;
+	return result;
+    }
 };
 
 #endif

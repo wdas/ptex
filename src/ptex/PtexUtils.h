@@ -13,6 +13,7 @@
 
 #include "Ptexture.h"
 
+
 struct PtexUtils : public Ptex {
     static bool isPowerOfTwo(int x)
     {
@@ -72,13 +73,59 @@ struct PtexUtils : public Ptex {
     }
 
     template<typename T>
-    static T min(T a, T b) { return a < b ? a : b; }
+    static T cond(bool c, T a, T b) { return c * a + (!c)*b; }
 
     template<typename T>
-    static T max(T a, T b) { return a > b ? a : b; }
+    static T min(T a, T b) { return cond(a < b, a, b); }
 
     template<typename T>
-    static T clamp(T x, T lo, T hi) { return x < lo ? lo : x > hi ? hi : x; }
+    static T max(T a, T b) { return cond(a >= b, a, b); }
+
+    template<typename T>
+    static T clamp(T x, T lo, T hi) { return cond(x < lo, lo, cond(x > hi, hi, x)); }
+
+    template<typename T>
+    static double vecsum(const T* v, unsigned int n)
+    {
+	switch (n) {
+	case 0: return 0;
+	case 1: return v[0];
+	case 2: return v[0]+v[1];
+	case 3: return v[0]+v[1]+v[2];
+	case 4: return v[0]+v[1]+v[2]+v[3];
+	case 5: return v[0]+v[1]+v[2]+v[3]+v[4];
+	case 6: return v[0]+v[1]+v[2]+v[3]+v[4]+v[5];
+	case 7: return v[0]+v[1]+v[2]+v[3]+v[4]+v[5]+v[6];
+	case 8: return v[0]+v[1]+v[2]+v[3]+v[4]+v[5]+v[6]+v[7];
+	}
+	T sum = 0;
+	do { sum += vecsum(v, 8); v += 8; n -= 8; } while (n > 8);
+	return sum + vecsum(v, n);
+    }
+
+    template<typename T>
+    static void vecscale4(T* v, T s) { v[0]*=s; v[1]*=s; v[2]*=s; v[3]*=s; }
+    template<typename T>
+    static void vecscale8(T* v, T s) { vecscale4(v,s), vecscale4(v+4,s); }
+
+    template<typename T>
+    static void vecscale(T* v, unsigned int n, T s)
+    {
+	switch (n) {
+	case 0: return;
+	case 1: v[0]*=s; return;
+	case 2: v[0]*=s; v[1]*=s; return;
+	case 3: v[0]*=s; v[1]*=s; v[2]*=s; return;
+	case 4: vecscale4(v, s); return;
+	case 5: vecscale4(v, s); v[4]*=s; return;
+	case 6: vecscale4(v, s); v[4]*=s; v[5]*=s; return;
+	case 7: vecscale4(v, s); v[4]*=s; v[5]*=s; v[6]*=s; return;
+	case 8: vecscale8(v, s); return;
+	}
+	T sum = 0;
+	do { vecscale8(v, s); v += 8; n -= 8; } while (n > 8);
+	vecscale(v, n, s);
+    }
 
     static bool isConstant(const void* data, int stride, int ures, int vres, 
 			   int pixelSize);
@@ -110,5 +157,7 @@ struct PtexUtils : public Ptex {
     static void genRfaceids(const FaceInfo* faces, int nfaces, 
 			    uint32_t* rfaceids, uint32_t* faceids);
 };
+
+
 
 #endif

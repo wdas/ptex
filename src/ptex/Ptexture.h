@@ -93,6 +93,7 @@ struct Ptex {
 	}
 
 	EdgeId adjedge(int eid) const { return EdgeId((adjedges >> (2*eid)) & 3); }
+	int adjface(int eid) const { return adjfaces[eid]; }
 	bool isConstant() const { return flags & flag_constant; }
 	bool isNeighborhoodConstant() const { return flags & flag_nbconstant; }
 	bool hasEdits() const { return flags & flag_hasedits; }
@@ -217,6 +218,10 @@ class PtexFilter {
  public:
     static PtexFilter* mitchell(float sharpness);
     static PtexFilter* box();
+    static PtexFilter* gaussian();
+    static PtexFilter* trilinear();
+    static PtexFilter* radialBSpline();
+
     virtual void release() = 0;
     virtual void eval(float* result, int firstchan, int nchannels,
 		      PtexTexture* tx, int faceid,
