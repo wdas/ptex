@@ -19,7 +19,7 @@ struct PtexIO : public Ptex {
 	uint32_t version;
 	MeshType meshtype:32;
 	DataType datatype:32;
-	uint32_t alphachan;
+	int32_t  alphachan;
 	uint16_t nchannels;
 	uint16_t nlevels;
 	uint32_t nfaces;

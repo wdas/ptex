@@ -42,37 +42,26 @@ struct PtexHalf {
 
     static float toFloat(uint16_t h)
     {
-	uint32_t e = h&0x7c00;
-	// normalized iff (0 < e < 31)
-	if (uint32_t(e-1) < ((31<<10)-1)) {
-	    uint32_t s = (h & 0x8000)<<16;
-	    uint32_t m = h & 0x03ff;
-	    uint32_t f = s|(((e+0x1c000)|m)<<13);
-	    return (float&)f;
-	}
-	// denormalized, inf, or nan
-	return toFloat_except(h);
+	union { uint32_t i; float f; } u;
+	u.i = h2fTable[h];
+	return u.f;
     }
 
     static uint16_t fromFloat(float val)
     {
-	uint32_t& f = (uint32_t&)val;
-	int32_t e = (f & 0x7f800000) - 0x38000000;
-
-	// normalized iff (0 < e < 31)
-	if (uint32_t(e-1) < ((31<<23)-1)) {
-	    uint32_t s = ((f>>16) & 0x8000);
-	    uint32_t m = f & 0x7fe000;
-	    // add bit 12 to round
-	    return (s|((e|m)>>13))+((f>>12)&1);
-	}
-	// denormalized, inf, or nan
-	return fromFloat_except(val);
+	if (val==0) return 0;
+	union { uint32_t i; float f; } u;
+	u.f = val;
+	int e = f2hTable[(u.i>>23)&0x1ff];
+	if (e) return e + (((u.i&0x7fffff) + 0x1000) >> 13);
+	return fromFloat_except(u.i);
     }
 
  private:
-    static uint16_t fromFloat_except(float val);
-    static float toFloat_except(uint16_t val);
+    static uint16_t fromFloat_except(uint32_t val);
+    /* internal */ public:
+    static uint32_t h2fTable[65536];
+    static uint16_t f2hTable[512];
 };
 
 #endif

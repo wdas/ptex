@@ -250,7 +250,7 @@ void PtexReader::readMetaData()
 	totalsize += _metaedits[i].memsize;
 
     // allocate new meta data (keep local until fully initialized)
-    MetaData* volatile newmeta = new MetaData((void**)&_metadata, _cache, totalsize);
+    MetaData* volatile newmeta = new MetaData(&_metadata, _cache, totalsize);
     if (totalsize != 0) {
 	if (_header.metadatamemsize)
 	    readMetaDataBlock(newmeta, _metadatapos,

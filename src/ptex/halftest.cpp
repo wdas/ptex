@@ -37,17 +37,10 @@ typedef half H;
 #else
 
 #include "PtexHalf.h"
-float table[65536];
-struct Init {
-    Init() {
-	for (int i=0; i < 65536; i++) 
-	    table[i]=PtexHalf::toFloat(i);
-    }
-} _i;
 
 float h2f(uint16_t h)
 {
-    return table[h];
+    return PtexHalf::toFloat(h);
 }
 
 
@@ -59,6 +52,17 @@ typedef PtexHalf H;
 
 #endif
 
+static uint32_t floatToBits(float f)
+{
+    union { uint32_t i; float f; } u;
+    u.f = f; return u.i;
+}
+
+static float bitsToFloat(uint32_t bits)
+{
+    union { uint32_t i; float f; } u;
+    u.i = bits; return u.f;
+}
 
 void printbits(int t, int s, int e)
 {
@@ -76,7 +80,7 @@ void printhalf(uint16_t t)
 
 void printfloat(float f)
 {
-    int32_t t = *(int32_t*)&f;
+    int32_t t = floatToBits(f);
     printbits(t, 31, 31);
     printbits(t, 30, 23);
     printbits(t, 22, 0);
@@ -98,7 +102,7 @@ int testconvertall()
     int count = 0;
     // just do finite values (skip inf/nan)
     for (int i = 0x0000; i < 0x7c00; i++) count += testconvert(i);
-    for (int i = 0x8000; i < 0xfc00; i++) count += testconvert(i);
+    for (int i = 0x8001; i < 0xfc00; i++) count += testconvert(i);
     return count;
 }
 
@@ -128,18 +132,34 @@ int testroundall()
     // check all legal float32 values within legal float16 range
     float f1 = 2.9802320611338473e-08; // min float16
     float f2 = 65519; // max float 16
-    unsigned int i1 = (unsigned int&)f1;
-    unsigned int i2 = (unsigned int&)f2;
-    for (unsigned int i = i1; i < i2; i++) count += testround((float&)i);
+    unsigned int i1 = floatToBits(f1);
+    unsigned int i2 = floatToBits(f2);
+    for (unsigned int i = i1; i < i2; i++) count += testround(bitsToFloat(i));
 
     // and the negatives
     f1 = -2.9802320611338473e-08; // min float16
     f2 = -65519; // max float 16
-    i1 = (unsigned int&)f1;
-    i2 = (unsigned int&)f2;
-    for (unsigned int i = i1; i < i2; i++) count += testround((float&)i);
+    i1 = floatToBits(f1);
+    i2 = floatToBits(f2);
+    for (unsigned int i = i1; i < i2; i++) count += testround(bitsToFloat(i));
     return count;
 }
+
+
+int compatcheck()
+{
+    H h = 1.5;
+    H h2 = 2.5;
+    h = h + h2;
+    float f = h;
+    if (f != 4) return 1;
+    double d = h;
+    if (d != 4) return 1;
+    h = d * 2;
+    if (float(h) != 8) return 1;
+    return 0;
+}
+
 
 int spotcheck(int i, float f)
 {
@@ -230,7 +250,7 @@ int spotcheckall()
     };
 
     int count = 0;
-    for (int i = 0; i < (sizeof(t)/sizeof(float)); i+=2) 
+    for (unsigned int i = 0; i < (sizeof(t)/sizeof(float)); i+=2) 
 	count += spotcheck(int(t[i]), t[i+1]);
     return count;
 }
@@ -238,12 +258,12 @@ int spotcheckall()
 
 int excheck(uint32_t val)
 {
-    float f = (float&)val;
+    float f = bitsToFloat(val);
     int i = f2h(f);
     float f2 = h2f(i);
     if (memcmp(&f, &f2, 4)) {
 	printf("error: %g(0x%0x)->0x%x->%g(0x%0x)\n", 
-	       f, (uint32_t&)f, i, f2, (uint32_t&)f2);
+	       f, floatToBits(f), i, f2, floatToBits(f2));
 	return 1;
     }
     return 0;
@@ -268,7 +288,7 @@ int nancheck()
 
 int overflowtest(float f)
 {
-    uint32_t fi = (uint32_t&)f;
+    uint32_t fi = floatToBits(f);
     int i = f2h(f);
     int e = 0x7c00 | ((fi>>16)&0x8000);
     if (i != e) {
@@ -297,6 +317,7 @@ int test(const char* name, int (*fn)())
 int testall()
 {
     int total = 0;
+    total += test("Float/double compatibility", compatcheck);
     total += test("Spot checks", spotcheckall);
     total += test("Bidirectional conversion", testconvertall);
     total += test("Infinity conversion", infcheck);
@@ -317,7 +338,7 @@ void f2htimingtest()
     float f[65536];
     for (int i = 0; i < 65536; i++) {
 	f[i] = h2f(i);
-	if (!std::isfinite(f[i])) f[i] = 1;
+	if (!isfinite(f[i])) f[i] = 1;
     }
     for (int j = 0; j < 30*1024; j++) {
 	for (int i = 1024; i < 31740; i++) total += f2h(f[i]);
@@ -340,7 +361,7 @@ void printall()
 {
     for (int i = 0; i < 65536; i++) {
 	float f = h2f(i);
-	printf("0x%x -> %g 0x%x\n", i, f, (uint32_t&)f);
+	printf("0x%x -> %g 0x%x\n", i, f, floatToBits(f));
     }
     for (int e = -10; e < 10; e++) {
 	float f = pow(10, e);
@@ -351,15 +372,6 @@ void printall()
 
 int main()
 {
-    // check interchangeability with float/double
-    H h = 1.5;
-    H h2 = 2.5;
-    h = h + h2;
-    float f = h;
-    double d = h;
-    h = d * 2;
-    printf("%g\n", float(h));
-
     return testall()? 1 : 0;
     //printall(); // for diff comparision of output
     //f2htimingtest();
