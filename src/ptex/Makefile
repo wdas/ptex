@@ -18,27 +18,59 @@ OBJECTS = \
 	PtexUtils.o \
 	PtexWriter.o
 
+INSTALLDIR = ../../install
 
-all: libPtex.so ptxinfo
+INSTALL = \
+	lib/libPtex.a \
+	lib/libPtex.so \
+	bin/ptxinfo \
+	include/Ptexture.h \
+	include/PtexHalf.h \
+	include/PtexUtils.h
+
+ALL = libPtex.a libPtex.so ptxinfo
+
+TESTS = halftest wtest rtest ftest
+
+$(INSTALLDIR)/lib/% : %
+	@ mkdir -p $(@D)
+	cp $^ $@
+
+$(INSTALLDIR)/bin/% : %
+	@ mkdir -p $(@D)
+	cp $^ $@
+
+$(INSTALLDIR)/include/% : %
+	@ mkdir -p $(@D)
+	cp $^ $@
+
+all: $(ALL)
+
+install: all $(patsubst %,$(INSTALLDIR)/%,$(INSTALL))
+
+clean:
+	rm -f *.o $(ALL) $(TESTS) test.ptx
+
+libPtex.a : libPtex.a($(OBJECTS))
 
 libPtex.so: $(OBJECTS)
 	$(LINK) $(LFLAGS) -shared -o $@ $(OBJECTS) $(LIBS)
 
-ptxinfo: ptxinfo.o libPtex.so
-	$(LINK) $(LFLAGS) $^ -o $@
+ptxinfo: ptxinfo.o libPtex.a
+	$(LINK) $(LFLAGS) $^ -o $@ $(LIBS)
 
-tests: halftest wtest rtest ftest libPtex.so
+tests: $(TESTS)
 
 halftest: halftest.o PtexHalf.o
 	$(LINK) $(LFLAGS) $^ -o $@
 
-wtest: wtest.o libPtex.so
-	$(LINK) $(LFLAGS) $^ -o $@ 
+wtest: wtest.o libPtex.a
+	$(LINK) $(LFLAGS) $^ -o $@ $(LIBS)
 
-rtest: rtest.o libPtex.so
-	$(LINK) $(LFLAGS) $^ -o $@
+rtest: rtest.o libPtex.a
+	$(LINK) $(LFLAGS) $^ -o $@ $(LIBS)
 
-ftest: ftest.o libPtex.so
-	$(LINK) $(LFLAGS) $^ -o $@
+ftest: ftest.o libPtex.a
+	$(LINK) $(LFLAGS) $^ -o $@ $(LIBS)
 
 
