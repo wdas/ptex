@@ -22,10 +22,11 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     // init
     if (!tx || nChannels <= 0) return;
     if (faceid < 0 || faceid >= tx->numFaces()) return;
+    _tx = tx;
     _ntxchan = tx->numChannels();
     _dt = tx->dataType();
-    _firstchan = firstChan;
-    _nchan = PtexUtils::min(nChannels, _ntxchan-_firstchan);
+    _firstChanOffset = firstChan*DataSize(_dt);
+    _nchan = PtexUtils::min(nChannels, _ntxchan-firstChan);
 
     // clamp u and v
     u = PtexUtils::clamp(u, 0.0f, 1.0f);
@@ -38,7 +39,7 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     if (f.isNeighborhoodConstant()) {
 	PtexFaceData* data = tx->getData(faceid, 0);
 	if (data) {
-	    char* d = (char*) data->getData() + _firstchan*DataSize(_dt);
+	    char* d = (char*) data->getData() + _firstChanOffset;
 	    Ptex::ConvertToFloat(result, d, _dt, _nchan);
 	    data->release();
 	}
@@ -65,31 +66,17 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     }
 #endif
 
-    // clamp filter width to no larger than 0.25 (todo: make value filter-specific)
-    uw = std::min(uw, 0.25f);
-    vw = std::min(vw, 0.25f);
-
-    // clamp filter width to no smaller than a texel
-    uw = std::max(uw, 1.0f/(f.res.u()));
-    vw = std::max(vw, 1.0f/(f.res.v()));
-
-    // compute desired texture res based on filter width
-    int ureslog2 = int(ceil(log2(1.0/uw))),
-	vreslog2 = int(ceil(log2(1.0/vw)));
-    Res res(ureslog2, vreslog2);
-
-    // compute weights, trim zeros, find extent
-
     // build kernel
     PtexSeparableKernel k;
-    //    k.set(res.u(), res.v(), ...);
+    buildKernel(k, u, v, uw, vw, f.res);
+    _weight = k.weight();
 
     // allocate temporary double-precision result
     _result = (double*) alloca(sizeof(double)*_nchan);
     memset(_result, 0, sizeof(double)*_nchan);
 
     // apply to faces
-    //splitAndApply(k, faceid, f);
+    splitAndApply(k, faceid, f);
 
     // normalize (both for data type and cumulative kernel weight applied)
     // and output result
@@ -102,157 +89,139 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
 
 
 
-#if 0
-foo() {
-    float u = _ctx.u * ures - 0.5, v = _ctx.v * vres - 0.5;
-    uw *= ures; vw *= vres;
-
-    // find integer pixel extent: [u,v] +/- [2*uw,2*vw]
-    // (mitchell is 4 units wide for a 1 unit filter period)
-
-    int u1 = int(ceil(u - 2*uw)), u2 = int(ceil(u + 2*uw));
-    int v1 = int(ceil(v - 2*vw)), v2 = int(ceil(v + 2*vw));
-
-    int kuw = u2-u1, kvw = v2-v1;
-    if (kuw > 8 || kvw > 8) {
-	// shouldn't happen - but just in case...
-	assert(kuw <= 8 && kvw <= 8);
-	return;
-    }
-    // compute kernel weights along u and v directions
-    double* ukernel = (double*)alloca(kuw * sizeof(double));
-    double* vkernel = (double*)alloca(kvw * sizeof(double));
-    computeWeights(ukernel, (u1-u)/uw, 1.0/uw, kuw);
-    computeWeights(vkernel, (v1-v)/vw, 1.0/vw, kvw);
-}
-#endif
 
 
-#if 0
-void PtexSeparableKernel::splitAndApply()
+void PtexSeparableFilter::splitAndApply(PtexSeparableKernel& k, int faceid, const Ptex::FaceInfo& f)
 {
-    // which quadrant are we in?
-    bool uHigh = (u > .5), vHigh = (v > .5);
+    assert(k.uw > 0 && k.uw <= 8);
+    assert(k.vw > 0 && k.vw <= 8);
+    // which quadrant are we in? (kernel can only overlap one side in each dir)
+    bool uHigh = (k.u > .5), vHigh = (k.v > .5);
 
     // do we need to split?
-    bool uSplit = uHigh ? (u+uw >= res.u()) : (u < 0);
-    bool vSplit = vHigh ? (v+vw >= res.v()) : (v < 0);
+    bool uSplit = uHigh ? (k.u+k.uw > k.res.u()) : (k.u < 0);
+    bool vSplit = vHigh ? (k.v+k.vw > k.res.v()) : (k.v < 0);
 
     // no splitting - just apply to local face
-    if (!uSplit && !vSplit) { apply(); return; }
+    if (!uSplit && !vSplit) { apply(k, faceid, f); return; }
 
     // do we have neighbors for the splits?
     // (if not, merge weights back into main kernel)
-    int ufid, vfid;
-    EdgeId ueid, veid;
-    const FaceInfo *uf, *vf;
+    int ufid=0, vfid=0;
+    EdgeId ueid=e_left, veid=e_bottom;
+    const FaceInfo *uf=0, *vf=0;
     if (uSplit) {
 	ueid = uHigh ? e_right : e_left;
-	ufid = f->adjface(ueid);
-	uf = (ufid >= 0) ? &tx->getFaceInfo(ufid) : 0;
+	ufid = f.adjface(ueid);
+	uf = (ufid >= 0) ? &_tx->getFaceInfo(ufid) : 0;
 	if (!uf) {
-	    if (uHigh) mergeR(); else mergeL();
+	    if (uHigh) k.mergeR(); else k.mergeL();
 	    uSplit = 0;
 	}
     }
     if (vSplit) {
 	veid = vHigh ? e_top : e_bottom;
-	vfid = f->adjface(veid);
-	vf = (vfid >= 0) ? &tx->getFaceInfo(vfid) : 0;
+	vfid = f.adjface(veid);
+	vf = (vfid >= 0) ? &_tx->getFaceInfo(vfid) : 0;
 	if (!vf) {
-	    if (vHigh) mergeT(); else mergeB();
+	    if (vHigh) k.mergeT(); else k.mergeB();
 	    vSplit = 0;
 	}
     }
 
-    // are we near a corner?
-    if (uSplit && vSplit) {
-	// split into 3 pieces: k, ku, kv where both ku and kv
-	// include the corner and apply each piece.  First kernel
-	// to hit the corner sets corner faceid, second kernel
-	// applies iff faceid matches.
-
-	// alternate approach - split kernel into 4 pieces
-	// find corner from both neighbors and apply corner
-	// only if regular.
-    }
-
-    // u split only?
-    else if (uSplit) {
+    if (uSplit) {
 	// split kernel into two pieces
-	PtexSeparableKernel k;
-	if (uHigh) splitR(k); else splitL(k);
+	PtexSeparableKernel ku;
+	if (uHigh) k.splitR(ku); else k.splitL(ku);
 
 	// adjust uv coord and res for face/subface boundary
-	bool ms = f->isSubface(), ns = uf->isSubface();
+	bool ms = f.isSubface(), ns = uf->isSubface();
 	if (ms != ns) {
-	    // todo
+	    // adjust kernel for sub face
+	    
 	}
 	    
 	// rotate kernel to account for orientation difference
-	k.rotate(ueid - f->adjedge(ueid) + 2);
+	ku.rotate(ueid - f.adjedge(ueid) + 2);
 
-	// apply (resplit if going from face to subface)
-	if (!f->isSubface() && uf->isSubface()) k.splitAndApply();
-	else k.apply();
+	// resplit if near a corner or going from face to subface
+	if (vSplit || (!ms && ns)) splitAndApply(ku, ufid, *uf);
+	else apply(ku, ufid, *uf);
     }
 
-    // v split only?
-    else if (vSplit) {
+    if (vSplit) {
+	// split kernel into two pieces
+	PtexSeparableKernel kv;
+	if (vHigh) k.splitT(kv); else k.splitB(kv);
+
+	// adjust uv coord and res for face/subface boundary
+	bool ms = f.isSubface(), ns = vf->isSubface();
+	if (ms != ns) {
+	    // adjust kernel for sub face
+	    
+	}
+	    
+	// rotate kernel to account for orientation difference
+	kv.rotate(veid - f.adjedge(veid) + 2);
+
+	// resplit if going from face to subface
+	if (!ms && ns) splitAndApply(kv, vfid, *vf);
+	else apply(kv, vfid, *vf);
     }
 
     // do local face
-    apply(); 
+    apply(k, faceid, f); 
 }
-#endif
 
-void PtexSeparableFilter::apply(PtexSeparableKernel& k, int faceid, Ptex::FaceInfo& f)
+
+void PtexSeparableFilter::apply(PtexSeparableKernel& k, int faceid, const Ptex::FaceInfo& f)
 {
+    assert(k.u >= 0 && k.u < k.res.u());
+    assert(k.v >= 0 && k.v < k.res.v());
+    assert(k.uw > 0 && k.uw <= 8);
+    assert(k.vw > 0 && k.vw <= 8);
+
     // downres kernel if needed
-    int fresu = f.res.u(), fresv = f.res.v();
-    while (k.ures < fresu) k.downresU();
-    while (k.vres < fresv) k.downresV();
+    while (k.res.u() > f.res.u()) k.downresU();
+    while (k.res.v() > f.res.v()) k.downresV();
 
     // get face data, and apply
-    PtexFaceData* dh = _tx->getData(faceid, f.res);
+    PtexFaceData* dh = _tx->getData(faceid, k.res);
     if (!dh) return;
 
     if (dh->isConstant()) {
-	k.applyConst(_result, dh->getData(), _dt, _nchan);
+	k.applyConst(_result, (char*)dh->getData()+_firstChanOffset, _dt, _nchan);
     }
     else if (dh->isTiled()) {
 	Ptex::Res tileres = dh->tileRes();
-	int tileresu = tileres.u(), tileresv = tileres.v();
-	int ntilesu = k.ures / tileresu;
+	int tileresu = tileres.u();
+	int tileresv = tileres.v();
+	int ntilesu = k.res.u() / tileresu;
 	PtexSeparableKernel kt;
-	kt.ures = tileresu; kt.vres = tileresv;
-	int v = k.v, vw = k.vw;
-	while (vw > 0) {
+	kt.res = tileres;
+	for (int v = k.v, vw = k.vw; vw > 0; vw -= kt.vw, v += kt.vw) {
 	    int tilev = v / tileresv;
 	    kt.v = v % tileresv;
 	    kt.vw = PtexUtils::min(vw, tileresv - kt.v);
 	    kt.kv = k.kv + v - k.v;
-	    int u = k.u, uw = k.uw;
-	    while (uw > 0) {
+	    for (int u = k.u, uw = k.uw; uw > 0; uw -= kt.uw, u += kt.uw) {
 		int tileu = u / tileresu;
 		kt.u = u % tileresu;
 		kt.uw = PtexUtils::min(uw, tileresu - kt.u);
 		kt.ku = k.ku + u - k.u;
 		PtexFaceData* th = dh->getTile(tilev * ntilesu + tileu);
 		if (th) {
-		    if (th->isConstant()) kt.applyConst(_result, th->getData(), _dt, _nchan);
-		    else kt.apply(_result, th->getData(), _dt, _nchan, _ntxchan);
+		    if (th->isConstant())
+			kt.applyConst(_result, (char*)th->getData()+_firstChanOffset, _dt, _nchan);
+		    else
+			kt.apply(_result, (char*)th->getData()+_firstChanOffset, _dt, _nchan, _ntxchan);
 		}
 		th->release();
-		uw -= kt.ures;
-		u += kt.ures;
 	    }
-	    vw -= kt.vres;
-	    v += kt.vres;
 	}
     }
     else {
-	k.apply(_result, dh->getData(), _dt, _nchan, _ntxchan);
+	k.apply(_result, (char*)dh->getData()+_firstChanOffset, _dt, _nchan, _ntxchan);
     }
     dh->release();
 }

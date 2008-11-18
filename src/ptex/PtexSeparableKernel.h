@@ -11,6 +11,7 @@
    (c) Disney. All rights reserved.
 */
 
+#include <assert.h>
 #include <algorithm>
 #include <numeric>
 #include "Ptexture.h"
@@ -19,43 +20,34 @@
 // Separable convolution kernel
 class PtexSeparableKernel : public Ptex {
 public:
-    int ures, vres;		// resolution that kernel was built for
+    Res res;
+    //int ures, vres;		// resolution that kernel was built for
     int u, v;			// uv offset within face data
     int uw, vw;			// kernel width
     double* ku;			// kernel weights in u
     double* kv;			// kernel weights in v
+    static const int kmax = 8;	// max kernel width
+    double kubuff[kmax];
+    double kvbuff[kmax];
+    
+    PtexSeparableKernel()
+	: res(0), u(0), v(0), uw(0), vw(0), ku(kubuff), kv(kvbuff) {}
 
-    void set(int uresVal, int vresVal,
+    void set(Res resVal,
 	     int uVal, int vVal,
 	     int uwVal, int vwVal,
-	     double* kuVal, double* kvVal)
+	     const double* kuVal, const double* kvVal)
     {
-	ures = uresVal;
-	vres = vresVal;
+	assert(uwVal <= kmax && vwVal <= kmax);
+	res = resVal;
 	u = uVal;
 	v = vVal;
 	uw = uwVal;
 	vw = vwVal;
-	ku =  kuVal;
-	kv =  kvVal;
-    }
-
-    void reallocU(double*& buffer)
-    {
-	memcpy(buffer, ku, uw*sizeof(double));
-	ku = buffer; buffer += uw;
-    }
-
-    void reallocV(double*& buffer)
-    {
-	memcpy(buffer, kv, vw*sizeof(double));
-	kv = buffer; buffer += vw;
-    }
-
-    void realloc(double*& buffer)
-    {
-	reallocU(buffer);
-	reallocV(buffer);
+	memcpy(kubuff, kuVal, sizeof(*ku)*uw);
+	memcpy(kvbuff, kvVal, sizeof(*kv)*vw);
+	ku = kubuff;
+	kv = kvbuff;
     }
 
     double weight() const
@@ -69,11 +61,12 @@ public:
 	ku[w] += accumulate(ku, w);
 	ku += w;
 	uw -= w;
+	u = 0;
     }
 
     void mergeR()
     {
-	int w = uw + u - ures;
+	int w = uw + u - res.u();
 	double* kp = ku + uw - w;
 	kp[-1] += accumulate(kp, w);
 	uw -= w;
@@ -83,12 +76,14 @@ public:
     {
 	int w = -v;
 	kv[w] += accumulate(kv, w);
+	kv += w;
 	vw -= w;
+	v = 0;
     }
 
     void mergeT()
     {
-	int w = vw + v - vres;
+	int w = vw + v - res.v();
 	double* kp = kv + vw - w;
 	kp[-1] += accumulate(kp, w);
 	vw -= w;
@@ -96,77 +91,71 @@ public:
 
     void splitL(PtexSeparableKernel& k)
     {
-	int w = -u; // width of split portion
-	
-	// split off left piece
-	k = *this;
-	k.u = ures - w;
-	k.uw = w;
+	// split off left piece of width w into k
+	int w = -u;
+	//    res  u          v  uw vw  ku  kv
+	k.set(res, res.u()-w, v, w, vw, ku, kv);
 
 	// update local
 	u = 0;
 	uw -= w;
 	ku += w;
+	assert(u >= 0 && uw >= 0 && u+uw <= res.u());
     }
 
     void splitR(PtexSeparableKernel& k)
     {
-	int w = u + uw - ures; // width of split portion
-	
-	// split off right piece
-	k = *this;
-	k.u = 0;
-	k.uw = w;
-	k.ku += w;
+	// split off right piece of width w into k
+	int w = u + uw - res.u();
+	//    res  u  v  uw vw  ku           kv
+	k.set(res, 0, v, w, vw, ku + uw - w, kv);
 
 	// update local
 	uw -= w;
+	assert(u >= 0 && uw >= 0 && u+uw <= res.u());
     }
 
     void splitB(PtexSeparableKernel& k)
     {
-	int w = -v; // width of split portion
-	
-	// split off left piece
-	k = *this;
-	k.v = vres - w;
-	k.vw = w;
+	// split off bottom piece of width w into k
+	int w = -v;
+	//    res  u  v  uw vw  ku  kv
+	k.set(res, u, res.v()-w, uw, w, ku, kv);
 
 	// update local
 	v = 0;
 	vw -= w;
 	kv += w;
+	assert(v >= 0 && vw >= 0 && v+vw <= res.v());
     }
 
     void splitT(PtexSeparableKernel& k)
     {
-	int w = v + vw - vres; // width of split portion
-	
-	// split off right piece
-	k = *this;
-	k.v = 0;
-	k.vw = w;
-	k.kv += w;
+	// split off top piece of width w into k
+	int w = v + vw - res.v();
+	//    res  u  v  uw vw  ku  kv
+	k.set(res, u, 0, uw, w, ku, kv + vw - w);
 
 	// update local
 	vw -= w;
+	assert(v >= 0 && vw >= 0 && v+vw <= res.v());
     }
 
     void flipU()
     {
-	u = ures - u - uw;
+	u = res.u() - u - uw;
 	std::reverse(ku, ku+uw);
     }
 
     void flipV()
     {
-	v = vres - v - vw;
+	v = res.v() - v - vw;
 	std::reverse(kv, kv+vw);
     }
 
     void swapUV()
     {
-	std::swap(ures, vres);
+	res.swapuv();
 	std::swap(u, v);
 	std::swap(uw, vw);
 	std::swap(ku, kv);
@@ -208,7 +197,7 @@ public:
 	// update state
 	u /= 2;
 	uw = dst - ku;
-	ures /= 2;
+	res.ulog2--;
     }
 
     void downresV()
@@ -236,7 +225,7 @@ public:
 	// update state
 	v /= 2;
 	vw = dst - kv;
-	vres /= 2;
+	res.vlog2--;
     }
 
     void apply(double* dst, void* data, DataType dt, int nChan, int nTxChan)

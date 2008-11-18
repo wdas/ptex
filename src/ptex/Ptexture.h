@@ -50,8 +50,8 @@ struct Ptex {
 	Res(int8_t ulog2, int8_t vlog2) : ulog2(ulog2), vlog2(vlog2) {}
 	Res(uint16_t value) { val() = value; }
 	
-	int u() const { return ulog2 > 0 ? 1<<ulog2 : 1; }
-	int v() const { return vlog2 > 0 ? 1<<vlog2 : 1; }
+	int u() const { return 1<<(unsigned)ulog2; }
+	int v() const { return 1<<(unsigned)vlog2; }
 	uint16_t& val() { return *(uint16_t*)this; }
 	const uint16_t& val() const { return *(uint16_t*)this; }
 	int size() const { return u() * v(); }

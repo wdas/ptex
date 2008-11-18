@@ -56,11 +56,11 @@ namespace {
     void Apply(PtexSeparableKernel& k, double* result, void* data, int /*nChan*/, int /*nTxChan*/)
     {
 	double* rowResult = (double*) alloca(nChan*sizeof(double));
-	int rowlen = k.ures * nChan;
+	int rowlen = k.res.u() * nChan;
 	int datalen = k.uw * nChan;
 	int rowskip = rowlen - datalen;
 	double* kvp = k.kv;
-	T* p = (T*)data + (k.v * k.ures + k.u) * nChan;
+	T* p = (T*)data + (k.v * k.res.u() + k.u) * nChan;
 	T* pEnd = p + k.vw * rowlen;
 	while (p != pEnd)
 	{
@@ -86,11 +86,11 @@ namespace {
     void ApplyS(PtexSeparableKernel& k, double* result, void* data, int /*nChan*/, int nTxChan)
     {
 	double* rowResult = (double*) alloca(nChan*sizeof(double));
-	int rowlen = k.ures * nTxChan;
+	int rowlen = k.res.u() * nTxChan;
 	int datalen = k.uw * nTxChan;
 	int rowskip = rowlen - datalen;
 	double* kvp = k.kv;
-	T* p = (T*)data + (k.v * k.ures + k.u) * nTxChan;
+	T* p = (T*)data + (k.v * k.res.u() + k.u) * nTxChan;
 	T* pEnd = p + k.vw * rowlen;
 	while (p != pEnd)
 	{
@@ -116,11 +116,11 @@ namespace {
     void ApplyN(PtexSeparableKernel& k, double* result, void* data, int nChan, int nTxChan)
     {
 	double* rowResult = (double*) alloca(nChan*sizeof(double));
-	int rowlen = k.ures * nTxChan;
+	int rowlen = k.res.u() * nTxChan;
 	int datalen = k.uw * nTxChan;
 	int rowskip = rowlen - datalen;
 	double* kvp = k.kv;
-	T* p = (T*)data + (k.v * k.ures + k.u) * nTxChan;
+	T* p = (T*)data + (k.v * k.res.u() + k.u) * nTxChan;
 	T* pEnd = p + k.vw * rowlen;
 	while (p != pEnd)
 	{

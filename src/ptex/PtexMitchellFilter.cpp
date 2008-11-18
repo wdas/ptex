@@ -14,12 +14,6 @@
 #include "PtexUtils.h"
 
 
-PtexFilter* PtexFilter::mitchell(float sharpness)
-{
-    return new PtexMitchellFilter(sharpness);
-}
-
-
 void PtexMitchellFilter::setSharpness(float sharpness)
 {
     _sharpness = sharpness;

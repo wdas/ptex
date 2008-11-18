@@ -65,7 +65,6 @@ struct PtexUtils : public Ptex {
     static double qsmoothstep(double x, double a, double b)
     {
 	// quintic smoothstep (cubic is only C1)
-
 	if ( x < a ) return 0;
 	if ( x >= b ) return 1;
 	x = (x - a)/(b - a);

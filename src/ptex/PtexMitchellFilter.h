@@ -11,10 +11,11 @@
    (c) Disney. All rights reserved.
 */
 
+#include <vector>
+#include "math.h"
 #include "Ptexture.h"
 #include "PtexFilterContext.h"
 #include "PtexFilterKernel.h"
-#include <vector>
 
 class PtexMitchellFilter : public PtexFilter, public Ptex
 {

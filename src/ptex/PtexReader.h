@@ -32,11 +32,11 @@ public:
     safevector() : std::vector<T>() {}
     safevector(size_t n, const T& val = T()) : std::vector<T>(n, val) {}
     const T& operator[] (size_t n) const {
-	assert(n >= 0 && n < std::vector<T>::size());
+	assert(n < std::vector<T>::size());
 	return std::vector<T>::operator[](n); 
     }
     T& operator[] (size_t n) {
-	assert(n >= 0 && n < std::vector<T>::size());
+	assert(n < std::vector<T>::size());
 	return std::vector<T>::operator[](n); 
     }
 };
@@ -77,8 +77,8 @@ public:
 
     class MetaData : public PtexCachedData, public PtexMetaData {
     public:
-	MetaData(void** parent, PtexCacheImpl* cache, int size)
-	    : PtexCachedData(parent, cache, sizeof(*this) + size) {}
+	MetaData(MetaData** parent, PtexCacheImpl* cache, int size)
+	    : PtexCachedData((void**)parent, cache, sizeof(*this) + size) {}
 	virtual void release() { AutoLock lock(_cache->cachelock); unref(); }
 
 	virtual int numKeys() { return _entries.size(); }
