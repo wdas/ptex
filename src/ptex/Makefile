@@ -47,9 +47,9 @@ $(INSTALLDIR)/include/% : %
 	@ mkdir -p $(@D)
 	cp $^ $@
 
-all: $(ALL)
-
 install: all $(patsubst %,$(INSTALLDIR)/%,$(INSTALL))
+
+all: $(ALL)
 
 clean:
 	rm -f *.o $(ALL) $(TESTS) test.ptx
@@ -77,3 +77,4 @@ ftest: ftest.o libPtex.a
 	$(LINK) $(LFLAGS) $^ -o $@ $(LIBS)
 
 
+include Makefile.deps

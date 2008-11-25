@@ -100,7 +100,6 @@ public:
 	u = 0;
 	uw -= w;
 	ku += w;
-	assert(u >= 0 && uw >= 0 && u+uw <= res.u());
     }
 
     void splitR(PtexSeparableKernel& k)
@@ -112,7 +111,6 @@ public:
 
 	// update local
 	uw -= w;
-	assert(u >= 0 && uw >= 0 && u+uw <= res.u());
     }
 
     void splitB(PtexSeparableKernel& k)
@@ -126,7 +124,6 @@ public:
 	v = 0;
 	vw -= w;
 	kv += w;
-	assert(v >= 0 && vw >= 0 && v+vw <= res.v());
     }
 
     void splitT(PtexSeparableKernel& k)
@@ -138,7 +135,6 @@ public:
 
 	// update local
 	vw -= w;
-	assert(v >= 0 && vw >= 0 && v+vw <= res.v());
     }
 
     void flipU()

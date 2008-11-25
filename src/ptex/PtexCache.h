@@ -134,8 +134,8 @@ public:
 	for (typename T::iterator i=list.begin(); i != list.end(); i++) {
 	    PtexLruItem* obj = *i;
 	    if (obj) {
+		assert(obj->_parent == (void**)&*i);
 		obj->orphan();
-		assert(*i == 0);
 	    }
 	}
     }
@@ -178,7 +178,7 @@ public:
 
     void push(PtexLruItem* node)
     {
-	// delete node if orphaned
+ // delete node if orphaned
 	if (!node->_parent) delete node;
 	else {
 	    // add to end of list

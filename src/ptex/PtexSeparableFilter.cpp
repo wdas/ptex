@@ -69,6 +69,10 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     // build kernel
     PtexSeparableKernel k;
     buildKernel(k, u, v, uw, vw, f.res);
+    assert(k.uw > 0 && k.vw > 0);
+    assert(k.uw <= PtexSeparableKernel::kmax && k.vw <= PtexSeparableKernel::kmax);
+    assert(k.u + k.uw - 1 >= 0 && k.u < k.res.u());
+    assert(k.v + k.vw - 1 >= 0 && k.v < k.res.v());
     _weight = k.weight();
 
     // allocate temporary double-precision result
@@ -134,43 +138,81 @@ void PtexSeparableFilter::splitAndApply(PtexSeparableKernel& k, int faceid, cons
 	PtexSeparableKernel ku;
 	if (uHigh) k.splitR(ku); else k.splitL(ku);
 
-	// adjust uv coord and res for face/subface boundary
-	bool ms = f.isSubface(), ns = uf->isSubface();
-	if (ms != ns) {
-	    // adjust kernel for sub face
-	    
+	bool regularCorner = 0;
+	if (vSplit) {
+	    regularCorner = isCornerRegular(faceid, uHigh, vHigh);
+	    if (!regularCorner) {
+		// irregular corner, split corner off of u and ignore
+		PtexSeparableKernel kc;
+		if (vHigh) ku.splitT(kc); else ku.splitB(kc);
+		// subtract corner weight from total
+		_weight -= kc.weight();
+	    }
 	}
-	    
-	// rotate kernel to account for orientation difference
-	ku.rotate(ueid - f.adjedge(ueid) + 2);
 
-	// resplit if near a corner or going from face to subface
-	if (vSplit || (!ms && ns)) splitAndApply(ku, ufid, *uf);
-	else apply(ku, ufid, *uf);
+	applyAcrossEdge(ku, faceid, f, ueid, ufid, *uf, regularCorner);
     }
 
     if (vSplit) {
-	// split kernel into two pieces
+	// split kernel into two pieces and apply across edge
 	PtexSeparableKernel kv;
 	if (vHigh) k.splitT(kv); else k.splitB(kv);
-
-	// adjust uv coord and res for face/subface boundary
-	bool ms = f.isSubface(), ns = vf->isSubface();
-	if (ms != ns) {
-	    // adjust kernel for sub face
-	    
-	}
-	    
-	// rotate kernel to account for orientation difference
-	kv.rotate(veid - f.adjedge(veid) + 2);
-
-	// resplit if going from face to subface
-	if (!ms && ns) splitAndApply(kv, vfid, *vf);
-	else apply(kv, vfid, *vf);
+	applyAcrossEdge(kv, faceid, f, veid, vfid, *vf, false);
     }
 
     // do local face
     apply(k, faceid, f); 
+}
+
+
+void PtexSeparableFilter::applyAcrossEdge(PtexSeparableKernel& k, 
+					  int faceid, const Ptex::FaceInfo& f, int eid,
+					  int afid, const Ptex::FaceInfo& af,
+					  bool regularCorner)
+{
+    // adjust uv coord and res for face/subface boundary
+    int aeid = f.adjedge(eid);
+    bool ms = f.isSubface(), ns = af.isSubface();
+    bool resplit = regularCorner;
+
+    if (ms != ns) {
+	if (!ms && ns) {
+	    // adjust kernel from main face to subface
+	    assert(k.res.ulog2 > 0 && k.res.vlog2 > 0);
+	    k.res.ulog2--; k.res.vlog2--;
+	    switch (eid) {
+	    case e_bottom: k.v -= k.res.v(); break;
+	    case e_right:  break;
+	    case e_top:    k.u -= k.res.u(); break;
+	    case e_left:   k.u -= k.res.u(); k.v -= k.res.v(); break;
+	    }
+	
+	}
+	else { // (ms && !ns)
+	    // adjust kernel from subface to main face
+
+	    // Note: the transform depends on which subface the kernel is
+	    // coming from.  The "primary" subface is the one the main
+	    // face is pointing at.  The secondary subface adjustment
+	    // happens to be the same as for the primary subface for the
+	    // previous edge, so the cases can be combined.
+	    bool secondary = (af.adjface(aeid) != faceid);
+	    switch ((eid - secondary) & 3) {
+	    case e_bottom: k.v += k.res.v(); break;
+	    case e_right:  break;
+	    case e_top:    k.u += k.res.u(); break;
+	    case e_left:   k.u += k.res.u(); k.v += k.res.v(); break;
+	    }
+	    k.res.ulog2++; k.res.vlog2++;
+	}
+    }
+	    
+    // rotate kernel to account for orientation difference
+    k.rotate(eid - aeid + 2);
+
+    // resplit if near a regular corner or going from face to subface
+    if (resplit) splitAndApply(k, afid, af);
+    else apply(k, afid, af);
 }
 
 
@@ -224,6 +266,28 @@ void PtexSeparableFilter::apply(PtexSeparableKernel& k, int faceid, const Ptex::
 	k.apply(_result, (char*)dh->getData()+_firstChanOffset, _dt, _nchan, _ntxchan);
     }
     dh->release();
+}
+
+
+bool PtexSeparableFilter::isCornerRegular(int faceid, bool uHigh, bool vHigh)
+{
+    // traverse around vertex clockwise to see if it's regular (valence 4)
+    // note: clockwise traversal means we can ignore the difference between
+    // faces and subfaces
+
+    int fid = faceid;
+    int eid = (vHigh<<1) | (uHigh ^ vHigh); // LL=0, LR=1, UR=2, UL=3
+
+    for (int i = 0; i < 4; i++) {
+	// advance to next face
+	const Ptex::FaceInfo& f = _tx->getFaceInfo(fid);
+	fid = f.adjface(eid);
+	if (fid < 0) return 0; // hit a boundary
+	eid = (f.adjedge(eid) + 1) % 4;
+    }
+    
+    // we're regular iff we're back where we started
+    return fid == faceid;
 }
 
 

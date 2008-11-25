@@ -35,7 +35,13 @@ class PtexSeparableFilter : public PtexFilter, public Ptex
 			     Res faceRes) = 0;
     
     void splitAndApply(PtexSeparableKernel& k, int faceid, const Ptex::FaceInfo& f);
+    void applyAcrossEdge(PtexSeparableKernel& k, 
+			 int faceid, const Ptex::FaceInfo& f, int eid,
+			 int afid, const Ptex::FaceInfo& af,
+			 bool regularCorner);
     void apply(PtexSeparableKernel& k, int faceid, const Ptex::FaceInfo& f);
+    bool isCornerRegular(int faceid, bool uHigh, bool vHigh);
+
     void evalLargeDu(float du, float weight);
     void evalLargeDuFace(int faceid, int level, float weight);
 
