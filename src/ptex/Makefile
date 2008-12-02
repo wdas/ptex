@@ -2,7 +2,7 @@ CC       = gcc
 CXX      = g++
 # DEBUG = -g -DDEBUG
 DEBUG    = -O2 -DNDEBUG
-INCPATH  = -I.
+INCPATH  = -I. -I ${RP_subEngine}/include
 CXXFLAGS = -Wall -W -pedantic -std=c++98 $(DEBUG) $(INCPATH) -fPIC
 LINK     = g++
 LFLAGS   = 
@@ -31,7 +31,7 @@ INSTALL = \
 	include/PtexHalf.h \
 	include/PtexUtils.h
 
-ALL = libPtex.a libPtex.so ptxinfo
+ALL = libPtex.a libPtex.so ptxinfo subdivideobj unsubdivideptx
 
 TESTS = halftest wtest rtest ftest
 
@@ -61,6 +61,12 @@ libPtex.so: $(OBJECTS)
 
 ptxinfo: ptxinfo.o libPtex.a
 	$(LINK) $(LFLAGS) $^ -o $@ $(LIBS)
+
+subdivideobj: subdivideobj.o mesh.o
+	$(LINK) $(LFLAGS) $^ -o $@ $(LIBS) ${RP_subEngine}/lib/libSubEngine.so
+
+unsubdivideptx: unsubdivideptx.o mesh.o libPtex.a
+	$(LINK) $(LFLAGS) $^ -o $@ $(LIBS) ${RP_subEngine}/lib/libSubEngine.so
 
 tests: $(TESTS)
 
