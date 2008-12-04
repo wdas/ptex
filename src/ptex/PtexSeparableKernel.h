@@ -19,7 +19,7 @@
 
 // Separable convolution kernel
 class PtexSeparableKernel : public Ptex {
-public:
+ public:
     Res res;
     //int ures, vres;		// resolution that kernel was built for
     int u, v;			// uv offset within face data
@@ -93,48 +93,86 @@ public:
     {
 	// split off left piece of width w into k
 	int w = -u;
-	//    res  u          v  uw vw  ku  kv
-	k.set(res, res.u()-w, v, w, vw, ku, kv);
 
-	// update local
-	u = 0;
-	uw -= w;
-	ku += w;
+	if (w < uw) {
+	    // normal case - split off a portion
+	    //    res  u          v  uw vw  ku  kv
+	    k.set(res, res.u()-w, v, w, vw, ku, kv);
+	    
+	    // update local
+	    u = 0;
+	    uw -= w;
+	    ku += w;
+	}
+	else {
+	    // entire kernel is split off
+	    k = *this;
+	    k.u += res.u();
+	    u = 0; uw = 0;
+	}
     }
 
     void splitR(PtexSeparableKernel& k)
     {
 	// split off right piece of width w into k
 	int w = u + uw - res.u();
-	//    res  u  v  uw vw  ku           kv
-	k.set(res, 0, v, w, vw, ku + uw - w, kv);
 
-	// update local
-	uw -= w;
+	if (w < uw) {
+	    // normal case - split off a portion
+	    //    res  u  v  uw vw  ku           kv
+	    k.set(res, 0, v, w, vw, ku + uw - w, kv);
+
+	    // update local
+	    uw -= w;
+	}
+	else {
+	    // entire kernel is split off
+	    k = *this;
+	    k.u -= res.u();
+	    u = 0; uw = 0;
+	}
     }
 
     void splitB(PtexSeparableKernel& k)
     {
 	// split off bottom piece of width w into k
 	int w = -v;
-	//    res  u  v  uw vw  ku  kv
-	k.set(res, u, res.v()-w, uw, w, ku, kv);
+	if (w < vw) {
+	    // normal case - split off a portion
+	    //    res  u  v          uw vw  ku  kv
+	    k.set(res, u, res.v()-w, uw, w, ku, kv);
 
-	// update local
-	v = 0;
-	vw -= w;
-	kv += w;
+	    // update local
+	    v = 0;
+	    vw -= w;
+	    kv += w;
+	}
+	else {
+	    // entire kernel is split off
+	    k = *this;
+	    k.v += res.v();
+	    v = 0; vw = 0;
+	}
     }
 
     void splitT(PtexSeparableKernel& k)
     {
 	// split off top piece of width w into k
 	int w = v + vw - res.v();
-	//    res  u  v  uw vw  ku  kv
-	k.set(res, u, 0, uw, w, ku, kv + vw - w);
+	if (w < vw) {
+	    // normal case - split off a portion
+	    //    res  u  v  uw vw  ku  kv
+	    k.set(res, u, 0, uw, w, ku, kv + vw - w);
 
-	// update local
-	vw -= w;
+	    // update local
+	    vw -= w;
+	}
+	else {
+	    // entire kernel is split off
+	    k = *this;
+	    k.v -= res.v();
+	    v = 0; vw = 0;
+	}
     }
 
     void flipU()
@@ -238,7 +276,7 @@ public:
 	fn(weight(), dst, data, nChan);
     }
 
-private:
+ private:
     typedef void (*ApplyFn)(PtexSeparableKernel& k, double* dst, void* data, int nChan, int nTxChan);
     typedef void (*ApplyConstFn)(double weight, double* dst, void* data, int nChan);
     static ApplyFn applyFunctions[40];

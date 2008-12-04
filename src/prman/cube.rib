@@ -88,8 +88,8 @@ ConcatTransform [ 1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1 ]
 AttributeBegin 
 Attribute "identifier" "name" ["hc_polySurface1Tile0001_xxxxXX"]
 ##BIND hc_polySurface1Tile0001_xxxxXX
-Surface "ptextest" "string mapname" ["text/cube.ptx"] "uniform float sharpness" [1]
-#Surface "ptextest" "string mapname" ["cloth/cube.ptx"] "uniform float sharpness" [0.7]
+#Surface "ptextest" "string mapname" ["text/cube.ptx"] "uniform float sharpness" [1]
+Surface "ptextest" "string mapname" ["cloth/cube.ptx"] "uniform float sharpness" [0.7]
 ConcatTransform [ 1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1 ]
 SubdivisionMesh "catmull-clark" [4 4 4
 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4

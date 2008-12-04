@@ -78,8 +78,8 @@ bool unsubptx(const char* inobjname, const char* inptxname, const char* outptxna
 
     // for each face in mesh
     //    else just copy subfaces
-    for (int i = 0, n = mesh.nfaces(), ifaceid = 0; i < n; i++) {
-	Ptex::FaceInfo fi = inptx->getFaceInfo(ifaceid);
+    for (int i = 0, n = mesh.nfaces(), sfaceid = 0; i < n; i++) {
+	Ptex::FaceInfo fi = inptx->getFaceInfo(sfaceid);
 	int nverts = nvertsPerFace[i];
 	if (nverts == 4) {
 	    // got a quad input face - combine four subfaces from inptx
@@ -87,10 +87,10 @@ bool unsubptx(const char* inobjname, const char* inptxname, const char* outptxna
 	    void* buffer = malloc(ores.size()*pixelsize);
 	    int istride = fi.res.u() * pixelsize;
 	    int ostride = ores.u() * pixelsize;
-	    for (int f = 0; f < 4; f++, ifaceid++) {
-		if (fi.res != inptx->getFaceInfo(ifaceid).res) {
+	    for (int f = 0; f < 4; f++, sfaceid++) {
+		if (fi.res != inptx->getFaceInfo(sfaceid).res) {
 		    std::cerr << "Subface texture resolutions don't match for quad face:\n"
-			      << "  Subface id's " << ifaceid << ", " << (ifaceid+f) << std::endl;
+			      << "  Subface id's " << sfaceid << ", " << (sfaceid+f) << std::endl;
 		    continue;
 		}
 		int offset = 0;
@@ -99,8 +99,9 @@ bool unsubptx(const char* inobjname, const char* inptxname, const char* outptxna
 		case 2: offset = istride * (fi.res.v() * 2 + 1); break;
 		case 3: offset = istride * (fi.res.v() * 2); break;
 		}
-		inptx->getData(ifaceid, (char*)buffer+offset, ostride);
+		inptx->getData(sfaceid, (char*)buffer+offset, ostride);
 	    }
+	    // gather adjacency info for face
 	    int adjfaces[4], adjedges[4];
 	    for (int eid = 0; eid < 4; eid++) {
 		int afid;
@@ -121,11 +122,28 @@ bool unsubptx(const char* inobjname, const char* inptxname, const char* outptxna
 	    free(buffer);
 	} else {
 	    // got a non-quad input face - copy n subfaces from inptx as-is
-	    for (int f = 0; f < nverts; f++, ifaceid++) {
-		Ptex::FaceInfo fi = inptx->getFaceInfo(ifaceid);
+	    for (int f = 0; f < nverts; f++, sfaceid++) {
+		Ptex::FaceInfo fi = inptx->getFaceInfo(sfaceid);
 		void* buffer = malloc(fi.res.size()*pixelsize);
-		inptx->getData(ifaceid, buffer, 0);
-		static int adjfaces[4], adjedges[4];
+		inptx->getData(sfaceid, buffer, 0);
+		// gather adjacency info for face
+		int adjfaces[4], adjedges[4];
+		for (int eid = 0; eid < 4; eid++) {
+		    int afid;
+		    submesh.getneighbor(sfaceid, eid, afid, adjedges[eid]);
+		    // convert subfaceid to ofaceid
+		    if (afid < 0) {
+			adjfaces[eid] = -1;
+		    }
+		    else {
+			int afid_in = ifaceids[afid];
+			adjfaces[eid] = ofaceids[afid_in];
+			// for non-quad neighbors: adjust for particular subface
+			if (!isQuad[afid_in]) 
+			    adjfaces[eid] += (afid - sfaceids[afid_in]);
+		    }
+		}
+
 		outptx->writeFace(ofaceids[i]+f, Ptex::FaceInfo(fi.res, adjfaces, adjedges, true), buffer);
 		free(buffer);
 	    }
@@ -152,7 +170,6 @@ int main(int argc, char** argv)
     const char* inptxname = argv[2];
     const char* outptxname = argv[3];
 
-    int nfaces = 1;
     if (!unsubptx(inobjname, inptxname, outptxname)) return 1;
     return 0;
 }

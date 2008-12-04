@@ -118,6 +118,9 @@ void PtexSeparableFilter::splitAndApply(PtexSeparableKernel& k, int faceid, cons
 	ueid = uHigh ? e_right : e_left;
 	ufid = f.adjface(ueid);
 	uf = (ufid >= 0) ? &_tx->getFaceInfo(ufid) : 0;
+#ifdef NOEDGEBLEND
+	uf = 0;
+#endif
 	if (!uf) {
 	    if (uHigh) k.mergeR(); else k.mergeL();
 	    uSplit = 0;
@@ -127,6 +130,9 @@ void PtexSeparableFilter::splitAndApply(PtexSeparableKernel& k, int faceid, cons
 	veid = vHigh ? e_top : e_bottom;
 	vfid = f.adjface(veid);
 	vf = (vfid >= 0) ? &_tx->getFaceInfo(vfid) : 0;
+#ifdef NOEDGEBLEND
+	vf = 0;
+#endif
 	if (!vf) {
 	    if (vHigh) k.mergeT(); else k.mergeB();
 	    vSplit = 0;
@@ -186,7 +192,7 @@ void PtexSeparableFilter::applyAcrossEdge(PtexSeparableKernel& k,
 	    case e_top:    k.u -= k.res.u(); break;
 	    case e_left:   k.u -= k.res.u(); k.v -= k.res.v(); break;
 	    }
-	
+	    resplit = true;
 	}
 	else { // (ms && !ns)
 	    // adjust kernel from subface to main face
@@ -195,9 +201,9 @@ void PtexSeparableFilter::applyAcrossEdge(PtexSeparableKernel& k,
 	    // coming from.  The "primary" subface is the one the main
 	    // face is pointing at.  The secondary subface adjustment
 	    // happens to be the same as for the primary subface for the
-	    // previous edge, so the cases can be combined.
-	    bool secondary = (af.adjface(aeid) != faceid);
-	    switch ((eid - secondary) & 3) {
+	    // next edge, so the cases can be combined.
+	    bool primary = (af.adjface(aeid) == faceid);
+	    switch ((eid - primary) & 3) {
 	    case e_bottom: k.v += k.res.v(); break;
 	    case e_right:  break;
 	    case e_top:    k.u += k.res.u(); break;
@@ -220,8 +226,10 @@ void PtexSeparableFilter::apply(PtexSeparableKernel& k, int faceid, const Ptex::
 {
     assert(k.u >= 0 && k.u < k.res.u());
     assert(k.v >= 0 && k.v < k.res.v());
-    assert(k.uw > 0 && k.uw <= 8);
-    assert(k.vw > 0 && k.vw <= 8);
+    assert(k.uw >= 0 && k.uw <= 8);
+    assert(k.vw >= 0 && k.vw <= 8);
+
+    if (k.uw == 0 || k.vw == 0) return;
 
     // downres kernel if needed
     while (k.res.u() > f.res.u()) k.downresU();
@@ -277,12 +285,25 @@ bool PtexSeparableFilter::isCornerRegular(int faceid, bool uHigh, bool vHigh)
 
     int fid = faceid;
     int eid = (vHigh<<1) | (uHigh ^ vHigh); // LL=0, LR=1, UR=2, UL=3
+    bool prevWasSubface = 0;
+    int prevFid = 0;
 
     for (int i = 0; i < 4; i++) {
 	// advance to next face
 	const Ptex::FaceInfo& f = _tx->getFaceInfo(fid);
+	bool isSubface = f.isSubface();
+	if (prevWasSubface && !isSubface) {
+	    // we're going from a subface to a main face
+	    if (f.adjface((eid+3)%4) == prevFid) {
+		// subface was primary subface - must be interior T corner
+		return true;
+	    }
+	}
+	prevWasSubface = isSubface;
+	prevFid = fid;
+
 	fid = f.adjface(eid);
-	if (fid < 0) return 0; // hit a boundary
+	if (fid < 0) return false; // hit a boundary
 	eid = (f.adjedge(eid) + 1) % 4;
     }
     

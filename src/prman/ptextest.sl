@@ -1,9 +1,9 @@
 plugin "ptextureShadeop.so";
 
-surface ptextest(string mapname=""; uniform float sharpness=1.0; uniform float __faceindex=0)
+surface ptextest(string mapname=""; uniform float sblur=1; uniform float sharpness=1.0; uniform float __faceindex=0)
 {
     uniform float i;
-    Ci = ptexture(mapname, 0, __faceindex, u, v, du, dv, sharpness);
+    Ci = ptexture(mapname, 0, __faceindex, u, v, du*sblur, dv*sblur, sharpness);
 #if 1
     float diffuse = clamp(-normalize(N).vector(I), 0, 1);
     Ci = Ci * diffuse;

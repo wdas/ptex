@@ -11,6 +11,7 @@
  */
 
 
+#include <math.h>
 #include <iostream>
 #include <RslPlugin.h>
 #include <rx.h>
@@ -95,6 +96,12 @@ static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
 	int numVals = RslArg::NumValues(argc, argv);
 	for (int i = 0; i < numVals; ++i) {
 	    float* resultval = *result;
+	    bool stop = 0;
+	    // if (*faceid == 14 && fabs(*u-.596591)<1e-5 && fabs(*v-0)<1e-5)
+	    if ((*faceid == 10 && *u == 0 && *v == 1))
+	    {
+		stop = 1;
+	    }
 	    filter->eval(*result, chan, 3, tx, int(*faceid), *u, *v, *uw, *vw);
 
 	    // copy first channel into missing channels (e.g. promote 1-chan to gray)

@@ -154,9 +154,9 @@ class PtexBoxFilter : public PtexSeparableFilter
 
 PtexFilter* PtexFilter::mitchell(float sharpness)
 {
-    //return new PtexSeparableMitchellFilter(sharpness);
-        return new PtexBoxFilter();
-        return new PtexMitchellFilter(sharpness);
+    return new PtexSeparableMitchellFilter(sharpness);
+    //return new PtexBoxFilter();
+    //return new PtexMitchellFilter(sharpness);
 }
 
 
