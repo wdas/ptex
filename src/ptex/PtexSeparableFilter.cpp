@@ -1,3 +1,4 @@
+#define NOEDGEBLEND
 /* 
    CONFIDENTIAL INFORMATION: This software is the confidential and
    proprietary information of Walt Disney Animation Studios ("Disney").
@@ -193,6 +194,7 @@ void PtexSeparableFilter::applyAcrossEdge(PtexSeparableKernel& k,
 	    case e_left:   k.u -= k.res.u(); k.v -= k.res.v(); break;
 	    }
 	    resplit = true;
+	    // TODO - switch to other subface if necessary
 	}
 	else { // (ms && !ns)
 	    // adjust kernel from subface to main face
