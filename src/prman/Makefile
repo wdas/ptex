@@ -11,7 +11,7 @@ LFLAGS   =
 LIBPTEX = $(PTEXDIR)/lib/libPtex.a
 LIBS     = -lm -lz -lpthread
 
-ALL = ptextureShadeop.so ptextest.slo
+ALL = ptextureShadeop.so ptextest.slo ptexenvtest.slo
 
 all: $(ALL)
 
@@ -23,4 +23,7 @@ ptextureShadeop.so: ptextureShadeop.o $(LIBPTEX)
 
 ptextest.slo : ptextest.sl
 	shader -I. ptextest.sl
+
+ptexenvtest.slo : ptexenvtest.sl
+	shader -I. ptexenvtest.sl
 

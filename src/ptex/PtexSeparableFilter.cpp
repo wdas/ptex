@@ -1,4 +1,4 @@
-#define NOEDGEBLEND
+//#define NOEDGEBLEND
 /* 
    CONFIDENTIAL INFORMATION: This software is the confidential and
    proprietary information of Walt Disney Animation Studios ("Disney").

@@ -175,7 +175,7 @@ bool Mesh::loadOBJ(const char* filename)
 		    int count = 0;
 		    if (sscanf(cp, " %d//%d%n", &vi, &ni, &count) == 2)
 			ti = 1;
-		    else if (sscanf(cp, " %d/%s/%d%n", &vi, &ti, &ni, &count) == 3)
+		    else if (sscanf(cp, " %d/%d/%d%n", &vi, &ti, &ni, &count) == 3)
 			;
 		    else break;
 		    nverts++;
@@ -198,6 +198,7 @@ bool Mesh::loadOBJ(const char* filename)
 bool Mesh::saveOBJ(const char* filename)
 {
     FILE* fp = fopen(filename, "w");
+    if (!fp) return 0;
 
     fprintf(fp, "version 1\n");
     fprintf(fp, "surface subd per-face cage pPlane1\n");
@@ -221,5 +222,7 @@ bool Mesh::saveOBJ(const char* filename)
 	fv += nverts;
 	fprintf(fp, "\n");
     }
+    fclose(fp);
+    return 1;
 }
 

@@ -18,10 +18,3 @@ PtexSeparableKernel.o: PtexSeparableKernel.cpp PtexUtils.h Ptexture.h \
 PtexUtils.o: PtexUtils.cpp PtexHalf.h PtexUtils.h Ptexture.h
 PtexWriter.o: PtexWriter.cpp Ptexture.h PtexUtils.h PtexWriter.h PtexIO.h \
   PtexReader.h PtexCache.h DGDict.h DGHashMap.h PtexLockFile.h
-ftest.o: ftest.cpp Ptexture.h
-halftest.o: halftest.cpp PtexHalf.h
-ptxinfo.o: ptxinfo.cpp Ptexture.h PtexReader.h PtexIO.h PtexCache.h \
-  DGDict.h PtexUtils.h DGHashMap.h
-ptxmake.o: ptxmake.cpp Ptexture.h PtexUtils.h
-rtest.o: rtest.cpp Ptexture.h
-wtest.o: wtest.cpp Ptexture.h

@@ -211,15 +211,16 @@ class PtexSeparableKernel : public Ptex {
 	double* src = ku;
 	double* dst = ku;
 
-	// copy odd leading sample (if any)
+	// skip odd leading sample (if any)
 	if (u & 1) {
-	    *dst++ = *src++;
+	    dst++;
+	    src++;
 	    uw--;
 	}
 
 	// average even pairs
 	for (int i = uw/2; i > 0; i--) {
-	    *dst++ = (src[0] + src[1]) * 0.5;
+	    *dst++ = src[0] + src[1];
 	    src += 2;
 	}
 
@@ -239,15 +240,16 @@ class PtexSeparableKernel : public Ptex {
 	double* src = kv;
 	double* dst = kv;
 
-	// copy odd leading sample (if any)
+	// skip odd leading sample (if any)
 	if (v & 1) {
-	    *dst++ = *src++;
+	    dst++;
+	    src++;
 	    vw--;
 	}
 
 	// average even pairs
 	for (int i = vw/2; i > 0; i--) {
-	    *dst++ = (src[0] + src[1]) * 0.5;
+	    *dst++ = src[0] + src[1];
 	    src += 2;
 	}
 
