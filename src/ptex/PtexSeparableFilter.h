@@ -12,7 +12,6 @@
 */
 
 #include "Ptexture.h"
-#include <vector>
 
 class PtexSeparableKernel;
 

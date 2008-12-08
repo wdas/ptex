@@ -1,4 +1,3 @@
-//#define NOEDGEBLEND
 /* 
    CONFIDENTIAL INFORMATION: This software is the confidential and
    proprietary information of Walt Disney Animation Studios ("Disney").
@@ -15,6 +14,7 @@
 #include "PtexSeparableKernel.h"
 #include "PtexUtils.h"
 
+//#define NOEDGEBLEND // enable for debugging
 
 void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
 			       PtexTexture* tx, int faceid,
