@@ -119,7 +119,7 @@ PtexCacheImpl::~PtexCacheImpl()
 {
     // explicitly pop all unused items so that they are 
     // destroyed while cache is still valid
-    AutoLock locker(cachelock);
+    AutoLockCache locker(cachelock);
     while (_unusedData.pop());
     while (_unusedFiles.pop());
 }
@@ -187,7 +187,7 @@ public:
     virtual void setSearchPath(const char* path) 
     {
 	// get the open lock since the path is used during open operations
-	AutoLock locker(openlock);
+	AutoMutex locker(openlock);
 	
 	// record path
 	_searchpath = path ? path : ""; 
@@ -206,7 +206,7 @@ public:
     virtual const char* getSearchPath()
     {
 	// get the open lock since the path is used during open operations
-	AutoLock locker(openlock);
+	AutoMutex locker(openlock);
 	return _searchpath.c_str(); 
     }
 
@@ -221,7 +221,7 @@ public:
 
     virtual void purge(const char* filename)
     {
-	AutoLock locker(cachelock); 
+	AutoLockCache locker(cachelock); 
 	FileMap::iterator iter = _files.find(filename);
 	if (iter != _files.end()) {
 	    PtexReader* reader = iter->second;
@@ -235,7 +235,7 @@ public:
 
     virtual void purgeAll()
     {
-	AutoLock locker(cachelock); 
+	AutoLockCache locker(cachelock); 
 	FileMap::iterator iter = _files.begin();
 	while (iter != _files.end()) {
 	    PtexReader* reader = iter->second;
@@ -270,7 +270,7 @@ private:
 
 PtexTexture* PtexReaderCache::get(const char* filename, std::string& error)
 {
-    AutoLock locker(cachelock); 
+    AutoLockCache locker(cachelock); 
 
     // lookup reader in map
     PtexReader* reader = _files[filename];
@@ -286,7 +286,7 @@ PtexTexture* PtexReaderCache::get(const char* filename, std::string& error)
 	// get open lock and make sure we still need to open
 	// temporarily release cache lock while we open acquire open lock
 	cachelock.unlock();
-	AutoLock openlocker(openlock);
+	AutoMutex openlocker(openlock);
 	cachelock.lock();
 
 	// lookup entry again (it might have changed in another thread)

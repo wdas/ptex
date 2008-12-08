@@ -79,7 +79,7 @@ public:
     public:
 	MetaData(MetaData** parent, PtexCacheImpl* cache, int size)
 	    : PtexCachedData((void**)parent, cache, sizeof(*this) + size) {}
-	virtual void release() { AutoLock lock(_cache->cachelock); unref(); }
+	virtual void release() { AutoLockCache lock(_cache->cachelock); unref(); }
 
 	virtual int numKeys() { return _entries.size(); }
 	virtual void getKey(int n, const char*& key, MetaDataType& type)
@@ -204,7 +204,7 @@ public:
     public:
 	FaceData(void** parent, PtexCacheImpl* cache, Res res, int size)
 	    : PtexCachedData(parent, cache, size), _res(res) {}
-	virtual void release() { AutoLock lock(_cache->cachelock); unref(); }
+	virtual void release() { AutoLockCache lock(_cache->cachelock); unref(); }
 	virtual Ptex::Res res() { return _res; }
 	virtual void reduce(FaceData*&, PtexReader*,
 			    Res newres, PtexUtils::ReduceFn) = 0;
@@ -316,7 +316,7 @@ public:
 	}
 	virtual PtexFaceData* getTile(int tile)
 	{
-	    AutoLock locker(_cache->cachelock);
+	    AutoLockCache locker(_cache->cachelock);
 	    FaceData*& f = _tiles[tile];
 	    if (!f) readTile(tile, f);
 	    else f->ref();
@@ -342,7 +342,7 @@ public:
 	      _parentface(parentface),
 	      _reducefn(reducefn)
 	{
-	    AutoLock locker(_cache->cachelock);
+	    AutoLockCache locker(_cache->cachelock);
 	    _parentface->ref(); 
 	}
 	~TiledReducedFace()

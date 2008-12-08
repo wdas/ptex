@@ -53,7 +53,7 @@ namespace PtexInternal {
 
     class SpinLock {
     public:
-	SpinLock()    { pthread_spin_init(&_spinlock, 0); }
+	SpinLock()    { pthread_spin_init(&_spinlock, PTHREAD_PROCESS_PRIVATE); }
 	~SpinLock()   { pthread_spin_destroy(&_spinlock); }
 	void lock()   { pthread_spin_lock(&_spinlock); }
 	void unlock() { pthread_spin_unlock(&_spinlock); }
@@ -61,13 +61,41 @@ namespace PtexInternal {
 	pthread_spinlock_t _spinlock;
     };
 
+#ifndef NDEBUG
+    class DebugSpinLock : public SpinLock {
+     public:
+	DebugSpinLock() : _locked(0) {}
+	void lock()   { SpinLock::lock(); _locked = 1; }
+	void unlock() { assert(_locked); _locked = 0; SpinLock::unlock(); }
+	bool locked() { return _locked; }
+     private:
+	int _locked;
+    };
+#endif
+
+    template <class T>
     class AutoLock {
     public:
-	AutoLock(Mutex& m) : _m(m) { _m.lock(); }
-	~AutoLock()                { _m.unlock(); }
+	AutoLock(T& m) : _m(m) { _m.lock(); }
+	~AutoLock()            { _m.unlock(); }
     private:
-	Mutex& _m;
+	T& _m;
     };
+
+    typedef AutoLock<Mutex> AutoMutex;
+    typedef AutoLock<SpinLock> AutoSpin;
+
+#define USE_SPIN
+#ifdef USE_SPIN
+#  ifndef NDEBUG
+    typedef DebugSpinLock CacheLock;
+#  else
+    typedef SpinLock CacheLock;
+#  endif
+#else
+    typedef Mutex CacheLock;
+#endif
+    typedef AutoLock<CacheLock> AutoLockCache;
 
 #ifndef NDEBUG
 #define GATHER_STATS
@@ -178,7 +206,7 @@ public:
 
     void push(PtexLruItem* node)
     {
- // delete node if orphaned
+	// delete node if orphaned
 	if (!node->_parent) delete node;
 	else {
 	    // add to end of list
@@ -225,7 +253,7 @@ public:
     virtual void release() { delete this; }
 
     Mutex openlock;
-    Mutex cachelock;
+    CacheLock cachelock;
 
     // internal use - only call from reader classes for deferred deletion
     void setPendingDelete() { _pendingDelete = true; }
