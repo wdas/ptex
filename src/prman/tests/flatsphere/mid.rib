@@ -1,0 +1,53 @@
+	Option "user" "color camera_bg" [0 0 0] "float camera_bga" [0]
+	Imager "background" "color color" [0 0 0] "float alpha" [0]
+	ResourceBegin 
+		WorldBegin 
+			ScopedCoordinateSystem "world_ref"
+			TransformBegin 
+				CoordSysTransform "camera"
+				Rotate 27.226 1 0 0
+				Rotate 22.521 0 1 0
+				Rotate -5.521 0 0 1
+				LightSource "distantlight" "11707856-bb1f-11dd-a138-002241339497" 
+			TransformEnd 
+			Attribute "visibility" "int specular" [0] "int diffuse" [0] "int transmission" [0]
+			Surface "defaultsurface" 
+			Attribute "dice" "string referencecamera" ["worldcamera"]
+			Attribute "trace" "int samplemotion" [1] "int maxdiffusedepth" [1] "int maxspeculardepth" [2] "float bias" [0.001]
+			ShadingRate 1
+			GeometricApproximation "motionfactor" 3
+			Attribute "displacementbound" "string coordinatesystem" ["shader"] "float sphere" [0]
+			Attribute "stochastic" "int sigma" [1]
+			AttributeBegin 
+				Attribute "identifier" "string name" ["groundPlane_transform"]
+				ConcatTransform [ 12 0 0 0  0 2.66454e-15 12 0  0 -1 2.22045e-16 0  0 0 0 1 ]
+				AttributeBegin 
+				AttributeEnd 
+			AttributeEnd 
+			AttributeBegin 
+				Attribute "identifier" "string name" ["Manipulator1"]
+				ConcatTransform [ 1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1 ]
+			AttributeEnd 
+			AttributeBegin 
+				Attribute "identifier" "string name" ["UniversalManip"]
+				ConcatTransform [ 1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1 ]
+			AttributeEnd 
+			AttributeBegin 
+			AttributeEnd 
+			AttributeBegin 
+			AttributeEnd 
+			AttributeBegin 
+			AttributeEnd 
+			AttributeBegin 
+			AttributeEnd 
+			AttributeBegin 
+				Attribute "identifier" "string name" ["pSphere1"]
+				ConcatTransform [ 1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1 ]
+				AttributeBegin 
+					AttributeBegin 
+						Attribute "identifier" "string name" ["pSphereShape1"]
+						Sides 2
+						ShadingInterpolation "smooth"
+						Attribute "user" "int receivesShadows" [1]
+						Attribute "visibility" "int camera" [1] "int specular" [0] "int diffuse" [0]
+						Displacement "null" 

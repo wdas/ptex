@@ -219,7 +219,11 @@ static int ptexenvColor(RslContext*, int argc, const RslArg* argv[] )
 		dv = range4(y0/z0, y1/z1, y2/z2, y3/z3);
 	    }
 	    else {
-		u = v = du = dv = 0;    
+		// average vector is zero length (bad input data)
+		// use large filter in py
+		u = v = 0.5;
+		du = dv = 1;
+		faceid = 2;
 	    }
 	    filter->eval(resultval, chan, 3, tx, faceid, (1+u)/2, (1+v)/2, 
 			 du/2 + *blur, dv/2 + *blur);

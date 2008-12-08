@@ -10,16 +10,11 @@ class PtexSeparableMitchellFilter : public PtexSeparableFilter
     {
 	// compute Mitchell filter coefficients:
 	// abs(x) < 1:
-	//     1/6 * ((12 - 9*B - 6*C)*x^3 +
-	// 	          (-18 + 12*B + 6*C)*x^2 +
-	// 		  (6 - 2*B))
-	//     == c[0]*x^3 + c[1]*x^2 + c[2]
+	//   1/6 * ((12 - 9*B - 6*C)*x^3 + (-18 + 12*B + 6*C)*x^2 + (6 - 2*B))
+	//   == c[0]*x^3 + c[1]*x^2 + c[2]
 	// abs(x) < 2:
-	// 		 ((-B - 6*C)*x3 +
-	// 		  (6*B + 30*C)*x2 +
-	// 		  (-12*B - 48*C)*x +
-	// 		  (8*B + 24*C)) :
-	//     == c[3]*x^3 + c[4]*x^2 + c[5]*x + c[6]
+	//   ((-B - 6*C)*x3 + (6*B + 30*C)*x2 + (-12*B - 48*C)*x + (8*B + 24*C))
+	//   == c[3]*x^3 + c[4]*x^2 + c[5]*x + c[6]
 	// else: 0
 
 	float B = 1 - sharpness; // choose C = (1-B)/2
@@ -154,11 +149,9 @@ class PtexBoxFilter : public PtexSeparableFilter
 
 PtexFilter* PtexFilter::mitchell(float sharpness)
 {
+    //return new PtexMitchellFilter(sharpness); // obsolete
     return new PtexSeparableMitchellFilter(sharpness);
-    //return new PtexBoxFilter();
-    //return new PtexMitchellFilter(sharpness);
 }
-
 
 
 PtexFilter* PtexFilter::box() { return new PtexBoxFilter(); }

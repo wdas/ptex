@@ -1,0 +1,15 @@
+						Interior "null" 
+						TransformBegin 
+							Procedural "DelayedReadArchive" ["./flatSphere.rib"] [-0.925417 0.927207 -0.187091 0.187091 -0.913121 0.913121]
+						TransformEnd 
+					AttributeEnd 
+				AttributeEnd 
+			AttributeEnd 
+			AttributeBegin 
+				Attribute "identifier" "string name" ["CubeCompass"]
+				ConcatTransform [ 1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1 ]
+			AttributeEnd 
+		WorldEnd 
+	ResourceEnd 
+	##streammarker 10
+FrameEnd 

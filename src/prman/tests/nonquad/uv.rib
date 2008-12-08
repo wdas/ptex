@@ -1,0 +1,118 @@
+##RenderMan RIB-Structure 1.1
+version 3.04
+PixelFilter "mitchell" 4 4
+Declare "originOffset" "constant float[2]"
+Display "/home/fahome/brentb/d/ptex/src/ptex/rmanpix/untitled.0001.tif" "it" "rgba" "originOffset" [0 0] "int merge" [0] "string dspyParams" ["dspyRender -context \"/home/fahome/brentb/d/ptex/src/ptex/untitled\" -time 1 -crop 0 1 0 1 -port 7000 -render;"]
+Option "limits" "eyesplits" [3]
+Option "limits" "bucketsize" [16 16]
+Option "limits" "gridsize" [256]
+Declare "enable_lerp" "uniform float"
+Option "texture" "enable lerp" [1]
+Option "texture" "enable gaussian" [1]
+Option "limits" "texturememory" [32768]
+Option "searchpath" "shader" [".:..:../.."]
+Option "searchpath" "texture" ["."]
+Option "limits" "othreshold" [0.99599999 0.99599999 0.99599999]
+Option "limits" "zthreshold" [1 1 1]
+Option "shadow" "bias0" [0.22499999] "bias1" [0.22499999]
+GeometricApproximation "motionfactor" 0
+Option "trace" "int maxdepth" [10]
+Option "trace" "float specularthreshold" [10]
+Hider "hidden" "jitter" [1] "depthfilter" ["min"]
+Exposure 1 1
+Format 1024 1024 1
+Matte 0
+ShadingRate 1
+ShadingInterpolation "smooth"
+Attribute "displacementbound" "sphere" [0] "coordinatesystem" ["object"]
+Attribute "dice" "binary" [1]
+Sides 2
+Attribute "sides" "backfacetolerance" [0]
+Attribute "derivatives" "centered" [1]
+Attribute "derivatives" "extrapolate" [1]
+Attribute "visibility" "int camera" [1]
+Attribute "visibility" "int trace" [0]
+Attribute "trace" "int maxdiffusedepth" [1]
+Attribute "trace" "int maxspeculardepth" [2]
+Attribute "trace" "int displacements" [0]
+Attribute "trace" "float bias" [0.0099999998]
+Attribute "trace" "int samplemotion" [0]
+Attribute "user" "string shaderSurf" ["true"]
+Attribute "user" "string shaderDisp" ["false"]
+Attribute "user" "string shaderAtm" ["false"]
+Attribute "user" "string isShadowPass" ["false"]
+Attribute "user" "uniform float passID" [0]
+PixelSamples 5 5
+Shutter 0 0
+Option "shutter" "int clampmotion" [1]
+Quantize "rgba" 255 0 255 0.5
+Option "shutter" "float offset" [1]
+Option "statistics" "endofframe" [1]
+ErrorHandler "printonce"
+FrameBegin 1
+ScreenWindow -1 1 -1 1
+Clipping 0.1 1000
+Projection "perspective" "fov" [54.432129]
+Rotate 0 0 0 1
+Scale 1 1 -1
+ConcatTransform [ 0.99999392 0.0034256668 -0.00066970801 0  -2.3283064e-10 0.19186515 0.98142129 0  0.003490516 -0.98141533 0.19186395 0  -21.216949 -3.8262508 -16.077477 1 ]
+Attribute "user" "string xgCamera" ["false,21.219160,16.512901,-0.596395"] "string xgCameraFOV" ["0.475015,0.330297"] "string xgCameraXform" ["0.999994,0.003426,-0.000670,0.000000,-0.000000,0.191865,0.981421,0.000000,0.003491,-0.981415,0.191864,0.000000,-21.216949,-3.826251,-16.077477,1.000000"]
+Attribute "user" "uniform float raytraceOn" [0]
+WorldBegin 
+TransformBegin 
+Rotate 90 0 1 0
+CoordinateSystem "_XTOZ"
+TransformEnd 
+TransformBegin 
+Rotate -90 1 0 0
+CoordinateSystem "_YTOZ"
+TransformEnd 
+TransformBegin 
+CoordinateSystem "_world_lefthanded"
+TransformEnd 
+TransformBegin 
+CoordSysTransform "_YTOZ"
+CoordinateSystem "_environment"
+CoordinateSystem "worldspace"
+TransformEnd 
+#ReverseOrientation 
+AttributeBegin 
+AttributeEnd 
+AttributeBegin 
+AttributeBegin 
+##ELEMENT 
+AttributeBegin 
+Attribute "identifier" "name" ["pPlane2"]
+##BIND pPlane2
+ConcatTransform [ 1 0 0 0  0 1 0 0  0 0 1 0  21.230429 0 -3.8245997 1 ]
+Surface "uv"
+SubdivisionMesh "catmull-clark" [4 4 4 4 4 3 3 4 4 4 4 4 4 4 4 4 4] [
+0 1 6 5 
+1 2 7 6 
+2 3 8 7 
+3 4 9 8 
+5 6 11 10 
+6 7 11 
+11 7 12
+7 8 13 12 
+8 9 14 13 
+10 11 16 15 
+11 12 17 16 
+12 13 18 17 
+13 14 19 18 
+15 16 21 20 
+16 17 22 21 
+17 18 23 22 
+18 19 24 23]
+["interpolateboundary" "facevaryinginterpolateboundary"] [1 0 1 0] [2 0] [] "P" [-5.9004698 -1.3782899e-15 6.2072659
+-2.9502349 -1.3782899e-15 6.2072659 0 -1.3782899e-15 6.2072659 2.9502344 -1.3782899e-15 6.2072659 5.9004698 -1.3782899e-15 6.2072659
+-5.9004698 -6.8914495e-16 3.1036329 -2.9502349 -6.8914495e-16 3.1036329 0 -6.8914495e-16 3.1036329 2.9502344 -6.8914495e-16 3.1036329
+5.9004698 -6.8914495e-16 3.1036329 -5.9004698 0 0 -2.9502349 0 0 0 0 0
+2.9502344 0 0 5.9004698 0 0 -5.9004698 6.8914495e-16 -3.1036329 -2.9502349 6.8914495e-16 -3.1036329
+0 6.8914495e-16 -3.1036329 2.9502344 6.8914495e-16 -3.1036329 5.9004698 6.8914495e-16 -3.1036329 -5.9004698 1.3782899e-15 -6.2072659
+-2.9502349 1.3782899e-15 -6.2072659 0 1.3782899e-15 -6.2072659 2.9502344 1.3782899e-15 -6.2072659 5.9004698 1.3782899e-15 -6.2072659] "constant integer __faceindex" [0]
+AttributeEnd 
+AttributeEnd 
+AttributeEnd 
+WorldEnd 
+FrameEnd 

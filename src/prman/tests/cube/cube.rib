@@ -10,8 +10,8 @@ Declare "enable lerp" "uniform float"
 Option "texture" "enable lerp" [1]
 Option "texture" "enable gaussian" [1]
 Option "limits" "texturememory" [32768]
-Option "searchpath" "shader" ["."]
-Option "searchpath" "texture" ["rmantex"]
+Option "searchpath" "shader" [".:..:../.."]
+Option "searchpath" "texture" ["."]
 Option "limits" "othreshold" [0.996 0.996 0.996]
 Option "limits" "zthreshold" [1 1 1]
 Option "shadow" "bias0" [0.225]"bias1" [0.225]
@@ -50,8 +50,6 @@ Option "statistics" "endofframe" [1]
 ErrorHandler "printonce"
 FrameBegin 1
 ScreenWindow -1 1 -1 1
-#CropWindow 0.263930 0.272727 0.389052 0.400782
-#CropWindow 0.200391 0.208211 0.386119 0.397849
 Clipping 0.1 1000
 Projection "perspective" "fov" [54.4321]
 Rotate 0 0 0 1
@@ -88,7 +86,9 @@ ConcatTransform [ 1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1 ]
 AttributeBegin 
 Attribute "identifier" "name" ["hc_polySurface1Tile0001_xxxxXX"]
 ##BIND hc_polySurface1Tile0001_xxxxXX
-Surface "ptexenvtest" "string mapname" ["garage.penv"] "float blur" [.1]
+#Surface "ptextest" "string mapname" ["text/cube.ptx"] "uniform float sharpness" [1]
+#Surface "ptextest" "string mapname" ["cloth/cube.ptx"] "uniform float sharpness" [0.0] "uniform float sblur" [10]
+Surface "ptextest" "string mapname" ["cloth/cube.ptx"] "uniform float sharpness" [0.7] "uniform float sblur" [1]
 ConcatTransform [ 1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1 ]
 SubdivisionMesh "catmull-clark" [4 4 4
 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4

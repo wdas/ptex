@@ -1,0 +1,34 @@
+##RenderMan RIB
+#Created by RenderMan for Maya 3.0.0b1 (Nov 11 2008 14:54:58 debug) Pro
+#Tue Nov 25 10:30:00 PST 2008
+version 3.04
+FrameBegin 1
+	Identity 
+	Option "user" "string pass_id" ["perspShape_Final"] "string pass_phase" ["/Job/Frames/Images"] "string pass_class" ["Final"] "string pass_flavor" [""] "string pass_crew" [""] "string pass_camera_name" ["perspShape"] "string pass_camera_flavor" [""] "int pass_features_trace" [0]
+	Option "ribparse" "string varsubst" [""]
+	Option "ribparse" "string varsubst" ["$"]
+	Option "searchpath" "string shader" [".:..:../..:@"]
+	Option "searchpath" "string texture" ["."]
+	Option "trace" "int maxdepth" [10]
+	PixelSamples 3 3
+	Option "bucket" "string order" ["horizontal"]
+	Option "limits" "int[2] bucketsize" [16 16]
+	Option "limits" "int gridsize" [256]
+	Option "limits" "color zthreshold" [0.996 0.996 0.996]
+	Option "limits" "color othreshold" [0.996 0.996 0.996]
+	Option "limits" "float vprelativeshadingrate" [1]
+	Option "limits" "int texturememory" [10240]
+	Option "limits" "int deepshadowtiles" [100]
+	Option "limits" "int brickmemory" [10240]
+	Option "limits" "int geocachememory" [30720]
+	Option "statistics" "int endofframe" [0]
+	Option "statistics" "string filename" ["stdout"]
+	Option "statistics" "string xmlfilename" [""]
+	CropWindow 0 1 0 1
+	Hider "hidden" "int jitter" [1] "float[2] shutteropening" [0 1] "int sigma" [0] "float sigmablur" [1]
+	Format 640 480 1
+	#Camera perspShape
+	Clipping 0.1 1000
+	Projection "perspective" "fov" [54.4322]
+	ScreenWindow -1 1 -0.75 0.75
+	Shutter 0 0
