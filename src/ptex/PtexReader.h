@@ -57,6 +57,7 @@ public:
     virtual int alphaChannel() { return _header.alphachan; }
     virtual int numChannels() { return _header.nchannels; }
     virtual int numFaces() { return _header.nfaces; }
+    virtual bool hasEdits() { return _hasEdits; }
 
     virtual PtexMetaData* getMetaData();
     virtual const Ptex::FaceInfo& getFaceInfo(int faceid);
@@ -486,6 +487,7 @@ protected:
     int _pixelsize;		      // size of a pixel in bytes
     uint8_t* _constdata;	      // constant pixel value per face
     MetaData* _metadata;	      // meta data (read on demand)
+    bool _hasEdits;		      // has edit blocks
 
     safevector<FaceInfo> _faceinfo;   // per-face header info
     safevector<uint32_t> _rfaceids;   // faceids sorted in reduction order

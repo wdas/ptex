@@ -99,7 +99,8 @@ PtexReader::PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply)
       _pos(0),
       _pixelsize(0),
       _constdata(0),
-      _metadata(0)
+      _metadata(0),
+      _hasEdits(false)
 {
     memset(&_header, 0, sizeof(_header));
     memset(&_zstream, 0, sizeof(_zstream));
@@ -305,6 +306,7 @@ void PtexReader::readEditData()
 	if (!readBlock(&edittype, sizeof(edittype), /*reporterror*/ false)) return;
 	if (!readBlock(&editsize, sizeof(editsize), /*reporterror*/ false)) return;
 	if (!editsize) return;
+	_hasEdits = true;
 	off_t pos = tell();
 	switch (edittype) {
 	case et_editfacedata:   readEditFaceData(); break;

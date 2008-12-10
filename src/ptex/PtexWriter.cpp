@@ -7,6 +7,31 @@
    this software must include this legend and all copyright notices.
    (c) Disney. All rights reserved.
 */
+
+/* Ptex writer classes:
+
+   PtexIncrWriter implements "incremental" mode and simply appends
+   "edit" blocks to the end of the file.
+
+   PtexMainWriter implements both writing from scratch and updating
+   an existing file, either to add data or to "roll up" previous
+   incremental edits.
+
+   Because the various headers (faceinfo, levelinfo, etc.) are
+   variable-length and precede the data, and because the data size
+   is not known until it is compressed and written, all data
+   are written to a temp file and then copied at the end to the
+   final location.  This happens during the "finish" phase.
+
+   Each time a texture is written to the file, a reduction of the
+   texture is also generated and stored.  These reductions are stored
+   in a temporary form and recalled later as the resolution levels are
+   generated.
+
+   The final reduction for each face is averaged and stored in the
+   const data block.
+*/
+
 #include <alloca.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -646,13 +671,12 @@ PtexMainWriter::PtexMainWriter(const char* path, PtexLockFile lock, bool newfile
 	}
 
 	// copy meta data from existing file
-	writeMeta(_reader->getMetaData());
-	_hasNewData = false;
+	PtexMetaData* meta = _reader->getMetaData();
+	writeMeta(meta);
+	meta->release();
 
 	// see if we have any edits
-	for (int i = 0, nfaces = _header.nfaces; i < nfaces; i++) {
-	    if (_reader->getFaceInfo(i).hasEdits()) { _hasNewData = true; break; }
-	}
+	_hasNewData = _reader->hasEdits();
     }
 }
 
@@ -810,12 +834,12 @@ void PtexMainWriter::finish()
 	}
     }
 
-    // flag faces w/ constant neighborhoods
-    // TODO
-
     // write reductions to tmp file
     if (_genmipmaps)
 	generateReductions();
+
+    // flag faces w/ constant neighborhoods
+    flagConstantNeighorhoods();
 
     // update header
     _header.nlevels = _levels.size();
@@ -875,6 +899,68 @@ void PtexMainWriter::finish()
 }
 
 
+void PtexMainWriter::flagConstantNeighorhoods()
+{
+    // for each constant face
+    for (int faceid = 0, n = _faceinfo.size(); faceid < n; faceid++) {
+	FaceInfo& f = _faceinfo[faceid];
+	if (!f.isConstant()) continue;
+	uint8_t* constdata = &_constdata[faceid*_pixelSize];
+
+	// check to see if neighborhood is constant
+	bool isConst = true;
+	for (int eid = 0; eid < 4; eid++) {
+	    bool prevWasSubface = f.isSubface();
+	    int prevFid = faceid;
+	    // traverse across edge
+	    int afid = f.adjface(eid);
+	    int aeid = f.adjedge(eid);
+	    int count = 0;
+	    const int maxcount = 10; // max valence (as safety valve)
+	    while (afid != faceid) {
+		// if we hit a boundary, assume non-const (not worth
+		// the trouble to redo traversal from CCW direction;
+		// also, boundary might want to be "black")
+		// assume const if we hit max valence too
+		if (afid < 0 || ++count == maxcount)
+		{ isConst = false; break; }
+
+		// check if neighor is constant, and has the same value as face
+		FaceInfo& af = _faceinfo[afid];
+		if (!af.isConstant() || 
+		    0 != memcmp(constdata, &_constdata[afid*_pixelSize], _pixelSize))
+		{ isConst = false; break; }
+
+		// traverse around vertex in CW direction
+		// handle T junction between subfaces and main face
+		bool isSubface = af.isSubface();
+		bool isT = prevWasSubface && !isSubface && af.adjface(aeid) == prevFid;
+		std::swap(prevFid, afid);
+		prevWasSubface = isSubface;
+
+		if (isT) {
+		    // traverse to secondary subface across T junction
+		    FaceInfo& pf = _faceinfo[afid];
+		    int peid = af.adjedge(aeid);
+		    peid = (peid + 3) % 4;
+		    afid = pf.adjface(peid);
+		    aeid = pf.adjedge(peid);
+		    aeid = (aeid + 3) % 4;
+		}
+		else {
+		    // traverse around vertex
+		    aeid = (aeid + 1) % 4;
+		    afid = af.adjface(aeid);
+		    aeid = af.adjedge(aeid);
+		}
+	    }
+	    if (!isConst) break;
+	}
+	if (isConst) f.flags |= FaceInfo::flag_nbconstant;
+    }
+}
+
+
 void PtexMainWriter::generateReductions()
 {
     // first generate "rfaceids", reduction faceids,
@@ -929,12 +1015,13 @@ void PtexMainWriter::generateReductions()
 	    writeFaceData(_fp, buff, stride, res, level.fdh[rfaceid]);
 	    if (!_ok) return;
 
-	    // write a new reduction if needed
+	    // write a new reduction if needed for next level
 	    if (rfaceid < nextsize) {
 		fseeko(_fp, _rpos[faceid], SEEK_SET);
 		writeReduction(_fp, buff, stride, res);
 	    }
 	    else {
+		// the last reduction for each face is its constant value
 		storeConstValue(faceid, buff, stride, res);
 	    }
 	}

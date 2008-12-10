@@ -104,6 +104,7 @@ protected:
 private:
     virtual void finish();
     void generateReductions();
+    void flagConstantNeighorhoods();
     void storeConstValue(int faceid, const void* data, int stride, Res res);
 
     std::string _newpath;		  // path to ".new" file

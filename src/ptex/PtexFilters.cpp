@@ -93,7 +93,7 @@ class PtexBoxFilter : public PtexSeparableFilter
 
  protected:
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
-			     Res faceRes, bool isSubface)
+			     Res faceRes, bool /*isSubface*/)
     {
 	// clamp filter width to no larger than 1.0
 	uw = PtexUtils::min(uw, 1.0f);

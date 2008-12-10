@@ -152,6 +152,7 @@ class PtexTexture {
     virtual int alphaChannel() = 0;
     virtual int numChannels() = 0;
     virtual int numFaces() = 0;
+    virtual bool hasEdits() = 0;
 
     virtual PtexMetaData* getMetaData() = 0;
     virtual const Ptex::FaceInfo& getFaceInfo(int faceid) = 0;
