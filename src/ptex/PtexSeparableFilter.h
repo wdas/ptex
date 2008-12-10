@@ -31,7 +31,7 @@ class PtexSeparableFilter : public PtexFilter, public Ptex
     virtual ~PtexSeparableFilter() {}
 
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
-			     Res faceRes) = 0;
+			     Res faceRes, bool isSubface) = 0;
     
     void splitAndApply(PtexSeparableKernel& k, int faceid, const Ptex::FaceInfo& f);
     void applyAcrossEdge(PtexSeparableKernel& k, 

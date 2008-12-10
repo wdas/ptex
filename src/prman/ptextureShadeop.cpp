@@ -93,8 +93,13 @@ static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
     if (tx) {
 	int chan = int(*channel);
 	PtexFilter* filter = PtexFilter::mitchell(sharp);
+	//PtexFilter* filter = PtexFilter::box();
 	int numVals = RslArg::NumValues(argc, argv);
 	for (int i = 0; i < numVals; ++i) {
+	    bool stop = 0;
+	    if (*faceid == 9 && *u == 0 && *v == 1) {
+		stop = 1;
+	    }
 	    float* resultval = *result;
 	    filter->eval(resultval, chan, 3, tx, int(*faceid), *u, *v, *uw, *vw);
 

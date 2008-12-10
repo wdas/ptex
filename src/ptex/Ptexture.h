@@ -156,6 +156,7 @@ class PtexTexture {
     virtual PtexMetaData* getMetaData() = 0;
     virtual const Ptex::FaceInfo& getFaceInfo(int faceid) = 0;
     virtual void getData(int faceid, void* buffer, int stride) = 0;
+    virtual void getData(int faceid, void* buffer, int stride, Ptex::Res res) = 0;
     virtual PtexFaceData* getData(int faceid) = 0;
     virtual PtexFaceData* getData(int faceid, Ptex::Res res) = 0;
     virtual void getPixel(int faceid, int u, int v,

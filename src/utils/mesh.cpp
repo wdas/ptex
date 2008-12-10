@@ -106,6 +106,8 @@ void Mesh::subdivide()
     _nvertsPerFace.assign(subd->nVertsPerFace(), subd->nVertsPerFace() + subd->nFaces());
     _faceverts.assign(subd->faceVerts(), subd->faceVerts() + subd->nFaceVerts());
     _faceuvs.assign(subd->faceUVs(), subd->faceUVs() + subd->nFaceVerts());
+    _normals.assign((Vec3*)subd->cageNormals(), ((Vec3*)subd->cageNormals()) + subd->nVerts());
+    delete subd;
 
     // face orientations get rotated during subdivision - restore original orientation
     // (this makes it easier to paste the textures back together)
@@ -204,12 +206,8 @@ bool Mesh::saveOBJ(const char* filename)
     fprintf(fp, "surface subd per-face cage pPlane1\n");
     for (int i = 0, n = nverts(); i < n; i++)
 	fprintf(fp, "v %g %g %g\n", _verts[i].v[0], _verts[i].v[1], _verts[i].v[2]);
-    for (int i = 0, n = nverts(); i < n; i++) {
-	Vec3 v = _verts[i];
-	float scale = sqrt(v.v[0]*v.v[0] + v.v[1]*v.v[1] + v.v[2]*v.v[2]);
-	if (scale) scale = 1/scale;
-	fprintf(fp, "vn %g %g %g\n", scale*v.v[0], scale*v.v[1], scale*v.v[2]);
-    }
+    for (int i = 0, n = nverts(); i < n; i++)
+	fprintf(fp, "vn %g %g %g\n", _normals[i].v[0], _normals[i].v[1], _normals[i].v[2]);
     fprintf(fp, "g pPlane1\n");
     int fv = 0;
     for (int i = 0, n = nfaces(); i < n; i++) {

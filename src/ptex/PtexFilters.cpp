@@ -29,15 +29,16 @@ class PtexSeparableMitchellFilter : public PtexSeparableFilter
 
  protected:
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
-			     Res faceRes)
+			     Res faceRes, bool isSubface)
     {
-	// clamp filter width to no larger than 0.25
-	uw = PtexUtils::min(uw, 0.25f);
-	vw = PtexUtils::min(vw, 0.25f);
-
 	// clamp filter width to no smaller than a texel
 	uw = PtexUtils::max(uw, 1.0f/(faceRes.u()));
 	vw = PtexUtils::max(vw, 1.0f/(faceRes.v()));
+
+	// clamp filter width to no larger than 0.25
+	float minw = isSubface ? .25f : .125f;
+	uw = PtexUtils::min(uw, minw);
+	vw = PtexUtils::min(vw, minw);
 
 	// compute desired texture res based on filter width
 	int ureslog2 = int(ceil(log2(1.0/uw))),
@@ -92,7 +93,7 @@ class PtexBoxFilter : public PtexSeparableFilter
 
  protected:
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
-			     Res faceRes)
+			     Res faceRes, bool isSubface)
     {
 	// clamp filter width to no larger than 1.0
 	uw = PtexUtils::min(uw, 1.0f);

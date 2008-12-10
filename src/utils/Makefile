@@ -3,7 +3,9 @@ CXX      = g++
 # DEBUG = -g -DDEBUG
 DEBUG    = -O2 -DNDEBUG
 INCPATH  = -I../ptex -I ${RP_subEngine}/include -I${RMANTREE}/include
-CXXFLAGS = -Wall -W -pedantic -std=c++98 $(DEBUG) $(INCPATH) -fPIC
+# prman headers won't compile with -pedantic
+#CXXFLAGS = -Wall -W -pedantic -std=c++98 $(DEBUG) $(INCPATH) -fPIC
+CXXFLAGS = -Wall -W -std=c++98 $(DEBUG) $(INCPATH) -fPIC
 LINK     = g++
 LFLAGS   = 
 PTEX     = ../ptex/libPtex.a

@@ -621,14 +621,22 @@ void PtexReader::readFaceData(off_t pos, FaceDataHeader fdh, Res res, int leveli
 void PtexReader::getData(int faceid, void* buffer, int stride)
 {
     if (!_ok) return;
+    FaceInfo& f = _faceinfo[faceid];
+    getData(faceid, buffer, stride, f.res);
+}
+
+
+void PtexReader::getData(int faceid, void* buffer, int stride, Ptex::Res res)
+{
+    if (!_ok) return;
 
     // note - all locking is handled in called getData methods
     FaceInfo& f = _faceinfo[faceid];
-    int resu = f.res.u(), resv = f.res.v();
+    int resu = res.u(), resv = res.v();
     int rowlen = _pixelsize * resu;
     if (stride == 0) stride = rowlen;
     
-    PtexFaceData* d = getData(faceid);
+    PtexFaceData* d = getData(faceid, res);
     if (!d) return;
     if (d->isConstant()) {
 	// fill dest buffer with pixel value

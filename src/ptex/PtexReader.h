@@ -61,6 +61,7 @@ public:
     virtual PtexMetaData* getMetaData();
     virtual const Ptex::FaceInfo& getFaceInfo(int faceid);
     virtual void getData(int faceid, void* buffer, int stride);
+    virtual void getData(int faceid, void* buffer, int stride, Res res);
     virtual PtexFaceData* getData(int faceid);
     virtual PtexFaceData* getData(int faceid, Res res);
     virtual void getPixel(int faceid, int u, int v,

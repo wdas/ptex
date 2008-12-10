@@ -61,6 +61,7 @@ class Mesh {
     int nfaces()		{ return _nvertsPerFace.size(); }
     int nfaceverts()		{ return _faceverts.size(); }
     float* verts()		{ return &_verts[0].v[0]; }
+    float* normals()		{ return &_normals[0].v[0]; }
     float* uvs()		{ return &_uvs[0].v[0]; }
     int* nvertsPerFace()	{ return &_nvertsPerFace[0]; }
     int* faceverts()		{ return &_faceverts[0]; }
@@ -95,6 +96,7 @@ class Mesh {
 	Vec2(float p[2]) { v[0] = p[0]; v[1] = p[1]; }
     };
     std::vector<Vec3> _verts;	     // list of verts
+    std::vector<Vec3> _normals;	     // list of normals
     std::vector<Vec2> _uvs;	     // list of uv verts
     std::vector<int> _nvertsPerFace; // list of nverts per face
     std::vector<int> _faceverts;     // packed face vert ids

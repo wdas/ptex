@@ -64,7 +64,13 @@ bool unsubptx(const char* inobjname, const char* inptxname, const char* outptxna
 	ofaceids[i] = nOutputFaces;
 	nOutputFaces += quad ? 1 : nverts;
     }
-    assert(nSubFaces == submesh.nfaces());
+    if (inptx->numFaces() != nSubFaces) {
+	std::cerr << "Texture has incorrect number of faces for mesh: " << inptx->numFaces()
+		  << " (expected " << nSubFaces << ")" << std::endl;
+	inptx->release();
+	return 0;
+    }
+    assert(submesh.nfaces() == nSubFaces);
 
     PtexWriter* outptx = PtexWriter::open(outptxname, Ptex::mt_quad, inptx->dataType(),
 					  inptx->numChannels(), inptx->alphaChannel(), nOutputFaces, err);
@@ -78,28 +84,43 @@ bool unsubptx(const char* inobjname, const char* inptxname, const char* outptxna
 
     // for each face in mesh
     //    else just copy subfaces
-    for (int i = 0, n = mesh.nfaces(), sfaceid = 0; i < n; i++) {
-	Ptex::FaceInfo fi = inptx->getFaceInfo(sfaceid);
+    for (int i = 0, n = mesh.nfaces(), ifaceid = 0; i < n; i++) {
 	int nverts = nvertsPerFace[i];
 	if (nverts == 4) {
 	    // got a quad input face - combine four subfaces from inptx
-	    Ptex::Res ores(fi.res.ulog2+1, fi.res.vlog2+1);
-	    void* buffer = malloc(ores.size()*pixelsize);
-	    int istride = fi.res.u() * pixelsize;
-	    int ostride = ores.u() * pixelsize;
-	    for (int f = 0; f < 4; f++, sfaceid++) {
-		if (fi.res != inptx->getFaceInfo(sfaceid).res) {
-		    std::cerr << "Subface texture resolutions don't match for quad face:\n"
-			      << "  Subface id's " << sfaceid << ", " << (sfaceid+f) << std::endl;
-		    continue;
+	    // first, find minimum res of input faces
+	    Ptex::Res ires = inptx->getFaceInfo(ifaceid).res;
+	    for (int f = 1; f < 4; f++) {
+		Ptex::Res sres = inptx->getFaceInfo(ifaceid+f).res;
+		if (sres != ires) {
+		    static int warned = 0;
+		    if (!warned) {
+			warned = true;
+			std::cerr << "Warning: inconsistent res for quad subfaces"
+				  << " (id's " << ifaceid << ".." << (ifaceid+3) << ")"
+				  << ", reducing to lowest common res." << std::endl;
+			std::cerr << "(Only first instance reported)" << std::endl;
+		    }
+		    ires.ulog2 = std::min(ires.ulog2, sres.ulog2);
+		    ires.vlog2 = std::min(ires.vlog2, sres.vlog2);
 		}
+	    }
+
+	    // output res = 2x input res
+	    Ptex::Res ores(ires.ulog2+1, ires.vlog2+1);
+	    void* buffer = malloc(ores.size()*pixelsize);
+	    int istride = ires.u() * pixelsize;
+	    int ostride = ores.u() * pixelsize;
+
+	    // read source textures, pack into single texture
+	    for (int f = 0; f < 4; f++, ifaceid++) {
 		int offset = 0;
 		switch (f) {
 		case 1: offset = istride; break;
-		case 2: offset = istride * (fi.res.v() * 2 + 1); break;
-		case 3: offset = istride * (fi.res.v() * 2); break;
+		case 2: offset = istride * (ires.v() * 2 + 1); break;
+		case 3: offset = istride * (ires.v() * 2); break;
 		}
-		inptx->getData(sfaceid, (char*)buffer+offset, ostride);
+		inptx->getData(ifaceid, (char*)buffer+offset, ostride, ires);
 	    }
 	    // gather adjacency info for face
 	    int adjfaces[4], adjedges[4];
@@ -122,15 +143,15 @@ bool unsubptx(const char* inobjname, const char* inptxname, const char* outptxna
 	    free(buffer);
 	} else {
 	    // got a non-quad input face - copy n subfaces from inptx as-is
-	    for (int f = 0; f < nverts; f++, sfaceid++) {
-		Ptex::FaceInfo fi = inptx->getFaceInfo(sfaceid);
-		void* buffer = malloc(fi.res.size()*pixelsize);
-		inptx->getData(sfaceid, buffer, 0);
+	    for (int f = 0; f < nverts; f++, ifaceid++) {
+		Ptex::Res ires = inptx->getFaceInfo(ifaceid).res;
+		void* buffer = malloc(ires.size()*pixelsize);
+		inptx->getData(ifaceid, buffer, 0);
 		// gather adjacency info for face
 		int adjfaces[4], adjedges[4];
 		for (int eid = 0; eid < 4; eid++) {
 		    int afid;
-		    submesh.getneighbor(sfaceid, eid, afid, adjedges[eid]);
+		    submesh.getneighbor(ifaceid, eid, afid, adjedges[eid]);
 		    // convert subfaceid to ofaceid
 		    if (afid < 0) {
 			adjfaces[eid] = -1;
@@ -144,7 +165,7 @@ bool unsubptx(const char* inobjname, const char* inptxname, const char* outptxna
 		    }
 		}
 
-		outptx->writeFace(ofaceids[i]+f, Ptex::FaceInfo(fi.res, adjfaces, adjedges, true), buffer);
+		outptx->writeFace(ofaceids[i]+f, Ptex::FaceInfo(ires, adjfaces, adjedges, true), buffer);
 		free(buffer);
 	    }
 	}
