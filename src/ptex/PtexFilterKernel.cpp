@@ -307,7 +307,7 @@ namespace {
 
 void PtexFilterKernel::apply(int faceid, int rotate, const PtexFilterContext& c) const
 {
-    PtexFaceData* dh = c.tx->getData(faceid, (rotate & 1) ? res.swappeduv() : res);
+    PtexPtr<PtexFaceData> dh = c.tx->getData(faceid, (rotate & 1) ? res.swappeduv() : res);
     if (!dh) return;
 
     if (dh->isConstant()) {
@@ -317,7 +317,7 @@ void PtexFilterKernel::apply(int faceid, int rotate, const PtexFilterContext& c)
 	Res tres = dh->tileRes();
 	TileIter tileiter(*this, rotate, (rotate & 1) ? tres.swappeduv() : tres);
 	do {
-	    PtexFaceData* th = dh->getTile(tileiter.tile());
+	    PtexPtr<PtexFaceData> th = dh->getTile(tileiter.tile());
 	    if (th->isConstant()) {
 		ApplyConst(th->getData(), c, tileiter.kernel().totalWeight());
 	    }
@@ -325,14 +325,12 @@ void PtexFilterKernel::apply(int faceid, int rotate, const PtexFilterContext& c)
 		Iter iter(tileiter.kernel(), rotate, c);
 		Apply(th->getData(), iter);
 	    }
-	    th->release();
 	} while (tileiter.next());
     }
     else {
 	Iter iter(*this, rotate, c);
 	Apply(dh->getData(), iter);
     }
-    dh->release();
 }
 
 

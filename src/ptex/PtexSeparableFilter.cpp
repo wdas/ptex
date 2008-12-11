@@ -38,11 +38,10 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
 
     // if neighborhood is constant, just return constant value of face
     if (f.isNeighborhoodConstant()) {
-	PtexFaceData* data = tx->getData(faceid, 0);
+	PtexPtr<PtexFaceData> data = tx->getData(faceid, 0);
 	if (data) {
 	    char* d = (char*) data->getData() + _firstChanOffset;
 	    Ptex::ConvertToFloat(result, d, _dt, _nchan);
-	    data->release();
 	}
 	return;
     }
@@ -238,7 +237,7 @@ void PtexSeparableFilter::apply(PtexSeparableKernel& k, int faceid, const Ptex::
     while (k.res.v() > f.res.v()) k.downresV();
 
     // get face data, and apply
-    PtexFaceData* dh = _tx->getData(faceid, k.res);
+    PtexPtr<PtexFaceData> dh = _tx->getData(faceid, k.res);
     if (!dh) return;
 
     if (dh->isConstant()) {
@@ -261,21 +260,19 @@ void PtexSeparableFilter::apply(PtexSeparableKernel& k, int faceid, const Ptex::
 		kt.u = u % tileresu;
 		kt.uw = PtexUtils::min(uw, tileresu - kt.u);
 		kt.ku = k.ku + u - k.u;
-		PtexFaceData* th = dh->getTile(tilev * ntilesu + tileu);
+		PtexPtr<PtexFaceData> th = dh->getTile(tilev * ntilesu + tileu);
 		if (th) {
 		    if (th->isConstant())
 			kt.applyConst(_result, (char*)th->getData()+_firstChanOffset, _dt, _nchan);
 		    else
 			kt.apply(_result, (char*)th->getData()+_firstChanOffset, _dt, _nchan, _ntxchan);
 		}
-		th->release();
 	    }
 	}
     }
     else {
 	k.apply(_result, (char*)dh->getData()+_firstChanOffset, _dt, _nchan, _ntxchan);
     }
-    dh->release();
 }
 
 
@@ -372,10 +369,9 @@ void PtexSeparableFilter::evalLargeDu(float w, float weight)
 
 void PtexSeparableFilter::evalLargeDuFace(int faceid, int level, float weight)
 {
-    PtexFaceData* dh = _ctx.tx->getData(faceid, Res(level,level));
+    PtexPtr<PtexFaceData> dh = _ctx.tx->getData(faceid, Res(level,level));
     if (dh) {
 	PtexFilterKernel::applyConst(dh->getData(), _ctx, weight);
-	dh->release();
     }
 }
 

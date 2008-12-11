@@ -638,7 +638,7 @@ void PtexReader::getData(int faceid, void* buffer, int stride, Ptex::Res res)
     int rowlen = _pixelsize * resu;
     if (stride == 0) stride = rowlen;
     
-    PtexFaceData* d = getData(faceid, res);
+    PtexPtr<PtexFaceData> d = getData(faceid, res);
     if (!d) return;
     if (d->isConstant()) {
 	// fill dest buffer with pixel value
@@ -658,7 +658,7 @@ void PtexReader::getData(int faceid, void* buffer, int stride, Ptex::Res res)
 	for (int i = 0; i < ntilesv; i++) {
 	    char* dsttile = dsttilerow;
 	    for (int j = 0; j < ntilesu; j++) {
-		PtexFaceData* t = d->getTile(tile++);
+		PtexPtr<PtexFaceData> t = d->getTile(tile++);
 		if (!t) { i = ntilesv; break; }
 		if (t->isConstant())
 		    PtexUtils::fill(t->getData(), dsttile, stride,
@@ -666,7 +666,6 @@ void PtexReader::getData(int faceid, void* buffer, int stride, Ptex::Res res)
 		else
 		    PtexUtils::copy(t->getData(), tilerowlen, dsttile, stride, 
 				    tilevres, tilerowlen);
-		t->release();
 		dsttile += tilerowlen;
 	    }
 	    dsttilerow += stride * tilevres;
@@ -675,7 +674,6 @@ void PtexReader::getData(int faceid, void* buffer, int stride, Ptex::Res res)
     else {
 	PtexUtils::copy(d->getData(), rowlen, buffer, stride, resv, rowlen);
     }
-    d->release();
 }
 
 
@@ -780,19 +778,17 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 
     if (blendu) {
 	// get next-higher u-res and reduce in u
-	PtexFaceData* psrc = getData(faceid, Res(res.ulog2+1, res.vlog2));
-	FaceData* src = dynamic_cast<FaceData*>(psrc);
+	PtexPtr<PtexFaceData> psrc = getData(faceid, Res(res.ulog2+1, res.vlog2));
+	FaceData* src = dynamic_cast<FaceData*>(psrc.ptr());
 	assert(src);
 	if (src) src->reduce(face, this, res, PtexUtils::reduceu);
-	if (psrc) psrc->release();
     }
     else {
 	// get next-higher v-res and reduce in v
-	PtexFaceData* psrc = getData(faceid, Res(res.ulog2, res.vlog2+1));
-	FaceData* src = dynamic_cast<FaceData*>(psrc);
+	PtexPtr<PtexFaceData> psrc = getData(faceid, Res(res.ulog2, res.vlog2+1));
+	FaceData* src = dynamic_cast<FaceData*>(psrc.ptr());
 	assert(src);
 	if (src) src->reduce(face, this, res, PtexUtils::reducev);
-	if (psrc) psrc->release();
     }
 
 #if 0
@@ -802,11 +798,10 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
     // re-enable later and test.  Having one less case means less can go wrong!
     else { // redu == redv => symmetric reduction
 	// get next-higher res and reduce (in both u and v)
-	PtexFaceData* psrc = getData(faceid, Res(res.ulog2+1, res.vlog2+1));
+	PtexPtr<PtexFaceData> psrc = getData(faceid, Res(res.ulog2+1, res.vlog2+1));
 	FaceData* src = dynamic_cast<FaceData*>(psrc);
 	assert(src);
 	if (src) src->reduce(face, this, res, PtexUtils::reduce);
-	if (psrc) psrc->release();
     }
 #endif
 
@@ -924,11 +919,10 @@ void PtexReader::getPixel(int faceid, int u, int v,
     if (nchannels <= 0) return;
 
     // get raw pixel data
-    PtexFaceData* data = getData(faceid);
+    PtexPtr<PtexFaceData> data = getData(faceid);
     if (!data) return;
     void* pixel = alloca(_pixelsize);
     data->getPixel(u, v, pixel);
-    data->release();
 
     // adjust for firstchan offset
     int datasize = DataSize(_header.datatype);
@@ -955,11 +949,10 @@ void PtexReader::getPixel(int faceid, int u, int v,
     if (nchannels <= 0) return;
 
     // get raw pixel data
-    PtexFaceData* data = getData(faceid, res);
+    PtexPtr<PtexFaceData> data = getData(faceid, res);
     if (!data) return;
     void* pixel = alloca(_pixelsize);
     data->getPixel(u, v, pixel);
-    data->release();
 
     // adjust for firstchan offset
     int datasize = DataSize(_header.datatype);
@@ -1130,10 +1123,9 @@ void PtexReader::TiledFaceBase::getPixel(int ui, int vi, void* result)
 {
     int tileu = ui >> _tileres.ulog2;
     int tilev = vi >> _tileres.vlog2;
-    PtexFaceData* tile = getTile(tilev * _ntilesu + tileu);
+    PtexPtr<PtexFaceData> tile = getTile(tilev * _ntilesu + tileu);
     tile->getPixel(ui - (tileu<<_tileres.ulog2),
 		   vi - (tilev<<_tileres.vlog2), result);
-    tile->release();
 }
 
 

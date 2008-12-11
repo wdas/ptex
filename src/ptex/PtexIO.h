@@ -68,7 +68,10 @@ struct PtexIO : public Ptex {
     static const int BlockSize = 16384; // target block size for file I/O
     static const int TileSize  = 65536; // target tile size (uncompressed)
     static const int AllocaMax = 16384;	// max size for using alloca
-    static bool LittleEndian() { return static_cast<const char&>(1) == 1; }
+    static bool LittleEndian() {
+	short word = 0x0201;
+	return *(char*)&word == 1; 
+    }
 };
 
 #endif

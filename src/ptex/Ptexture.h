@@ -232,4 +232,20 @@ class PtexFilter {
     virtual ~PtexFilter() {};
 };
 
+
+template <class T> class PtexPtr {
+    T* _ptr;
+ public:
+    PtexPtr(T* ptr) : _ptr(ptr) {}
+    ~PtexPtr() { if (_ptr) _ptr->release(); }
+
+    operator T* () { return _ptr; }
+    T* operator-> () { return _ptr; }
+    T* ptr() { return _ptr; }
+
+ private:
+    void operator= (PtexPtr& p);
+};
+
+
 #endif

@@ -31,7 +31,7 @@ bool unsubptx(const char* inobjname, const char* inptxname, const char* outptxna
     submesh.subdivide();
 
     std::string err;
-    PtexTexture* inptx = PtexTexture::open(inptxname, err);
+    PtexPtr<PtexTexture> inptx = PtexTexture::open(inptxname, err);
     if (!inptx) {
 	std::cerr << err << std::endl;
 	return 0;
@@ -67,16 +67,15 @@ bool unsubptx(const char* inobjname, const char* inptxname, const char* outptxna
     if (inptx->numFaces() != nSubFaces) {
 	std::cerr << "Texture has incorrect number of faces for mesh: " << inptx->numFaces()
 		  << " (expected " << nSubFaces << ")" << std::endl;
-	inptx->release();
 	return 0;
     }
     assert(submesh.nfaces() == nSubFaces);
 
-    PtexWriter* outptx = PtexWriter::open(outptxname, Ptex::mt_quad, inptx->dataType(),
-					  inptx->numChannels(), inptx->alphaChannel(), nOutputFaces, err);
+    PtexPtr<PtexWriter> outptx
+	= PtexWriter::open(outptxname, Ptex::mt_quad, inptx->dataType(),
+			   inptx->numChannels(), inptx->alphaChannel(), nOutputFaces, err);
     if (!outptx) {
 	std::cerr << err << std::endl;
-	inptx->release();
 	return 0;
     }
 
@@ -171,13 +170,10 @@ bool unsubptx(const char* inobjname, const char* inptxname, const char* outptxna
 	}
     }
 
-    inptx->release();
     if (!outptx->close(err)) {
 	std::cerr << err << std::endl;
-	outptx->release();
 	return 0;
     }
-    outptx->release();
     return 1;
 }
 

@@ -89,10 +89,10 @@ static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
     float sharp = *sharpness;
 
     std::string error;
-    PtexTexture* tx = cache->get(*mapname, error);
+    PtexPtr<PtexTexture> tx = cache->get(*mapname, error);
     if (tx) {
 	int chan = int(*channel);
-	PtexFilter* filter = PtexFilter::mitchell(sharp);
+	PtexPtr<PtexFilter> filter = PtexFilter::mitchell(sharp);
 	//PtexFilter* filter = PtexFilter::box();
 	int numVals = RslArg::NumValues(argc, argv);
 	for (int i = 0; i < numVals; ++i) {
@@ -109,8 +109,6 @@ static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
 
 	    ++result; ++faceid; ++u; ++v; ++uw; ++vw;
 	}
-	filter->release();
-	tx->release();
     }
     else {
 	if (!error.empty()) std::cerr << error << std::endl;

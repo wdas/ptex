@@ -671,9 +671,8 @@ PtexMainWriter::PtexMainWriter(const char* path, PtexLockFile lock, bool newfile
 	}
 
 	// copy meta data from existing file
-	PtexMetaData* meta = _reader->getMetaData();
+	PtexPtr<PtexMetaData> meta = _reader->getMetaData();
 	writeMeta(meta);
-	meta->release();
 
 	// see if we have any edits
 	_hasNewData = _reader->hasEdits();
@@ -812,10 +811,9 @@ void PtexMainWriter::finish()
                 const Ptex::FaceInfo& info = _reader->getFaceInfo(i);
                 int size = _pixelSize * info.res.size();
                 if (info.isConstant()) {
-                    PtexFaceData* data = _reader->getData(i);
+                    PtexPtr<PtexFaceData> data = _reader->getData(i);
                     if (data) {
                         writeConstantFace(i, info, data->getData());
-                        data->release();
                     }
                 } else {
                     void* data = malloc(size);
