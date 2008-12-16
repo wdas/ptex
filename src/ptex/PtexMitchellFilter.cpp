@@ -8,8 +8,7 @@
    (c) Disney. All rights reserved.
 */
 
-#include <math.h>
-#include <assert.h>
+#include "PtexPlatform.h"
 #include "PtexMitchellFilter.h"
 #include "PtexUtils.h"
 
@@ -31,7 +30,7 @@ void PtexMitchellFilter::setSharpness(float sharpness)
     //     == c[3]*x^3 + c[4]*x^2 + c[5]*x + c[6]
     // else: 0
 
-    float B = 1 - sharpness; // choose C = (1-B)/2
+    double B = 1 - sharpness; // choose C = (1-B)/2
     _filter[0] = 1.5 - B;
     _filter[1] = 1.5 * B - 2.5;
     _filter[2] = 1 - (1./3) * B;
@@ -112,12 +111,12 @@ void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
 #endif
 
     // clamp filter width to no larger than 0.25 (todo - handle larger filter widths)
-    _ctx.uw = std::min(_ctx.uw, 0.25f);
-    _ctx.vw = std::min(_ctx.vw, 0.25f);
+    _ctx.uw = PtexUtils::min(_ctx.uw, 0.25f);
+    _ctx.vw = PtexUtils::min(_ctx.vw, 0.25f);
 
     // clamp filter width to no smaller than a pixel
-    _ctx.uw = std::max(_ctx.uw, 1.0f/(f.res.u()));
-    _ctx.vw = std::max(_ctx.vw, 1.0f/(f.res.v()));
+    _ctx.uw = PtexUtils::max(_ctx.uw, 1.0f/(f.res.u()));
+    _ctx.vw = PtexUtils::max(_ctx.vw, 1.0f/(f.res.v()));
 
     // compute desired texture res based on filter width
     int ureslog2 = int(ceil(log2(1.0/_ctx.uw))),
@@ -188,7 +187,7 @@ void PtexMitchellFilter::getNeighborhood(const FaceInfo& f)
     _uface.clear(); _vface.clear(), _cface.clear(), _cfaces.clear();
 
     EdgeId ueid, veid;
-    float udist, vdist;
+    double udist, vdist;
     if (_ctx.u < .5) { ueid = e_left;   udist = _ctx.u; } 
     else             { ueid = e_right;  udist = 1 - _ctx.u; }
     if (_ctx.v < .5) { veid = e_bottom; vdist = _ctx.v; }
@@ -196,18 +195,18 @@ void PtexMitchellFilter::getNeighborhood(const FaceInfo& f)
 
     // blend zone starts at 1.5 texels in (at the current res)
     // to keep the kernel from accessing samples from the low-res face
-    static const float blendstart = 1.5; // dist from edge (in texels) to start blending 
-    static const float blendend = 2.5;   // dist from edge (in texels) to stop blending 
+    static const double blendstart = 1.5; // dist from edge (in texels) to start blending
+    static const double blendend = 2.5;   // dist from edge (in texels) to stop blending
 
     // get u and v neighbors and compute blend weights
-    float ublendstart=0, ublendend=0, vblendstart=0, vblendend=0;
+    double ublendstart=0, ublendend=0, vblendstart=0, vblendend=0;
     int ufid = f.adjfaces[ueid], vfid = f.adjfaces[veid];
     const FaceInfo* uf = 0, * vf = 0;
     if (ufid != -1) {
 	// compute blend distances in u dir
-	float texel = 1.0/_face.res.u();
-	ublendstart = PtexUtils::min(blendstart*texel, .375f);
-	ublendend = PtexUtils::min(blendend*texel, 0.5f);
+	double texel = 1.0/_face.res.u();
+	ublendstart = PtexUtils::min(blendstart*texel, .375);
+	ublendend = PtexUtils::min(blendend*texel, 0.5);
 	// get u neighbor face
 	uf = &_ctx.tx->getFaceInfo(ufid);
 	_uface.set(ufid, uf->res, f.adjedge(ueid) - ueid + 2);
@@ -216,9 +215,9 @@ void PtexMitchellFilter::getNeighborhood(const FaceInfo& f)
     }
     if (vfid != -1)  {
 	// compute blend distances in v dir
-	float texel = 1.0/_face.res.v();
-	vblendstart = PtexUtils::min(blendstart*texel, .375f);
-	vblendend = PtexUtils::min(blendend*texel, 0.5f);
+	double texel = 1.0/_face.res.v();
+	vblendstart = PtexUtils::min(blendstart*texel, .375);
+	vblendend = PtexUtils::min(blendend*texel, 0.5);
 	// get v neighbor face
 	vf = &_ctx.tx->getFaceInfo(vfid);
 	_vface.set(vfid, vf->res, f.adjedge(veid) - veid + 2);
@@ -230,19 +229,19 @@ void PtexMitchellFilter::getNeighborhood(const FaceInfo& f)
     if (_uface && _vface) {
 	// smoothstep ublendwidth towards adj ures
 	if (_vface.res.ulog2 != _face.res.ulog2) {
-	    float texel = 1.0/_vface.res.u();
-	    float adjstart = PtexUtils::min(blendstart*texel, .375f);
-	    float adjend = PtexUtils::min(blendend*texel, .5f);
-	    float wblend = PtexUtils::smoothstep(vdist, vblendstart, vblendend);
+	    double texel = 1.0/_vface.res.u();
+	    double adjstart = PtexUtils::min(blendstart*texel, .375);
+	    double adjend = PtexUtils::min(blendend*texel, .5);
+	    double wblend = PtexUtils::smoothstep(vdist, vblendstart, vblendend);
 	    ublendstart = ublendstart * wblend + adjstart * (1-wblend);
 	    ublendend = ublendend * wblend + adjend * (1-wblend);
 	}
 	// smoothstep vblendwidth towards adj vres
 	if (_uface.res.vlog2 != _face.res.vlog2) {
-	    float texel = 1.0/_uface.res.v();
-	    float adjstart = PtexUtils::min(blendstart*texel, .375f);
-	    float adjend = PtexUtils::min(blendend*texel, .5f);
-	    float wblend = PtexUtils::smoothstep(udist, ublendstart, ublendend);
+	    double texel = 1.0/_uface.res.v();
+	    double adjstart = PtexUtils::min(blendstart*texel, .375);
+	    double adjend = PtexUtils::min(blendend*texel, .5);
+	    double wblend = PtexUtils::smoothstep(udist, ublendstart, ublendend);
 	    vblendstart = vblendstart * wblend + adjstart * (1-wblend);
 	    vblendend = vblendend * wblend + adjend * (1-wblend);
 	}
@@ -349,7 +348,7 @@ void PtexMitchellFilter::getNeighborhood(const FaceInfo& f)
 		}
 	    }
 	    if (_isConstant) {
-		for (int i = 0, size = _cfaces.size(); i < size; i++) {
+		for (size_t i = 0, size = _cfaces.size(); i < size; i++) {
 		    PtexFaceData* cdata = _ctx.tx->getData(_cfaces[i].id, 0);
 		    if (cdata) {
 			if (0 != memcmp(constval, cdata->getData(), pixelsize)) {
@@ -385,7 +384,7 @@ void PtexMitchellFilter::evalFaces(Res res, double weight, float uw, float vw)
     }
 
 
-    float u = _ctx.u * ures - 0.5, v = _ctx.v * vres - 0.5;
+    double u = _ctx.u * ures - 0.5, v = _ctx.v * vres - 0.5;
     uw *= ures; vw *= vres;
 
     // find integer pixel extent: [u,v] +/- [2*uw,2*vw]
@@ -476,6 +475,7 @@ void PtexMitchellFilter::evalFaces(Res res, double weight, float uw, float vw)
 }
 
 
+#if 0
 void PtexMitchellFilter::evalLargeDu(float w, float weight)
 {
     // eval using the constant per-face values
@@ -539,3 +539,4 @@ void PtexMitchellFilter::evalLargeDuFace(int faceid, int level, float weight)
 	dh->release();
     }
 }
+#endif

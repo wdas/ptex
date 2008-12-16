@@ -8,7 +8,6 @@
 #ifndef DGDict_h
 #define DGDict_h
 
-#include <inttypes.h>
 /**
    @class DGDict 
    @brief An efficient string dictionary template, using a hash table.
@@ -208,7 +207,7 @@ private: // Private Member Interface
 	const char* cp = key;
 	char c;
 	while ((c = *cp++)) hashval = hashval * 33 + c;
-	keylen = cp-key-1;
+	keylen = int(cp-key)-1;
 	return hashval;
     }
 
@@ -486,7 +485,8 @@ T& DGDict<T>::operator[](const char* key)
     ne->_keylen = keylen;
     
     // copy the string given into the new location
-    strcpy(ne->_key, key); 
+    memcpy(ne->_key, key, keylen); 
+    ne->_key[keylen] = '\0';
     return ne->_val.second;
 }
 

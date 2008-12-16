@@ -1,20 +1,23 @@
 PtexCache.o: PtexCache.cpp Ptexture.h PtexReader.h PtexIO.h PtexCache.h \
-  DGDict.h PtexUtils.h DGHashMap.h
+  PtexPlatform.h PtexMutex.h DGDict.h PtexUtils.h DGHashMap.h
 PtexFilterKernel.o: PtexFilterKernel.cpp PtexFilterContext.h Ptexture.h \
   PtexUtils.h PtexFilterKernel.h PtexHalf.h
-PtexFilters.o: PtexFilters.cpp Ptexture.h PtexMitchellFilter.h \
-  PtexFilterContext.h PtexUtils.h PtexFilterKernel.h \
+PtexFilters.o: PtexFilters.cpp PtexPlatform.h Ptexture.h \
+  PtexMitchellFilter.h PtexFilterContext.h PtexUtils.h PtexFilterKernel.h \
   PtexSeparableFilter.h PtexSeparableKernel.h
 PtexHalf.o: PtexHalf.cpp PtexHalf.h
 PtexLockFile.o: PtexLockFile.cpp PtexLockFile.h
-PtexMitchellFilter.o: PtexMitchellFilter.cpp PtexMitchellFilter.h \
-  Ptexture.h PtexFilterContext.h PtexUtils.h PtexFilterKernel.h
-PtexReader.o: PtexReader.cpp Ptexture.h PtexUtils.h PtexReader.h PtexIO.h \
-  PtexCache.h DGDict.h DGHashMap.h
-PtexSeparableFilter.o: PtexSeparableFilter.cpp PtexSeparableFilter.h \
-  Ptexture.h PtexSeparableKernel.h PtexUtils.h
-PtexSeparableKernel.o: PtexSeparableKernel.cpp PtexUtils.h Ptexture.h \
-  PtexHalf.h PtexSeparableKernel.h
-PtexUtils.o: PtexUtils.cpp PtexHalf.h PtexUtils.h Ptexture.h
-PtexWriter.o: PtexWriter.cpp Ptexture.h PtexUtils.h PtexWriter.h PtexIO.h \
-  PtexReader.h PtexCache.h DGDict.h DGHashMap.h PtexLockFile.h
+PtexMitchellFilter.o: PtexMitchellFilter.cpp PtexPlatform.h \
+  PtexMitchellFilter.h Ptexture.h PtexFilterContext.h PtexUtils.h \
+  PtexFilterKernel.h
+PtexReader.o: PtexReader.cpp PtexPlatform.h Ptexture.h PtexUtils.h \
+  PtexReader.h PtexIO.h PtexCache.h PtexMutex.h DGDict.h DGHashMap.h
+PtexSeparableFilter.o: PtexSeparableFilter.cpp PtexPlatform.h \
+  PtexSeparableFilter.h Ptexture.h PtexSeparableKernel.h PtexUtils.h
+PtexSeparableKernel.o: PtexSeparableKernel.cpp PtexPlatform.h PtexUtils.h \
+  Ptexture.h PtexHalf.h PtexSeparableKernel.h
+PtexUtils.o: PtexUtils.cpp PtexPlatform.h PtexHalf.h PtexUtils.h \
+  Ptexture.h
+PtexWriter.o: PtexWriter.cpp PtexPlatform.h Ptexture.h PtexUtils.h \
+  PtexWriter.h PtexIO.h PtexReader.h PtexCache.h PtexMutex.h DGDict.h \
+  DGHashMap.h PtexLockFile.h

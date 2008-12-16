@@ -32,7 +32,7 @@
    const data block.
 */
 
-#include <alloca.h>
+#include "PtexPlatform.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -40,7 +40,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include <algorithm>
 #include <iostream>
@@ -266,7 +265,7 @@ bool PtexWriterBase::close(std::string& error)
 
 void PtexWriterBase::writeMeta(const char* key, const char* value)
 {
-    addMetaData(key, mdt_string, value, strlen(value)+1);
+    addMetaData(key, mdt_string, value, int(strlen(value)+1));
 }
 
 
@@ -430,7 +429,7 @@ int PtexWriterBase::readBlock(FILE* fp, void* data, int size)
 }
 
 
-int PtexWriterBase::copyBlock(FILE* dst, FILE* src, off_t pos, int size)
+int PtexWriterBase::copyBlock(FILE* dst, FILE* src, FilePos pos, int size)
 {
     fseeko(src, pos, SEEK_SET);
     int remain = size;
@@ -464,8 +463,8 @@ Ptex::Res PtexWriterBase::calcTileRes(Res faceres)
     // choose u and v sizes for roughly square result (u ~= v ~= n/2)
     // and make sure tile isn't larger than face
     Res tileres;
-    tileres.ulog2 = std::min((n+1)/2, int(faceres.ulog2));
-    tileres.vlog2 = std::min(n - tileres.ulog2, int(faceres.vlog2));
+    tileres.ulog2 = PtexUtils::min((n+1)/2, int(faceres.ulog2));
+    tileres.vlog2 = PtexUtils::min(n - tileres.ulog2, int(faceres.vlog2));
     return tileres;
 }
 
@@ -551,7 +550,7 @@ void PtexWriterBase::writeFaceData(FILE* fp, const void* data, int stride,
 
 	// output compressed tile header
 	uint32_t tileheadersize = writeZipBlock(_tilefp, &tileHeader[0], 
-						sizeof(FaceDataHeader)*tileHeader.size());
+						int(sizeof(FaceDataHeader)*tileHeader.size()));
 
 
 	// output tile data pre-header
@@ -597,8 +596,9 @@ void PtexWriterBase::writeMetaData(FILE* fp, uint32_t& memsize, uint32_t& zipsiz
     {
 	const std::string& key = iter->first;
 	MetaEntry& val = iter->second;
-	uint8_t keysize = key.size()+1, datatype = val.datatype;
-	uint32_t datasize = val.data.size();
+	uint8_t keysize = uint8_t(key.size()+1);
+	uint8_t datatype = val.datatype;
+	uint32_t datasize = uint32_t(val.data.size());
 	writeZipBlock(fp, &keysize, sizeof(keysize), false);
 	writeZipBlock(fp, key.c_str(), keysize, false);
 	writeZipBlock(fp, &datatype, sizeof(datatype), false);
@@ -840,8 +840,8 @@ void PtexMainWriter::finish()
     flagConstantNeighorhoods();
 
     // update header
-    _header.nlevels = _levels.size();
-    _header.nfaces = _faceinfo.size();
+    _header.nlevels = uint16_t(_levels.size());
+    _header.nfaces = uint32_t(_faceinfo.size());
 
     // create new file
     FILE* newfp = fopen(_newpath.c_str(), "w+b");
@@ -858,10 +858,10 @@ void PtexMainWriter::finish()
 					 sizeof(FaceInfo)*_header.nfaces);
 
     // write compressed const data block
-    _header.constdatasize = writeZipBlock(newfp, &_constdata[0], _constdata.size());
+    _header.constdatasize = writeZipBlock(newfp, &_constdata[0], int(_constdata.size()));
 
     // write blank level info block (to fill in later)
-    off_t levelInfoPos = ftello(newfp);
+    FilePos levelInfoPos = ftello(newfp);
     writeBlank(newfp, LevelInfoSize * _header.nlevels);
 
     // write level data blocks (and record level info)
@@ -870,7 +870,7 @@ void PtexMainWriter::finish()
     {
 	LevelInfo& info = levelinfo[li];
 	LevelRec& level = _levels[li];
-	int nfaces = level.fdh.size();
+	int nfaces = int(level.fdh.size());
 	info.nfaces = nfaces;
 	// output compressed level data header
 	info.levelheadersize = writeZipBlock(newfp, &level.fdh[0],
@@ -900,7 +900,7 @@ void PtexMainWriter::finish()
 void PtexMainWriter::flagConstantNeighorhoods()
 {
     // for each constant face
-    for (int faceid = 0, n = _faceinfo.size(); faceid < n; faceid++) {
+    for (int faceid = 0, n = int(_faceinfo.size()); faceid < n; faceid++) {
 	FaceInfo& f = _faceinfo[faceid];
 	if (!f.isConstant()) continue;
 	uint8_t* constdata = &_constdata[faceid*_pixelSize];
@@ -995,19 +995,19 @@ void PtexMainWriter::generateReductions()
     buffsize *= _pixelSize;
     char* buff = (char*) malloc(buffsize);
 
-    int nlevels = _levels.size();
+    int nlevels = int(_levels.size());
     for (int i = 1; i < nlevels; i++) {
 	LevelRec& level = _levels[i];
-	int nextsize = (i+1 < nlevels)? _levels[i+1].fdh.size() : 0;
-	for (int rfaceid = 0, size = level.fdh.size(); rfaceid < size; rfaceid++) {
+	int nextsize = (i+1 < nlevels)? int(_levels[i+1].fdh.size()) : 0;
+	for (int rfaceid = 0, size = int(level.fdh.size()); rfaceid < size; rfaceid++) {
 	    // output current reduction for face (previously generated)
 	    int faceid = _faceids_r[rfaceid];
 	    Res res = _faceinfo[faceid].res;
 	    res.ulog2 -= i; res.vlog2 -= i;
 	    int stride = res.u() * _pixelSize;
-	    int size = res.size() * _pixelSize;
+	    int blocksize = res.size() * _pixelSize;
 	    fseeko(_fp, _rpos[faceid], SEEK_SET);
-	    readBlock(_fp, buff, size);
+	    readBlock(_fp, buff, blocksize);
 	    fseeko(_fp, 0, SEEK_END);
 	    level.pos[rfaceid] = ftello(_fp);
 	    writeFaceData(_fp, buff, stride, res, level.fdh[rfaceid]);
@@ -1091,7 +1091,7 @@ bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
     efdh.faceinfo.flags = 0;
 
     // record position and skip headers
-    off_t pos = ftello(_fp);
+    FilePos pos = ftello(_fp);
     writeBlank(_fp, sizeof(edittype) + sizeof(editsize) + sizeof(efdh));
     
     // must compute constant (average) val first
@@ -1175,7 +1175,7 @@ void PtexIncrWriter::finish()
 	EditMetaDataHeader emdh;
 
 	// record position and skip headers
-	off_t pos = ftello(_fp);
+	FilePos pos = ftello(_fp);
 	writeBlank(_fp, sizeof(edittype) + sizeof(editsize) + sizeof(emdh));
     
 	// write meta data

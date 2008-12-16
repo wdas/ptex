@@ -1,4 +1,4 @@
-#include <alloca.h>
+#include "PtexPlatform.h"
 #include "PtexUtils.h"
 #include "PtexHalf.h"
 #include "PtexSeparableKernel.h"

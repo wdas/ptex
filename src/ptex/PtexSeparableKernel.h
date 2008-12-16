@@ -231,7 +231,7 @@ class PtexSeparableKernel : public Ptex {
 	
 	// update state
 	u /= 2;
-	uw = dst - ku;
+	uw = int(dst - ku);
 	res.ulog2--;
     }
 
@@ -260,7 +260,7 @@ class PtexSeparableKernel : public Ptex {
 	
 	// update state
 	v /= 2;
-	vw = dst - kv;
+	vw = int(dst - kv);
 	res.vlog2--;
     }
 

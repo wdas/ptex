@@ -22,7 +22,8 @@
    positive or negative.
 */
 
-struct PtexFilterKernel::Iter : public Ptex {
+class PtexFilterKernel::Iter : public Ptex {
+ public:
     const PtexFilterContext& ctx;
 
     int ustride;		// distance between u samples
@@ -80,7 +81,7 @@ struct PtexFilterKernel::Iter : public Ptex {
 	    drowskip = resv - k.vw;
 	    break;
 	}
-	rowskip = pos - rowend + vstride;
+	rowskip = int(pos - rowend) + vstride;
 	dstart = dstart * c.ntxchannels + c.firstchan;
 	drowskip *= c.ntxchannels;
     }
@@ -107,8 +108,9 @@ struct PtexFilterKernel::Iter : public Ptex {
 };
 
 
-struct PtexFilterKernel::TileIter : public Ptex
+class PtexFilterKernel::TileIter : public Ptex
 {
+ public:
     PtexFilterKernel kernels[4];  // kernel split over tiles
     int tiles[4];		  // tiles covered by kernel
     int ntiles;			  // number of tiles
@@ -205,7 +207,7 @@ namespace {
 	VecAccum() {}
 	void operator()(float* result, const T* val, double weight) 
 	{
-	    *result += *val * weight;
+	    *result = float(*result + *val * weight);
 	    // use template to unroll loop
 	    VecAccum<T,n-1>()(result+1, val+1, weight);
 	}
@@ -220,7 +222,8 @@ namespace {
     struct VecAccumN {
 	void operator()(float* result, const T* val, int nchan, double weight) 
 	{
-	    for (int i = 0; i < nchan; i++) result[i] += val[i] * weight;
+	    for (int i = 0; i < nchan; i++) 
+		result[i] = float(result[i] + val[i] * weight);
 	}
     };
     

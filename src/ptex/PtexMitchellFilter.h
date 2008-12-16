@@ -79,7 +79,7 @@ class PtexMitchellFilter : public PtexFilter, public Ptex
     void evalFaces(Res res, double weight, float uw, float vw);
     void evalFaces(Res res, double weight) 
     {
-	evalFaces(res, weight, 1.0/res.u(), 1.0/res.v()); 
+	evalFaces(res, weight, 1.0f/res.u(), 1.0f/res.v()); 
     }
     void evalLargeDu(float du, float weight);
     void evalLargeDuFace(int faceid, int level, float weight);
@@ -88,7 +88,7 @@ class PtexMitchellFilter : public PtexFilter, public Ptex
 
     bool _isConstant;		// true if neighborhood is constant
     bool _interior;		// true if corner point is an interior point
-    float _ublend, _vblend;	// u,v edge blending weights (0=none, 1=full blend)
+    double _ublend, _vblend;	// u,v edge blending weights (0=none, 1=full blend)
     Face _face, _uface, _vface;	// main face and neighboring faces
     Face _cface;		// corner face (only valid if just one face)
     std::vector<Face> _cfaces;	// all faces around corner

@@ -11,6 +11,7 @@
    (c) Disney. All rights reserved.
 */
 
+#include "PtexPlatform.h"
 #include <zlib.h>
 #include <map>
 #include <vector>
@@ -50,7 +51,7 @@ protected:
     int writeBlock(FILE* fp, const void* data, int size);
     int writeZipBlock(FILE* fp, const void* data, int size, bool finish=true);
     int readBlock(FILE* fp, void* data, int size);
-    int copyBlock(FILE* dst, FILE* src, off_t pos, int size);
+    int copyBlock(FILE* dst, FILE* src, FilePos pos, int size);
     Res calcTileRes(Res faceres);
     virtual void addMetaData(const char* key, MetaDataType t, const void* value, int size);
     void writeConstFaceBlock(FILE* fp, const void* data, FaceDataHeader& fdh);
@@ -122,11 +123,11 @@ private:
 	//       are ordered by rfaceid[faceid].   Also, faces with a minimum
 	//       dimension (the smaller of u or v) smaller than MinReductionLog2
 	//       are omitted from subsequent levels.
-	std::vector<off_t> pos;		  // position of data blocks within _tmp file
+	std::vector<FilePos> pos;	  // position of data blocks within _tmp file
 	std::vector<FaceDataHeader> fdh;  // face data headers
     };
     std::vector<LevelRec> _levels;	  // info about each level
-    std::vector<off_t> _rpos;		  // reduction file positions
+    std::vector<FilePos> _rpos;		  // reduction file positions
 
     PtexReader* _reader;	          // reader for accessing existing data in file
 };

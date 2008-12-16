@@ -1,3 +1,14 @@
+/* 
+   CONFIDENTIAL INFORMATION: This software is the confidential and
+   proprietary information of Walt Disney Animation Studios ("Disney").
+   This software is owned by Disney and may not be used, disclosed,
+   reproduced or distributed for any purpose without prior written
+   authorization and license from Disney. Reproduction of any section of
+   this software must include this legend and all copyright notices.
+   (c) Disney. All rights reserved.
+*/
+
+#include "PtexPlatform.h"
 #include "Ptexture.h"
 #include "PtexMitchellFilter.h"
 #include "PtexSeparableFilter.h"
@@ -41,29 +52,30 @@ class PtexSeparableMitchellFilter : public PtexSeparableFilter
 	vw = PtexUtils::min(vw, minw);
 
 	// compute desired texture res based on filter width
-	int ureslog2 = int(ceil(log2(1.0/uw))),
-	    vreslog2 = int(ceil(log2(1.0/vw)));
+	int ureslog2 = int(ceil(log2(1.0/uw)));
+	int vreslog2 = int(ceil(log2(1.0/vw)));
+
 	Res res(ureslog2, vreslog2);
 	k.res = res;
 	
 	// convert from normalized coords to pixel coords
-	u = u * k.res.u() - 0.5;
-	v = v * k.res.v() - 0.5;
-	uw *= k.res.u();
-	vw *= k.res.v();
+	double upix = u * k.res.u() - 0.5;
+	double vpix = v * k.res.v() - 0.5;
+	double uwpix = uw * k.res.u();
+	double vwpix = vw * k.res.v();
 
 	// find integer pixel extent: [u,v] +/- [2*uw,2*vw]
 	// (mitchell is 4 units wide for a 1 unit filter period)
-	int u1 = int(ceil(u - 2*uw)), u2 = int(ceil(u + 2*uw));
-	int v1 = int(ceil(v - 2*vw)), v2 = int(ceil(v + 2*vw));
+	int u1 = int(ceil(upix - 2*uwpix)), u2 = int(ceil(upix + 2*uwpix));
+	int v1 = int(ceil(vpix - 2*vwpix)), v2 = int(ceil(vpix + 2*vwpix));
 	k.u = u1;
 	k.v = v1;
 	k.uw = u2-u1;
 	k.vw = v2-v1;
 
 	// compute kernel weights along u and v directions
-	computeWeights(k.ku, (u1-u)/uw, 1.0/uw, k.uw);
-	computeWeights(k.kv, (v1-v)/vw, 1.0/vw, k.vw);
+	computeWeights(k.ku, (u1-upix)/uwpix, 1.0/uwpix, k.uw);
+	computeWeights(k.kv, (v1-vpix)/vwpix, 1.0/vwpix, k.vw);
     }
 
  private:
@@ -117,10 +129,10 @@ class PtexBoxFilter : public PtexSeparableFilter
 
 	// find integer pixel extent: [u,v] +/- [uw/2,vw/2]
 	// (box is 1 unit wide for a 1 unit filter period)
-	float u1 = u - 0.5*uw, u2 = u + 0.5*uw;
-	float v1 = v - 0.5*vw, v2 = v + 0.5*vw;
-	float u1floor = floor(u1), u2ceil = ceil(u2);
-	float v1floor = floor(v1), v2ceil = ceil(v2);
+	double u1 = u - 0.5*uw, u2 = u + 0.5*uw;
+	double v1 = v - 0.5*vw, v2 = v + 0.5*vw;
+	double u1floor = floor(u1), u2ceil = ceil(u2);
+	double v1floor = floor(v1), v2ceil = ceil(v2);
 	k.u = int(u1floor);
 	k.v = int(v1floor);
 	k.uw = int(u2ceil)-k.u;
@@ -132,7 +144,7 @@ class PtexBoxFilter : public PtexSeparableFilter
     }
 
  private:
-    void computeWeights(double* kernel, int size, float f1, float f2)
+    void computeWeights(double* kernel, int size, double f1, double f2)
     {
 	assert(size >= 1 && size <= 3);
 

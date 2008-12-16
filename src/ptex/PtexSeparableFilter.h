@@ -46,7 +46,7 @@ class PtexSeparableFilter : public PtexFilter, public Ptex
 
     PtexTexture* _tx;		// texture being evaluated
     double* _result;		// temp result
-    float _weight;		// accumulated weight of data in _result
+    double _weight;		// accumulated weight of data in _result
     int _firstChanOffset;	// byte offset of first channel to eval
     int _nchan;			// number of channels to eval
     int _ntxchan;		// number of channels in texture

@@ -8,10 +8,12 @@
    (c) Disney. All rights reserved.
 */
 
+#include "PtexPlatform.h"
 #include <iostream>
 #include <sstream>
 #include <errno.h>
 #include <stdio.h>
+
 #include "Ptexture.h"
 #include "PtexUtils.h"
 #include "PtexReader.h"
@@ -65,7 +67,7 @@ bool PtexReader::open(const char* path, std::string& error)
     _pixelsize = _header.pixelSize();
 
     // compute offsets of various blocks
-    off_t pos = tell();
+    FilePos pos = tell();
     _extheaderpos = pos;  pos += _header.extheadersize;
     _faceinfopos = pos;   pos += _header.faceinfosize;
     _constdatapos = pos;  pos += _header.constdatasize;
@@ -193,7 +195,7 @@ void PtexReader::readLevelInfo()
 	// initialize related data
 	_levels.resize(_header.nlevels);
 	_levelpos.resize(_header.nlevels);
-	off_t pos = _leveldatapos;
+	FilePos pos = _leveldatapos;
 	for (int i = 0; i < _header.nlevels; i++) {
 	    _levelpos[i] = pos;
 	    pos += _levelinfo[i].leveldatasize;
@@ -247,7 +249,7 @@ void PtexReader::readMetaData()
 
     // compute total size (including edit blocks)
     int totalsize = _header.metadatamemsize;
-    for (int i = 0, size = _metaedits.size(); i < size; i++)
+    for (size_t i = 0, size = _metaedits.size(); i < size; i++)
 	totalsize += _metaedits[i].memsize;
 
     // allocate new meta data (keep local until fully initialized)
@@ -256,7 +258,7 @@ void PtexReader::readMetaData()
 	if (_header.metadatamemsize)
 	    readMetaDataBlock(newmeta, _metadatapos,
 			      _header.metadatazipsize, _header.metadatamemsize);
-	for (int i = 0, size = _metaedits.size(); i < size; i++)
+	for (size_t i = 0, size = _metaedits.size(); i < size; i++)
 	    readMetaDataBlock(newmeta, _metaedits[i].pos,
 			      _metaedits[i].zipsize, _metaedits[i].memsize);
     }
@@ -270,7 +272,7 @@ void PtexReader::readMetaData()
 }
 
 
-void PtexReader::readMetaDataBlock(MetaData* metadata, off_t pos, int zipsize, int memsize)
+void PtexReader::readMetaDataBlock(MetaData* metadata, FilePos pos, int zipsize, int memsize)
 {
     seek(pos);
     // read from file
@@ -307,7 +309,7 @@ void PtexReader::readEditData()
 	if (!readBlock(&editsize, sizeof(editsize), /*reporterror*/ false)) return;
 	if (!editsize) return;
 	_hasEdits = true;
-	off_t pos = tell();
+	FilePos pos = tell();
 	switch (edittype) {
 	case et_editfacedata:   readEditFaceData(); break;
 	case et_editmetadata:   readEditMetaData(); break;
@@ -366,7 +368,7 @@ void PtexReader::readEditMetaData()
 
 bool PtexReader::readBlock(void* data, int size, bool reporterror)
 {
-    int result = fread(data, size, 1, _fp);
+    size_t result = fread(data, size, 1, _fp);
     if (result == 1) {
 	_pos += size;
 	STATS_INC(nblocksRead);
@@ -435,7 +437,7 @@ void PtexReader::readLevel(int levelid, Level*& level)
 
     // apply edits (if any) to level 0
     if (levelid == 0) {
-	for (int i = 0, size = _faceedits.size(); i < size; i++) {
+	for (size_t i = 0, size = _faceedits.size(); i < size; i++) {
 	    FaceEdit& e = _faceedits[i];
 	    newlevel->fdh[e.faceid] = e.fdh;
 	    newlevel->offsets[e.faceid] = e.pos;
@@ -489,7 +491,7 @@ void PtexReader::readFace(int levelid, Level* level, int faceid)
     if (fdh.encoding != enc_tiled) {
 	totalsize += unpackedSize(fdh, levelid, faceid);
 
-	int nfaces = level->fdh.size();
+	int nfaces = int(level->fdh.size());
 	while (1) {
 	    int f = first-1;
 	    if (f < 0 || level->faces[f]) break;
@@ -529,7 +531,7 @@ void PtexReader::readFace(int levelid, Level* level, int faceid)
 
     // reacquire cache lock, then unref extra faces to add them to the cache
     _cache->cachelock.lock();
-    for (int i = 0, size = extraFaces.size(); i < size; i++)
+    for (size_t i = 0, size = extraFaces.size(); i < size; i++)
 	extraFaces[i]->unref();
 }
 
@@ -563,7 +565,7 @@ void PtexReader::TiledFace::readTile(int tile, FaceData*& data)
 }
 
 
-void PtexReader::readFaceData(off_t pos, FaceDataHeader fdh, Res res, int levelid,
+void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int levelid,
 			      FaceData*& face)
 {
     // keep new face local until fully initialized
@@ -888,7 +890,7 @@ void PtexReader::blendFaces(FaceData*& face, int faceid, Res res, bool blendu)
 	memcpy(data, psrc[0]->getData(), size);
     }
     else {
-	double weight = 1.0 / nf;
+	float weight = 1.0f / nf;
 	memset(data, 0, size);
 	for (int i = 0; i < nf; i++)
 	    PtexUtils::blend(psrc[i]->getData(), weight, data, flip[i],

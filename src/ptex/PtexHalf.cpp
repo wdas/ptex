@@ -29,8 +29,8 @@ static bool PtexHalfInit()
 	}
 	else if (e == 0) {
 	    // denormalized
-	    if (!(h&0x8000)) u.f = 5.9604644775390625e-08*m;
-	    else u.f = -5.9604644775390625e-08*m;
+	    if (!(h&0x8000)) u.f = float(5.9604644775390625e-08*m);
+	    else u.f = float(-5.9604644775390625e-08*m);
 	}
 	else {
 	    // inf/nan, preserve low bits of m for nan code

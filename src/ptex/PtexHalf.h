@@ -37,6 +37,7 @@ struct PtexHalf {
     uint16_t bits;
     PtexHalf() {}
     PtexHalf(float val) : bits(fromFloat(val)) {}
+    PtexHalf(double val) : bits(fromFloat(float(val))) {}
     operator float() const { return toFloat(bits); }
     PtexHalf& operator=(float val) { bits = fromFloat(val); return *this; }
 

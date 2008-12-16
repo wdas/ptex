@@ -1,3 +1,5 @@
+#ifndef Ptexture_h
+#define Ptexture_h
 /* 
    CONFIDENTIAL INFORMATION: This software is the confidential and
    proprietary information of Walt Disney Animation Studios ("Disney").
@@ -7,10 +9,9 @@
    this software must include this legend and all copyright notices.
    (c) Disney. All rights reserved.
 */
-#ifndef Ptexture_h
-#define Ptexture_h
+
+#include <stdint.h>
 #include <string>
-#include <inttypes.h>
 
 struct Ptex {
     enum MeshType     { mt_triangle, mt_quad };
@@ -94,10 +95,10 @@ struct Ptex {
 
 	EdgeId adjedge(int eid) const { return EdgeId((adjedges >> (2*eid)) & 3); }
 	int adjface(int eid) const { return adjfaces[eid]; }
-	bool isConstant() const { return flags & flag_constant; }
-	bool isNeighborhoodConstant() const { return flags & flag_nbconstant; }
-	bool hasEdits() const { return flags & flag_hasedits; }
-	bool isSubface() const { return flags & flag_subface; }
+	bool isConstant() const { return (flags & flag_constant) != 0; }
+	bool isNeighborhoodConstant() const { return (flags & flag_nbconstant) != 0; }
+	bool hasEdits() const { return (flags & flag_hasedits) != 0; }
+	bool isSubface() const { return (flags & flag_subface) != 0; }
 
 	void setadjfaces(int f0, int f1, int f2, int f3)
 	{ adjfaces[0] = f0, adjfaces[1] = f1, adjfaces[2] = f2; adjfaces[3] = f3; }

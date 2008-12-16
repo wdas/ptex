@@ -78,9 +78,9 @@
    reductions.
  */
 
+#include "PtexPlatform.h"
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <assert.h>
 #include <stdlib.h>
 #include "Ptexture.h"
 #include "PtexReader.h"
@@ -309,7 +309,7 @@ PtexTexture* PtexReaderCache::get(const char* filename, std::string& error)
 	    // file is relative, search in searchpath
 	    bool found = false;
 	    struct stat statbuf;
-	    for (int i = 0, size = _searchdirs.size(); i < size; i++) {
+	    for (size_t i = 0, size = _searchdirs.size(); i < size; i++) {
 		snprintf(tmppath, sizeof(tmppath), "%s/%s", _searchdirs[i].c_str(), filename);
 		if (stat(tmppath, &statbuf) == 0) {
 		    found = true;

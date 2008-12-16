@@ -8,8 +8,10 @@
    (c) Disney. All rights reserved.
 */
 
+#include "PtexPlatform.h"
 #include <algorithm>
 #include <vector>
+
 #include "PtexHalf.h"
 #include "PtexUtils.h"
 
@@ -380,7 +382,7 @@ namespace {
 void PtexUtils::blend(const void* src, float weight, void* dst, bool flip,
 		      int rowlen, DataType dt, int nchan)
 {
-    switch (dt<<1 | flip) {
+    switch ((dt<<1) | int(flip)) {
     case (dt_uint8<<1):      ::blend((const uint8_t*) src, weight,
 				     (uint8_t*) dst, rowlen, nchan); break;
     case (dt_uint8<<1 | 1):  ::blendflip((const uint8_t*) src, weight,
@@ -414,7 +416,7 @@ namespace {
 	for (const T* end = src + vw*sstride; src != end; src += rowskip)
 	    for (const T* rowend = src + rowlen; src != rowend;)
 		for (int i = 0; i < nchan; i++) buff[i] += *src++;
-	float scale = 1.0/(uw*vw);
+	double scale = 1.0/(uw*vw);
 	for (int i = 0; i < nchan; i++) dst[i] = T(buff[i]*scale);
     }
 }

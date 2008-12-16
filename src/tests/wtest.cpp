@@ -116,13 +116,11 @@ int main()
     }
     free(buff);
 
-#if 0
     w->writeMeta("hello", "goodbye");
     double vals[3] = { 1.1,2.2,3.3 };
     w->writeMeta("flarf", vals, 3);
     int16_t ivals[4] = { 2, 4, 6, 8 };
     w->writeMeta("flarfi", ivals, 4);
-#endif
 
     if (!w->close(error)) {
 	std::cerr << error << std::endl;
@@ -130,7 +128,6 @@ int main()
 
     w->release();
 
-#if 0
     // add some edits
     w = PtexWriter::edit("test.ptx", true, Ptex::mt_quad, dt, nchan, alpha, nfaces, error);
     w->writeMeta("hello", "ciao");
@@ -141,20 +138,19 @@ int main()
 	std::cerr << error << std::endl;
     }
     w->release();
-#endif
 
-#if 0
     // add some more edits
     w = PtexWriter::edit("test.ptx", false, Ptex::mt_quad, dt, nchan, alpha, nfaces, error);
     w->writeMeta("hello", "aloha");
+#if 0
     float fvals[] = {0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1, 0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1, 0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1, 0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1};
     w->writeConstantFace(1, Ptex::Res(7,8), fvals);
     w->writeFace(2, Ptex::Res(2, 2), fvals+3);
+#endif
     if (!w->close(error)) {
 	std::cerr << error << std::endl;
     }
     w->release();
-#endif
 
     return 0;
 }

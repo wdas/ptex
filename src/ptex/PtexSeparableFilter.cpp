@@ -8,8 +8,10 @@
    (c) Disney. All rights reserved.
 */
 
+#include "PtexPlatform.h"
 #include <math.h>
 #include <assert.h>
+
 #include "PtexSeparableFilter.h"
 #include "PtexSeparableKernel.h"
 #include "PtexUtils.h"
@@ -85,7 +87,7 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     // normalize (both for data type and cumulative kernel weight applied)
     // and output result
     double scale = 1.0 / (_weight * OneValue(_dt));
-    for (int i = 0; i < _nchan; i++) result[i] = _result[i] * scale;
+    for (int i = 0; i < _nchan; i++) result[i] = float(_result[i] * scale);
 
     // clear temp result
     _result = 0;

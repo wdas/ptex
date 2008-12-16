@@ -83,7 +83,7 @@ public:
 	    : PtexCachedData((void**)parent, cache, sizeof(*this) + size) {}
 	virtual void release() { AutoLockCache lock(_cache->cachelock); unref(); }
 
-	virtual int numKeys() { return _entries.size(); }
+	virtual int numKeys() { return int(_entries.size()); }
 	virtual void getKey(int n, const char*& key, MetaDataType& type)
 	{
 	    Entry* e = getEntry(n);
@@ -101,7 +101,7 @@ public:
 	virtual void getValue(const char* key, const int8_t*& value, int& count)
 	{
 	    Entry* e = getEntry(key);
-	    if (e) { value = (const int8_t*) &e->value[0]; count = e->value.size(); }
+	    if (e) { value = (const int8_t*) &e->value[0]; count = int(e->value.size()); }
 	    else { value = 0; count = 0; }
 	}
 
@@ -110,7 +110,7 @@ public:
 	    Entry* e = getEntry(key);
 	    if (e) {
 		value = (const int16_t*) &e->value[0]; 
-		count = e->value.size()/sizeof(int16_t); 
+		count = int(e->value.size()/sizeof(int16_t));
 	    }
 	    else { value = 0; count = 0; }
 	}
@@ -120,7 +120,7 @@ public:
 	    Entry* e = getEntry(key);
 	    if (e) {
 		value = (const int32_t*) &e->value[0]; 
-		count = e->value.size()/sizeof(int32_t); 
+		count = int(e->value.size()/sizeof(int32_t));
 	    }
 	    else { value = 0; count = 0; }
 	}
@@ -130,7 +130,7 @@ public:
 	    Entry* e = getEntry(key);
 	    if (e) {
 		value = (const float*) &e->value[0]; 
-		count = e->value.size()/sizeof(float); 
+		count = int(e->value.size()/sizeof(float));
 	    }
 	    else { value = 0; count = 0; }
 	}
@@ -140,7 +140,7 @@ public:
 	    Entry* e = getEntry(key);
 	    if (e) {
 		value = (const double*) &e->value[0]; 
-		count = e->value.size()/sizeof(double); 
+		count = int(e->value.size()/sizeof(double));
 	    }
 	    else { value = 0; count = 0; }
 	}
@@ -314,7 +314,7 @@ public:
 	{
 	    _fdh.resize(_ntiles),
 	    _offsets.resize(_ntiles);
-	    incSize((sizeof(FaceDataHeader)+sizeof(off_t))*_ntiles);
+	    incSize((sizeof(FaceDataHeader)+sizeof(FilePos))*_ntiles);
 	}
 	virtual PtexFaceData* getTile(int tile)
 	{
@@ -331,7 +331,7 @@ public:
 	PtexReader* _reader;
 	int _levelid;
 	safevector<FaceDataHeader> _fdh;
-	safevector<off_t> _offsets;
+	safevector<FilePos> _offsets;
     };	    
 
 
@@ -362,13 +362,13 @@ public:
     class Level : public PtexCachedData {
     public:
 	safevector<FaceDataHeader> fdh;
-	safevector<off_t> offsets;
+	safevector<FilePos> offsets;
 	safevector<FaceData*> faces;
 	
 	Level(void** parent, PtexCacheImpl* cache, int nfaces) 
 	    : PtexCachedData(parent, cache, 
 			     sizeof(*this) + nfaces * (sizeof(FaceDataHeader) +
-						       sizeof(off_t) + 
+						       sizeof(FilePos) + 
 						       sizeof(FaceData*))),
 	      fdh(nfaces),
 	      offsets(nfaces),
@@ -389,8 +389,8 @@ protected:
 	_ok = 0;
     }
 
-    off_t tell() { return _pos; }
-    void seek(off_t pos) 
+    FilePos tell() { return _pos; }
+    void seek(FilePos pos) 
     {
 	if (pos != _pos) {
 	    fseeko(_fp, pos, SEEK_SET); 
@@ -399,16 +399,6 @@ protected:
 	    stats.nseeks++;
 #endif
 	}
-    }
-    off_t seekToEnd() 
-    {
-	fseeko(_fp, 0, SEEK_END);
-	_pos = ftello(_fp);	
-	return _pos;
-    }
-    void skip(off_t bytes)
-    {
-	seek(_pos + bytes);
     }
 
     bool readBlock(void* data, int size, bool reportError=true);
@@ -455,16 +445,16 @@ protected:
     void readConstData();
     void readLevel(int levelid, Level*& level);
     void readFace(int levelid, Level* level, int faceid);
-    void readFaceData(off_t pos, FaceDataHeader fdh, Res res, int levelid, FaceData*& face);
+    void readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int levelid, FaceData*& face);
     void readMetaData();
-    void readMetaDataBlock(MetaData* metadata, off_t pos, int zipsize, int memsize);
+    void readMetaDataBlock(MetaData* metadata, FilePos pos, int zipsize, int memsize);
     void readEditData();
     void readEditFaceData();
     void readEditMetaData();
 
-    void computeOffsets(off_t pos, int noffsets, const FaceDataHeader* fdh, off_t* offsets)
+    void computeOffsets(FilePos pos, int noffsets, const FaceDataHeader* fdh, FilePos* offsets)
     {
-	off_t* end = offsets + noffsets;
+	FilePos* end = offsets + noffsets;
 	while (offsets != end) { *offsets++ = pos; pos += fdh->blocksize; fdh++; }
     }
     void blendFaces(FaceData*& face, int faceid, Res res, bool blendu);
@@ -474,16 +464,16 @@ protected:
     bool _ok;			      // flag set if read error occurred)
     std::string _error;		      // error string (if !_ok)
     FILE* _fp;			      // file pointer
-    off_t _pos;			      // current seek position
+    FilePos _pos;		      // current seek position
     std::string _path;		      // current file path
     Header _header;		      // the header
-    off_t _extheaderpos;	      // file positions of data sections
-    off_t _faceinfopos;		      // ...
-    off_t _constdatapos;
-    off_t _levelinfopos;
-    off_t _leveldatapos;
-    off_t _metadatapos;
-    off_t _editdatapos;
+    FilePos _extheaderpos;	      // file positions of data sections
+    FilePos _faceinfopos;	      // ...
+    FilePos _constdatapos;
+    FilePos _levelinfopos;
+    FilePos _leveldatapos;
+    FilePos _metadatapos;
+    FilePos _editdatapos;
     int _pixelsize;		      // size of a pixel in bytes
     uint8_t* _constdata;	      // constant pixel value per face
     MetaData* _metadata;	      // meta data (read on demand)
@@ -493,12 +483,12 @@ protected:
     safevector<uint32_t> _rfaceids;   // faceids sorted in reduction order
     safevector<Res> _res_r;	      // face res indexed by rfaceid
     safevector<LevelInfo> _levelinfo; // per-level header info
-    safevector<off_t> _levelpos;      // file position of each level's data
+    safevector<FilePos> _levelpos;    // file position of each level's data
     safevector<Level*> _levels;	      // level data (read on demand)
 
     struct MetaEdit
     {
-	off_t pos;
+	FilePos pos;
 	int zipsize;
 	int memsize;
     };
@@ -506,7 +496,7 @@ protected:
 
     struct FaceEdit
     {
-	off_t pos;
+	FilePos pos;
 	int faceid;
 	FaceDataHeader fdh;
     };

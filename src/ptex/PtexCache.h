@@ -11,87 +11,19 @@
    (c) Disney. All rights reserved.
 */
 
+#include "PtexPlatform.h"
 #include <assert.h>
-#include <pthread.h>
-#include <assert.h>
+
+#include "PtexMutex.h"
 #include "Ptexture.h"
+
+#define USE_SPIN // use spinlocks instead of mutex for main cache lock
 
 namespace PtexInternal {
 #include "DGDict.h"
 
-#ifndef NDEBUG
-    // debug version of mutex
-    class Mutex {
-	void check(int errcode) { assert(errcode == 0); }
-    public:
-	Mutex() {
-	    pthread_mutexattr_t attr;
-	    pthread_mutexattr_init(&attr);
-	    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
-	    pthread_mutex_init(&_mutex, &attr);
-	    pthread_mutexattr_destroy(&attr);
-	}
-	~Mutex()             { check(pthread_mutex_destroy(&_mutex)); }
-	void lock()          { check(pthread_mutex_lock(&_mutex)); _locked = 1; }
-	void unlock()        { assert(_locked); _locked = 0; check(pthread_mutex_unlock(&_mutex)); }
-	bool locked()        { return _locked; }
-    private:
-	pthread_mutex_t _mutex;
-	int _locked;
-    };
-#else
-    class Mutex {
-    public:
-	Mutex()       { pthread_mutex_init(&_mutex, 0); }
-	~Mutex()      { pthread_mutex_destroy(&_mutex); }
-	void lock()   { pthread_mutex_lock(&_mutex); }
-	void unlock() { pthread_mutex_unlock(&_mutex); }
-    private:
-	pthread_mutex_t _mutex;
-    };
-#endif
-
-    class SpinLock {
-    public:
-	SpinLock()    { pthread_spin_init(&_spinlock, PTHREAD_PROCESS_PRIVATE); }
-	~SpinLock()   { pthread_spin_destroy(&_spinlock); }
-	void lock()   { pthread_spin_lock(&_spinlock); }
-	void unlock() { pthread_spin_unlock(&_spinlock); }
-    private:
-	pthread_spinlock_t _spinlock;
-    };
-
-#ifndef NDEBUG
-    class DebugSpinLock : public SpinLock {
-     public:
-	DebugSpinLock() : _locked(0) {}
-	void lock()   { SpinLock::lock(); _locked = 1; }
-	void unlock() { assert(_locked); _locked = 0; SpinLock::unlock(); }
-	bool locked() { return _locked; }
-     private:
-	int _locked;
-    };
-#endif
-
-    template <class T>
-    class AutoLock {
-    public:
-	AutoLock(T& m) : _m(m) { _m.lock(); }
-	~AutoLock()            { _m.unlock(); }
-    private:
-	T& _m;
-    };
-
-    typedef AutoLock<Mutex> AutoMutex;
-    typedef AutoLock<SpinLock> AutoSpin;
-
-#define USE_SPIN
 #ifdef USE_SPIN
-#  ifndef NDEBUG
-    typedef DebugSpinLock CacheLock;
-#  else
     typedef SpinLock CacheLock;
-#  endif
 #else
     typedef Mutex CacheLock;
 #endif
@@ -123,16 +55,14 @@ namespace PtexInternal {
 	~CacheStats();
 	void print();
 	static void inc(int& val) {
-	    static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
-	    pthread_mutex_lock(&m);
+	    static SpinLock spinlock;
+	    AutoSpin lock(spinlock);
 	    val++;
-	    pthread_mutex_unlock(&m);
 	}
 	static void add(long int& val, int inc) {
-	    static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
-	    pthread_mutex_lock(&m);
+	    static SpinLock spinlock;
+	    AutoSpin lock(spinlock);
 	    val+=inc;
-	    pthread_mutex_unlock(&m);
 	}
     };
     extern CacheStats stats;

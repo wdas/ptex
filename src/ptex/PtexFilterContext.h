@@ -14,8 +14,9 @@
 #include "Ptexture.h"
 #include "PtexUtils.h"
 
-struct PtexFilterContext : public Ptex
+class PtexFilterContext : public Ptex
 {
+ public:
     float* result;		// result being evaluated
     int firstchan;		// first channel to eval
     int nchannels;		// number of channels to eval
