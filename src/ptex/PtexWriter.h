@@ -19,7 +19,6 @@
 #include "Ptexture.h"
 #include "PtexIO.h"
 #include "PtexReader.h"
-#include "PtexLockFile.h"
 
 
 class PtexWriterBase : public PtexWriter, public PtexIO {
@@ -31,17 +30,20 @@ public:
     virtual void writeMeta(const char* key, const float* value, int count);
     virtual void writeMeta(const char* key, const double* value, int count);
     virtual void writeMeta(PtexMetaData* data);
-    virtual bool close(std::string& error);
+    virtual bool close(Ptex::String& error);
     virtual void release();
 
-    bool ok(std::string& error) {
-	if (!_ok) error = getError();
+    bool ok(Ptex::String& error) {
+	if (!_ok) getError(error);
 	return _ok;
+    }
+    void getError(Ptex::String& error) {
+	error = (_error + "\nPtex file: " + _path).c_str(); 
     }
 
 protected:
     virtual void finish() = 0;
-    PtexWriterBase(const char* path, PtexLockFile lock, FILE* fp,
+    PtexWriterBase(const char* path, FILE* fp,
 		   Ptex::MeshType mt, Ptex::DataType dt,
 		   int nchannels, int alphachan, int nfaces,
 		   bool compress);
@@ -62,9 +64,7 @@ protected:
     void writeReduction(FILE* fp, const void* data, int stride, Res res);
     void writeMetaData(FILE* fp, uint32_t& memsize, uint32_t& zipsize);
     void setError(const std::string& error) { _error = error; _ok = false; }
-    std::string getError() { return _error + "\nPtex file: " + _path; }
 
-    PtexLockFile _lock;		// lockfile to prevent write conflict
     bool _ok;			// true if no error has occurred
     std::string _error;		// the error text (if any)
     std::string _path;		// file path
@@ -86,11 +86,11 @@ protected:
 
 class PtexMainWriter : public PtexWriterBase {
 public:
-    PtexMainWriter(const char* path, PtexLockFile lock, bool newfile,
+    PtexMainWriter(const char* path, bool newfile,
 		   Ptex::MeshType mt, Ptex::DataType dt,
 		   int nchannels, int alphachan, int nfaces, bool genmipmaps);
 
-    virtual bool close(std::string& error);
+    virtual bool close(Ptex::String& error);
     virtual bool writeFace(int faceid, const FaceInfo& f, const void* data, int stride);
     virtual bool writeConstantFace(int faceid, const FaceInfo& f, const void* data);
 
@@ -135,7 +135,7 @@ private:
 
 class PtexIncrWriter : public PtexWriterBase {
  public:
-    PtexIncrWriter(const char* path, PtexLockFile lock, FILE* fp,
+    PtexIncrWriter(const char* path, FILE* fp,
 		   Ptex::MeshType mt, Ptex::DataType dt,
 		   int nchannels, int alphachan, int nfaces);
 

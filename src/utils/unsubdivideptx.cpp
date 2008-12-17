@@ -30,10 +30,10 @@ bool unsubptx(const char* inobjname, const char* inptxname, const char* outptxna
     Mesh submesh = mesh;
     submesh.subdivide();
 
-    std::string err;
-    PtexPtr<PtexTexture> inptx = PtexTexture::open(inptxname, err);
+    Ptex::String error;
+    PtexPtr<PtexTexture> inptx = PtexTexture::open(inptxname, error);
     if (!inptx) {
-	std::cerr << err << std::endl;
+	std::cerr << error.c_str() << std::endl;
 	return 0;
     }
 
@@ -73,9 +73,9 @@ bool unsubptx(const char* inobjname, const char* inptxname, const char* outptxna
 
     PtexPtr<PtexWriter> outptx
 	= PtexWriter::open(outptxname, Ptex::mt_quad, inptx->dataType(),
-			   inptx->numChannels(), inptx->alphaChannel(), nOutputFaces, err);
+			   inptx->numChannels(), inptx->alphaChannel(), nOutputFaces, error);
     if (!outptx) {
-	std::cerr << err << std::endl;
+	std::cerr << error.c_str() << std::endl;
 	return 0;
     }
 
@@ -170,8 +170,8 @@ bool unsubptx(const char* inobjname, const char* inptxname, const char* outptxna
 	}
     }
 
-    if (!outptx->close(err)) {
-	std::cerr << err << std::endl;
+    if (!outptx->close(error)) {
+	std::cerr << error.c_str() << std::endl;
 	return 0;
     }
     return 1;

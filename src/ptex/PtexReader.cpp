@@ -20,7 +20,7 @@
 
 
 
-PtexTexture* PtexTexture::open(const char* path, std::string& error, bool premultiply)
+PtexTexture* PtexTexture::open(const char* path, Ptex::String& error, bool premultiply)
 {
     // create a private cache and use it to open the file
     PtexCache* cache = PtexCache::create(1, 1024*1024, premultiply);
@@ -36,7 +36,7 @@ PtexTexture* PtexTexture::open(const char* path, std::string& error, bool premul
 }
 
 
-bool PtexReader::open(const char* path, std::string& error)
+bool PtexReader::open(const char* path, Ptex::String& error)
 {
     if (!LittleEndian()) {
 	error = "Ptex library doesn't currently support big-endian cpu's";
@@ -45,23 +45,22 @@ bool PtexReader::open(const char* path, std::string& error)
     _path = path;
     _fp = fopen(path, "rb");
     if (!_fp) { 
-	std::stringstream str;
-	str << "Can't open ptex file: " << path << "\n" << strerror(errno);
-	error = str.str();
+	std::string errstr = "Can't open ptex file: ";
+	errstr += path; errstr += "\n"; errstr += strerror(errno);
+	error = errstr.c_str();
 	return 0;
     }
     readBlock(&_header, HeaderSize);
     if (_header.magic != Magic) {
-	std::stringstream str;
-	str << "Not a ptex file: " << path;
-	error = str.str();
+	std::string errstr = "Not a ptex file: "; errstr += path;
+	error = errstr.c_str();
 	return 0;
     }
     if (_header.version != 1) {
-	std::stringstream str;
-	str << "Unsupported ptex file version (" << _header.version << "): "
-	    << path;
-	error = str.str();
+	char ver[21]; snprintf(ver, 20, "%d", _header.version);
+	std::string errstr = "Unsupported ptex file version (";
+	errstr += ver; errstr += "): "; errstr += path;
+	error = errstr.c_str();
 	return 0;
     }
     _pixelsize = _header.pixelSize();
@@ -84,7 +83,7 @@ bool PtexReader::open(const char* path, std::string& error)
 
     // an error occurred while reading the file
     if (!_ok) {
-	error = _error;
+	error = _error.c_str();
 	return 0;
     }
 

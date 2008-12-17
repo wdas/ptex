@@ -210,7 +210,7 @@ public:
 	return _searchpath.c_str(); 
     }
 
-    virtual PtexTexture* get(const char* filename, std::string& error);
+    virtual PtexTexture* get(const char* filename, Ptex::String& error);
 
     virtual void purge(PtexTexture* texture)
     {
@@ -268,7 +268,7 @@ private:
 };
 
 
-PtexTexture* PtexReaderCache::get(const char* filename, std::string& error)
+PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 {
     AutoLockCache locker(cachelock); 
 
@@ -318,8 +318,9 @@ PtexTexture* PtexReaderCache::get(const char* filename, std::string& error)
 		}
 	    }
 	    if (!found) {
-		error = "Can't find ptex file: ";
-		error += filename;
+		std::string errstr = "Can't find ptex file: ";
+		errstr += filename;
+		error = errstr.c_str();
 		ok = false;
 	    }
 	}

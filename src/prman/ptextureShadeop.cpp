@@ -88,7 +88,7 @@ static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
 
     float sharp = *sharpness;
 
-    std::string error;
+    Ptex::String error;
     PtexPtr<PtexTexture> tx = cache->get(*mapname, error);
     if (tx) {
 	int chan = int(*channel);
@@ -111,7 +111,7 @@ static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
 	}
     }
     else {
-	if (!error.empty()) std::cerr << error << std::endl;
+	if (!error.empty()) std::cerr << error.c_str() << std::endl;
 	int numVals = RslArg::NumValues(argc, argv);
 	for (int i = 0; i < numVals; ++i) {
 	    float* c = *result;
@@ -136,7 +136,7 @@ static int ptextureFloat(RslContext*, int argc, const RslArg* argv[] )
     RslFloatIter vw(argv[7]);
     RslFloatIter sharpness(argv[8]);
 
-    std::string error;
+    Ptex::String error;
     PtexTexture* tx = cache->get(*mapname, error);
     if (tx) {
 	int chan = int(*channel);
@@ -150,7 +150,7 @@ static int ptextureFloat(RslContext*, int argc, const RslArg* argv[] )
 	tx->release();
     }
     else {
-	if (!error.empty()) std::cerr << error << std::endl;
+	if (!error.empty()) std::cerr << error.c_str() << std::endl;
 	int numVals = RslArg::NumValues(argc, argv);
 	for (int i = 0; i < numVals; ++i) {
 	    float* c = *result;
@@ -186,7 +186,7 @@ static int ptexenvColor(RslContext*, int argc, const RslArg* argv[] )
 
     float sharp = 0;
 
-    std::string error;
+    Ptex::String error;
     PtexTexture* tx = cache->get(*mapname, error);
     if (tx) {
 	int chan = int(*channel);
@@ -241,7 +241,7 @@ static int ptexenvColor(RslContext*, int argc, const RslArg* argv[] )
 	tx->release();
     }
     else {
-	if (!error.empty()) std::cerr << error << std::endl;
+	if (!error.empty()) std::cerr << error.c_str() << std::endl;
 	int numVals = RslArg::NumValues(argc, argv);
 	for (int i = 0; i < numVals; ++i) {
 	    float* c = *result;

@@ -34,8 +34,6 @@
 
 #include "PtexPlatform.h"
 #include <errno.h>
-#include <fcntl.h>
-#include <limits.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,7 +57,7 @@ namespace {
     }
 
     bool checkFormat(Ptex::MeshType mt, Ptex::DataType dt, int nchannels, int alphachan,
-		     std::string& error)
+		     Ptex::String& error)
     {
 	// check to see if given file attributes are valid
 	if (!PtexIO::LittleEndian()) {
@@ -95,31 +93,19 @@ namespace {
 	return 1;
     }
 
-    FILE* createTempFile(std::string& error)
+    FILE* createTempFile(const char* base, const char* suffix, std::string& error)
     {
-	// choose temp dir
-	static const char* tempdir = 0;
-	if (!tempdir) {
-	    tempdir = getenv("TEMP");
-	    if (!tempdir) tempdir = getenv("TMP");
-	    if (!tempdir) tempdir = "/tmp";
-	    tempdir = strdup(tempdir);
-	}
+	std::string path = base;
+	path += suffix;
 
-	// build filename template
-	char path[PATH_MAX];
-	snprintf(path, PATH_MAX, "%s/ptexXXXXXX", tempdir);
-
-	// create unique temp file
-	int fd = mkstemp(path);
-	FILE* fp = (fd != -1) ? fdopen(fd, "rb+") : 0;
+	FILE* fp = fopen(path.c_str(), "wb+");
 	if (!fp) {
-	    error = fileError("Can't create temp file: ", path);
+	    error = fileError("Can't create temp file: ", path.c_str());
 	    return 0;
 	}
 
 	// unlink file (it will get deleted on close)
-	unlink(path);
+	unlink(path.c_str());
 	return fp;
     }
 }
@@ -128,22 +114,16 @@ namespace {
 PtexWriter* PtexWriter::open(const char* path, 
 			     Ptex::MeshType mt, Ptex::DataType dt,
 			     int nchannels, int alphachan, int nfaces,
-			     std::string& error, bool genmipmaps)
+			     Ptex::String& error, bool genmipmaps)
 {
     if (!checkFormat(mt, dt, nchannels, alphachan, error))
 	return 0;
 
-    // acquire lock file
-    PtexLockFile lock(path);
-    if (!lock.islocked()) {
-	error = fileError("Can't acquire lock file: ", lock.path());
-	return 0;
-    }
-
     bool newfile = true;
-    PtexMainWriter* w = new PtexMainWriter(path, lock, newfile,
+    PtexMainWriter* w = new PtexMainWriter(path, newfile,
 					   mt, dt, nchannels, alphachan, nfaces, 
 					   genmipmaps);
+    std::string errstr;
     if (!w->ok(error)) {
 	w->release();
 	return 0;
@@ -155,29 +135,21 @@ PtexWriter* PtexWriter::open(const char* path,
 PtexWriter* PtexWriter::edit(const char* path, bool incremental,
 			     Ptex::MeshType mt, Ptex::DataType dt,
 			     int nchannels, int alphachan, int nfaces, 
-			     std::string& error, bool genmipmaps)
+			     Ptex::String& error, bool genmipmaps)
 {
     if (!checkFormat(mt, dt, nchannels, alphachan, error))
 	return 0;
 
-    // acquire lock file
-    PtexLockFile lock(path);
-    if (!lock.islocked()) {
-	error = fileError("Can't acquire lock file: ", lock.path());
-	return 0;
-    }
-
     // try to open existing file (it might not exist)
     FILE* fp = fopen(path, "rb+");
     if (!fp && errno != ENOENT) {
-	error = fileError("Can't open ptex file for update: ", path);
+	error = fileError("Can't open ptex file for update: ", path).c_str();
     }
 
     PtexWriterBase* w = 0;
     // use incremental writer iff incremental mode requested and file exists
     if (incremental && fp) {
-	w = new PtexIncrWriter(path, lock, fp, mt, dt, nchannels, alphachan,
-			       nfaces);
+	w = new PtexIncrWriter(path, fp, mt, dt, nchannels, alphachan, nfaces);
     }
     // otherwise use main writer
     else {
@@ -188,7 +160,7 @@ PtexWriter* PtexWriter::edit(const char* path, bool incremental,
 	    fclose(fp);
 	    fp = 0;
 	}
-	w = new PtexMainWriter(path, lock, newfile, mt, dt, nchannels, alphachan,
+	w = new PtexMainWriter(path, newfile, mt, dt, nchannels, alphachan,
 			       nfaces, genmipmaps);
     }
 
@@ -201,12 +173,11 @@ PtexWriter* PtexWriter::edit(const char* path, bool incremental,
 
 
 
-PtexWriterBase::PtexWriterBase(const char* path, PtexLockFile lock, FILE* fp,
+PtexWriterBase::PtexWriterBase(const char* path, FILE* fp,
 			       Ptex::MeshType mt, Ptex::DataType dt,
 			       int nchannels, int alphachan, int nfaces,
 			       bool compress)
-    : _lock(lock),
-      _ok(true),
+    : _ok(true),
       _path(path),
       _fp(fp),
       _tilefp(0)
@@ -228,17 +199,17 @@ PtexWriterBase::PtexWriterBase(const char* path, PtexLockFile lock, FILE* fp,
     // create temp file for writing tiles
     // (must compress each tile before assembling a tiled face)
     std::string error;
-    _tilefp = createTempFile(error);
+    _tilefp = createTempFile(path, ".tiles.tmp", error);
     if (!_tilefp) { setError(error); return; }
 }
 
 
 void PtexWriterBase::release()
 {
-    std::string error;
+    Ptex::String error;
     // close file if app didn't, and report error if any
     if (_fp && !close(error))
-	std::cerr << error << std::endl;
+	std::cerr << error.c_str() << std::endl;
     delete this;
 }
 
@@ -248,10 +219,10 @@ PtexWriterBase::~PtexWriterBase()
 }
 
 
-bool PtexWriterBase::close(std::string& error)
+bool PtexWriterBase::close(Ptex::String& error)
 {
     if (_ok) finish();
-    if (!_ok) error = getError();
+    if (!_ok) getError(error);
     if (_fp) {
 	fclose(_fp);
 	_fp = 0;
@@ -615,16 +586,16 @@ void PtexWriterBase::writeMetaData(FILE* fp, uint32_t& memsize, uint32_t& zipsiz
 
 
 
-PtexMainWriter::PtexMainWriter(const char* path, PtexLockFile lock, bool newfile,
+PtexMainWriter::PtexMainWriter(const char* path, bool newfile,
 			       Ptex::MeshType mt, Ptex::DataType dt,
 			       int nchannels, int alphachan, int nfaces, bool genmipmaps)
-    : PtexWriterBase(path, lock, 0, mt, dt, nchannels, alphachan, nfaces,
+    : PtexWriterBase(path, 0, mt, dt, nchannels, alphachan, nfaces,
 		     /* compress */ true),
       _hasNewData(false),
       _genmipmaps(genmipmaps),
       _reader(0)
 {
-    _fp = createTempFile(_error);
+    _fp = createTempFile(path, ".tmp", _error);
     if (!_fp) { _ok = 0; return; }
 
     // data will be written to a ".new" path and then renamed to final location
@@ -644,9 +615,11 @@ PtexMainWriter::PtexMainWriter(const char* path, PtexLockFile lock, bool newfile
 
     if (!newfile) {
 	// open reader for existing file
-	PtexTexture* tex = PtexTexture::open(path, _error);
+	Ptex::String error;
+	PtexTexture* tex = PtexTexture::open(path, error);
 	if (!tex) { 
 	    _ok = 0;
+	    _error = error.c_str();
 	    return;
 	}
 	_reader = dynamic_cast<PtexReader*>(tex);
@@ -686,7 +659,7 @@ PtexMainWriter::~PtexMainWriter()
 }
 
 
-bool PtexMainWriter::close(std::string& error)
+bool PtexMainWriter::close(Ptex::String& error)
 {
     // closing base writer will write all pending data via finish() method
     // and will close _fp (which in this case is on the temp disk)
@@ -694,7 +667,7 @@ bool PtexMainWriter::close(std::string& error)
     if (result && _hasNewData) {
 	// rename temppath into final location
 	if (rename(_newpath.c_str(), _path.c_str()) == -1) {
-	    error = fileError("Can't write to ptex file: ", _path.c_str());
+	    error = fileError("Can't write to ptex file: ", _path.c_str()).c_str();
 	    unlink(_newpath.c_str());
 	    result = false;
 	}
@@ -844,7 +817,7 @@ void PtexMainWriter::finish()
     _header.nfaces = uint32_t(_faceinfo.size());
 
     // create new file
-    FILE* newfp = fopen(_newpath.c_str(), "w+b");
+    FILE* newfp = fopen(_newpath.c_str(), "wb+");
     if (!newfp) {
 	setError(fileError("Can't write to ptex file: ", _newpath.c_str()));
 	return;
@@ -1029,10 +1002,10 @@ void PtexMainWriter::generateReductions()
 }
 
 
-PtexIncrWriter::PtexIncrWriter(const char* path, PtexLockFile lock, FILE* fp, 
+PtexIncrWriter::PtexIncrWriter(const char* path, FILE* fp, 
 			       Ptex::MeshType mt, Ptex::DataType dt,
 			       int nchannels, int alphachan, int nfaces)
-    : PtexWriterBase(path, lock, fp, mt, dt, nchannels, alphachan, nfaces,
+    : PtexWriterBase(path, fp, mt, dt, nchannels, alphachan, nfaces,
 		     /* compress */ false)
 {
     // note: incremental saves are not compressed (see compress flag above)

@@ -40,11 +40,11 @@ int main()
     int alpha = -1;
     int nchan = 3;
 
-    std::string error;
+    Ptex::String error;
     PtexWriter* w = 
 	PtexWriter::open("test.ptx", Ptex::mt_quad, dt, nchan, alpha, nfaces, error);
     if (!w) {
-	std::cerr << error << std::endl;
+	std::cerr << error.c_str() << std::endl;
 	return 1;
     }
     int size = 0;
@@ -123,7 +123,7 @@ int main()
     w->writeMeta("flarfi", ivals, 4);
 
     if (!w->close(error)) {
-	std::cerr << error << std::endl;
+	std::cerr << error.c_str() << std::endl;
     }
 
     w->release();
@@ -135,7 +135,7 @@ int main()
     vals[2] = 0;
     w->writeMeta("yahoo", vals, 3);
     if (!w->close(error)) {
-	std::cerr << error << std::endl;
+	std::cerr << error.c_str() << std::endl;
     }
     w->release();
 
@@ -148,7 +148,7 @@ int main()
     w->writeFace(2, Ptex::Res(2, 2), fvals+3);
 #endif
     if (!w->close(error)) {
-	std::cerr << error << std::endl;
+	std::cerr << error.c_str() << std::endl;
     }
     w->release();
 

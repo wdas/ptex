@@ -118,11 +118,11 @@ int main(int argc, char** argv)
     int maxmem = argc >= 2 ? atoi(argv[1]) : 0;
     PtexCache* c = PtexCache::create(0, maxmem);
 
-    std::string error;
+    Ptex::String error;
     PtexTexture* r = c->get("test.ptx", error);
 
     if (!r) {
-	std::cerr << error << std::endl;
+	std::cerr << error.c_str() << std::endl;
 	return 1;
     }
     std::cout << "meshType: " << Ptex::MeshTypeName(r->meshType()) << std::endl;

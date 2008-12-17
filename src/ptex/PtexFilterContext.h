@@ -11,6 +11,7 @@
    (c) Disney. All rights reserved.
 */
 
+#include <string.h>
 #include "Ptexture.h"
 #include "PtexUtils.h"
 

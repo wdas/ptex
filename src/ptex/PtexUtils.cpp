@@ -11,6 +11,8 @@
 #include "PtexPlatform.h"
 #include <algorithm>
 #include <vector>
+#include <stdlib.h>
+#include <string.h>
 
 #include "PtexHalf.h"
 #include "PtexUtils.h"
@@ -549,3 +551,15 @@ void PtexUtils::genRfaceids(const FaceInfo* faces, int nfaces,
 }
 
 	
+Ptex::String::~String()
+{
+    if (_str) free(_str);
+}
+
+
+Ptex::String& Ptex::String::operator=(const char* str)
+{
+    if (_str) free(_str);
+    _str = strdup(str);
+    return *this;
+}

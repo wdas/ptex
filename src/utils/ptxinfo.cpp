@@ -229,10 +229,10 @@ int main(int argc, char** argv)
     }
     if (!fname) usage();
 
-    std::string error;
+    Ptex::String error;
     PtexPtr<PtexTexture> r = PtexTexture::open(fname, error);
     if (!r) {
-	std::cerr << error << std::endl;
+	std::cerr << error.c_str() << std::endl;
 	return 1;
     }
     std::cout << "meshType: " << Ptex::MeshTypeName(r->meshType()) << std::endl;

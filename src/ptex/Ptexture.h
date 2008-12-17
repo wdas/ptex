@@ -1,5 +1,17 @@
 #ifndef Ptexture_h
 #define Ptexture_h
+
+#if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
+#  ifdef PTEX_EXPORTS
+#     define PTEXAPI __declspec(dllexport)
+#  else
+#     define PTEXAPI __declspec(dllimport)
+#  endif
+#else
+#  define PTEXAPI
+#endif
+
+
 /* 
    CONFIDENTIAL INFORMATION: This software is the confidential and
    proprietary information of Walt Disney Animation Studios ("Disney").
@@ -11,17 +23,16 @@
 */
 
 #include <stdint.h>
-#include <string>
 
 struct Ptex {
     enum MeshType     { mt_triangle, mt_quad };
     enum DataType     { dt_uint8, dt_uint16, dt_half, dt_float };
     enum EdgeId       { e_bottom, e_right, e_top, e_left };
     enum MetaDataType { mdt_string, mdt_int8, mdt_int16, mdt_int32, mdt_float, mdt_double };
-    static const char* MeshTypeName(MeshType mt);
-    static const char* DataTypeName(DataType dt);
-    static const char* EdgeIdName(EdgeId eid);
-    static const char* MetaDataTypeName(MetaDataType mdt);
+    PTEXAPI static const char* MeshTypeName(MeshType mt);
+    PTEXAPI static const char* DataTypeName(DataType dt);
+    PTEXAPI static const char* EdgeIdName(EdgeId eid);
+    PTEXAPI static const char* MetaDataTypeName(MetaDataType mdt);
 
     static int DataSize(DataType dt) {
 	static const int sizes[] = { 1,2,2,4 };
@@ -36,9 +47,9 @@ struct Ptex {
 	return one[dt]; 
     }
     static void ConvertToFloat(float* dst, const void* src,
-			       Ptex::DataType dt, int numChannels);
+				       Ptex::DataType dt, int numChannels);
     static void ConvertFromFloat(void* dst, const float* src,
-				 Ptex::DataType dt, int numChannels);
+					 Ptex::DataType dt, int numChannels);
 
     struct Res {
 	// Pixel resolution stored in log form (log2(ures), log2(vres))
@@ -106,6 +117,20 @@ struct Ptex {
 	{ adjedges = (e0&3) | ((e1&3)<<2) | ((e2&3)<<4) | ((e3&3)<<6); }
 	enum { flag_constant = 1, flag_hasedits = 2, flag_nbconstant = 4, flag_subface = 8 };
     };
+
+    class String
+    {
+     public:
+	String() : _str(0) {}
+	PTEXAPI ~String();
+	PTEXAPI String& operator=(const char* str);
+	const char* c_str() const { return _str ? _str : ""; }
+	bool empty() const { return _str == 0; }
+     private:
+	char* _str;
+	String(const String&);
+	void operator=(const String&);
+    };
 };
 
 
@@ -145,7 +170,7 @@ class PtexFaceData {
 
 class PtexTexture {
  public:
-    static PtexTexture* open(const char* path, std::string& error, bool premultiply=0);
+    PTEXAPI static PtexTexture* open(const char* path, Ptex::String& error, bool premultiply=0);
     virtual void release() = 0;
     virtual const char* path() = 0;
     virtual Ptex::MeshType meshType() = 0;
@@ -174,11 +199,11 @@ class PtexTexture {
 
 class PtexCache {
  public:
-    static PtexCache* create(int maxFiles=0, int maxMem=0, bool premultiply=0);
+    PTEXAPI static PtexCache* create(int maxFiles=0, int maxMem=0, bool premultiply=0);
     virtual void release() = 0;
     virtual void setSearchPath(const char* path) = 0;
     virtual const char* getSearchPath() = 0;
-    virtual PtexTexture* get(const char* path, std::string& error) = 0;
+    virtual PtexTexture* get(const char* path, Ptex::String& error) = 0;
     virtual void purge(PtexTexture* texture) = 0;
     virtual void purge(const char* path) = 0;
     virtual void purgeAll() = 0;
@@ -187,17 +212,17 @@ class PtexCache {
     virtual ~PtexCache() {}
 };
 
-
 class PtexWriter {
  public:
-    static PtexWriter* open(const char* path, 
-			    Ptex::MeshType mt, Ptex::DataType dt,
+    PTEXAPI
+    static PtexWriter* open(const char* path, Ptex::MeshType mt, Ptex::DataType dt,
 			    int nchannels, int alphachan, int nfaces,
-			    std::string& error, bool genmipmaps=true);
+			    Ptex::String& error, bool genmipmaps=true);
+    PTEXAPI
     static PtexWriter* edit(const char* path, bool incremental, 
 			    Ptex::MeshType mt, Ptex::DataType dt,
 			    int nchannels, int alphachan, int nfaces,
-			    std::string& error, bool genmipmaps=true);
+			    Ptex::String& error, bool genmipmaps=true);
 
     virtual void release() = 0;
     
@@ -210,7 +235,7 @@ class PtexWriter {
     virtual void writeMeta(PtexMetaData* data) = 0;
     virtual bool writeFace(int faceid, const Ptex::FaceInfo& info, const void* data, int stride=0) = 0;
     virtual bool writeConstantFace(int faceid, const Ptex::FaceInfo& info, const void* data) = 0;
-    virtual bool close(std::string& error) = 0;
+    virtual bool close(Ptex::String& error) = 0;
 
  protected:
     virtual ~PtexWriter() {}
@@ -219,11 +244,11 @@ class PtexWriter {
 
 class PtexFilter {
  public:
-    static PtexFilter* mitchell(float sharpness);
-    static PtexFilter* box();
-    static PtexFilter* gaussian();
-    static PtexFilter* trilinear();
-    static PtexFilter* radialBSpline();
+    PTEXAPI static PtexFilter* mitchell(float sharpness);
+    PTEXAPI static PtexFilter* box();
+    PTEXAPI static PtexFilter* gaussian();
+    PTEXAPI static PtexFilter* trilinear();
+    PTEXAPI static PtexFilter* radialBSpline();
 
     virtual void release() = 0;
     virtual void eval(float* result, int firstchan, int nchannels,

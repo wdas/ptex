@@ -13,7 +13,6 @@ SRCS = \
 	PtexFilterKernel.cpp \
 	PtexFilters.cpp \
 	PtexHalf.cpp \
-	PtexLockFile.cpp \
 	PtexMitchellFilter.cpp \
 	PtexReader.cpp \
 	PtexSeparableFilter.cpp \

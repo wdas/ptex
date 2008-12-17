@@ -13,7 +13,9 @@
 
 // platform-specific includes
 #if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
+#ifndef WINDOWS
 #define WINDOWS
+#endif
 #define _CRT_NONSTDC_NO_DEPRECATE 1
 #define _CRT_SECURE_NO_DEPRECATE 1
 #define NOMINMAX 1
@@ -49,8 +51,6 @@ typedef __int64 FilePos;
 inline double log2(double x) {
     return log(x) * 1.4426950408889634; 
 }
-
-int mkstemp(char* templateStr); // TODO - implement this for Windows
 
 #else
 typedef off_t FilePos;

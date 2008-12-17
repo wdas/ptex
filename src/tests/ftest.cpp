@@ -1,5 +1,4 @@
 #include <string>
-#include <alloca.h>
 #include <iostream>
 #include "Ptexture.h"
 
@@ -8,11 +7,11 @@ int main(int argc, char** argv)
     int maxmem = argc >= 2 ? atoi(argv[1]) : 1024*1024;
     PtexCache* c = PtexCache::create(0, maxmem);
 
-    std::string error;
+    Ptex::String error;
     PtexTexture* r = c->get("test.ptx", error);
 
     if (!r) {
-	std::cerr << error << std::endl;
+	std::cerr << error.c_str() << std::endl;
 	return 1;
     }
 

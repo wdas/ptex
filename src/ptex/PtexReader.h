@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <zlib.h>
 #include <vector>
+#include <string>
 #include <map>
 #include "Ptexture.h"
 #include "PtexIO.h"
@@ -47,7 +48,7 @@ public:
 class PtexReader : public PtexCachedFile, public PtexTexture, public PtexIO {
 public:
     PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply);
-    bool open(const char* path, std::string& error);
+    bool open(const char* path, Ptex::String& error);
 
     void setOwnsCache() { _ownsCache = true; }
     virtual void release();
