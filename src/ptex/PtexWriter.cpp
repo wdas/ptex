@@ -92,22 +92,6 @@ namespace {
 
 	return 1;
     }
-
-    FILE* createTempFile(const char* base, const char* suffix, std::string& error)
-    {
-	std::string path = base;
-	path += suffix;
-
-	FILE* fp = fopen(path.c_str(), "wb+");
-	if (!fp) {
-	    error = fileError("Can't create temp file: ", path.c_str());
-	    return 0;
-	}
-
-	// unlink file (it will get deleted on close)
-	unlink(path.c_str());
-	return fp;
-    }
 }
 
 
@@ -158,7 +142,6 @@ PtexWriter* PtexWriter::edit(const char* path, bool incremental,
 	    // main writer will use PtexReader to read file
 	    newfile = false;
 	    fclose(fp);
-	    fp = 0;
 	}
 	w = new PtexMainWriter(path, newfile, mt, dt, nchannels, alphachan,
 			       nfaces, genmipmaps);
@@ -173,13 +156,12 @@ PtexWriter* PtexWriter::edit(const char* path, bool incremental,
 
 
 
-PtexWriterBase::PtexWriterBase(const char* path, FILE* fp,
+PtexWriterBase::PtexWriterBase(const char* path,
 			       Ptex::MeshType mt, Ptex::DataType dt,
 			       int nchannels, int alphachan, int nfaces,
 			       bool compress)
     : _ok(true),
       _path(path),
-      _fp(fp),
       _tilefp(0)
 {
     memset(&_header, 0, sizeof(_header));
@@ -199,16 +181,19 @@ PtexWriterBase::PtexWriterBase(const char* path, FILE* fp,
     // create temp file for writing tiles
     // (must compress each tile before assembling a tiled face)
     std::string error;
-    _tilefp = createTempFile(path, ".tiles.tmp", error);
-    if (!_tilefp) { setError(error); return; }
+    _tilepath = _path + ".tiles.tmp";
+    _tilefp = fopen(_tilepath.c_str(), "wb+");
+    if (!_tilefp) {
+	setError(fileError("Error creating temp file: ", _tilepath.c_str()));
+    }
 }
 
 
 void PtexWriterBase::release()
 {
     Ptex::String error;
-    // close file if app didn't, and report error if any
-    if (_fp && !close(error))
+    // close writer if app didn't, and report error if any
+    if (_tilefp && !close(error))
 	std::cerr << error.c_str() << std::endl;
     delete this;
 }
@@ -223,12 +208,10 @@ bool PtexWriterBase::close(Ptex::String& error)
 {
     if (_ok) finish();
     if (!_ok) getError(error);
-    if (_fp) {
-	fclose(_fp);
-	_fp = 0;
-    }
     if (_tilefp) {
 	fclose(_tilefp);
+	unlink(_tilepath.c_str());
+	_tilefp = 0;
     }
     return _ok;
 }
@@ -445,8 +428,7 @@ void PtexWriterBase::writeConstFaceBlock(FILE* fp, const void* data,
 {
     // write a single const face data block
     // record level data for face and output the one pixel value
-    fdh.blocksize = _pixelSize;
-    fdh.encoding = enc_constant;
+    fdh.set(_pixelSize, enc_constant);
     writeBlock(fp, data, _pixelSize);
 }
 
@@ -473,8 +455,7 @@ void PtexWriterBase::writeFaceBlock(FILE* fp, const void* data, int stride,
     int zippedsize = writeZipBlock(fp, buff, blockSize);
 
     // record compressed size and encoding in data header
-    fdh.blocksize = zippedsize;
-    fdh.encoding = diff ? enc_diffzipped : enc_zipped;
+    fdh.set(zippedsize, diff ? enc_diffzipped : enc_zipped);
     if (useMalloc) free(buff);
 }
 
@@ -515,7 +496,7 @@ void PtexWriterBase::writeFaceData(FILE* fp, const void* data, int stride,
 		    writeConstFaceBlock(_tilefp, p, *tdh);
 		else
 		    writeFaceBlock(_tilefp, p, stride, tileres, *tdh);
-		datasize += tdh->blocksize;
+		datasize += tdh->blocksize();
 	    }
 	}
 
@@ -535,8 +516,7 @@ void PtexWriterBase::writeFaceData(FILE* fp, const void* data, int stride,
 	// copy tile data from temp file
 	totalsize += copyBlock(fp, _tilefp, 0, datasize);
 
-	fdh.blocksize = totalsize;
-	fdh.encoding = enc_tiled;
+	fdh.set(totalsize, enc_tiled);
     }
 }
 
@@ -589,14 +569,18 @@ void PtexWriterBase::writeMetaData(FILE* fp, uint32_t& memsize, uint32_t& zipsiz
 PtexMainWriter::PtexMainWriter(const char* path, bool newfile,
 			       Ptex::MeshType mt, Ptex::DataType dt,
 			       int nchannels, int alphachan, int nfaces, bool genmipmaps)
-    : PtexWriterBase(path, 0, mt, dt, nchannels, alphachan, nfaces,
+    : PtexWriterBase(path, mt, dt, nchannels, alphachan, nfaces,
 		     /* compress */ true),
       _hasNewData(false),
       _genmipmaps(genmipmaps),
       _reader(0)
 {
-    _fp = createTempFile(path, ".tmp", _error);
-    if (!_fp) { _ok = 0; return; }
+    _tmppath = _path + ".tmp";
+    _tmpfp = fopen(_tmppath.c_str(), "wb+");
+    if (!_tmpfp) {
+	setError(fileError("Error creating temp file: ", _tmppath.c_str()));
+	return;
+    }
 
     // data will be written to a ".new" path and then renamed to final location
     _newpath = path; _newpath += ".new";
@@ -664,8 +648,18 @@ bool PtexMainWriter::close(Ptex::String& error)
     // closing base writer will write all pending data via finish() method
     // and will close _fp (which in this case is on the temp disk)
     bool result = PtexWriterBase::close(error);
+    if (_reader) {
+	_reader->release();
+	_reader = 0;
+    }
+    if (_tmpfp) {
+	fclose(_tmpfp);
+	unlink(_tmppath.c_str());
+	_tmpfp = 0;
+    }
     if (result && _hasNewData) {
 	// rename temppath into final location
+	unlink(_path.c_str());
 	if (rename(_newpath.c_str(), _path.c_str()) == -1) {
 	    error = fileError("Can't write to ptex file: ", _path.c_str()).c_str();
 	    unlink(_newpath.c_str());
@@ -695,10 +689,10 @@ bool PtexMainWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
     _faceinfo[faceid].flags &= FaceInfo::flag_subface;
 
     // record position of current face
-    _levels.front().pos[faceid] = ftello(_fp);
+    _levels.front().pos[faceid] = ftello(_tmpfp);
 
     // write face data
-    writeFaceData(_fp, data, stride, f.res, _levels.front().fdh[faceid]);
+    writeFaceData(_tmpfp, data, stride, f.res, _levels.front().fdh[faceid]);
     if (!_ok) return 0;
 
     // premultiply (if needed) before making reductions; use temp copy of data
@@ -722,8 +716,8 @@ bool PtexMainWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
     if (_genmipmaps &&
 	(f.res.ulog2 > MinReductionLog2 && f.res.vlog2 > MinReductionLog2))
     {
-	_rpos[faceid] = ftello(_fp);
-	writeReduction(_fp, data, stride, f.res);
+	_rpos[faceid] = ftello(_tmpfp);
+	writeReduction(_tmpfp, data, stride, f.res);
     }
     else {
 	storeConstValue(faceid, data, stride, f.res);
@@ -851,8 +845,8 @@ void PtexMainWriter::finish()
 	info.leveldatasize = info.levelheadersize;
 	// copy level data from tmp file
 	for (int fi = 0; fi < nfaces; fi++)
-	    info.leveldatasize += copyBlock(newfp, _fp, level.pos[fi],
-					    level.fdh[fi].blocksize);
+	    info.leveldatasize += copyBlock(newfp, _tmpfp, level.pos[fi],
+					    level.fdh[fi].blocksize());
 	_header.leveldatasize += info.leveldatasize;
     }
 
@@ -979,17 +973,17 @@ void PtexMainWriter::generateReductions()
 	    res.ulog2 -= i; res.vlog2 -= i;
 	    int stride = res.u() * _pixelSize;
 	    int blocksize = res.size() * _pixelSize;
-	    fseeko(_fp, _rpos[faceid], SEEK_SET);
-	    readBlock(_fp, buff, blocksize);
-	    fseeko(_fp, 0, SEEK_END);
-	    level.pos[rfaceid] = ftello(_fp);
-	    writeFaceData(_fp, buff, stride, res, level.fdh[rfaceid]);
+	    fseeko(_tmpfp, _rpos[faceid], SEEK_SET);
+	    readBlock(_tmpfp, buff, blocksize);
+	    fseeko(_tmpfp, 0, SEEK_END);
+	    level.pos[rfaceid] = ftello(_tmpfp);
+	    writeFaceData(_tmpfp, buff, stride, res, level.fdh[rfaceid]);
 	    if (!_ok) return;
 
 	    // write a new reduction if needed for next level
 	    if (rfaceid < nextsize) {
-		fseeko(_fp, _rpos[faceid], SEEK_SET);
-		writeReduction(_fp, buff, stride, res);
+		fseeko(_tmpfp, _rpos[faceid], SEEK_SET);
+		writeReduction(_tmpfp, buff, stride, res);
 	    }
 	    else {
 		// the last reduction for each face is its constant value
@@ -997,7 +991,7 @@ void PtexMainWriter::generateReductions()
 	    }
 	}
     }
-    fseeko(_fp, 0, SEEK_END);
+    fseeko(_tmpfp, 0, SEEK_END);
     free(buff);
 }
 
@@ -1005,8 +999,9 @@ void PtexMainWriter::generateReductions()
 PtexIncrWriter::PtexIncrWriter(const char* path, FILE* fp, 
 			       Ptex::MeshType mt, Ptex::DataType dt,
 			       int nchannels, int alphachan, int nfaces)
-    : PtexWriterBase(path, fp, mt, dt, nchannels, alphachan, nfaces,
-		     /* compress */ false)
+    : PtexWriterBase(path, mt, dt, nchannels, alphachan, nfaces,
+		     /* compress */ false),
+      _fp(fp)
 {
     // note: incremental saves are not compressed (see compress flag above)
     // to improve save time in the case where in incremental save is followed by
@@ -1101,7 +1096,7 @@ bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
     writeFaceData(_fp, data, stride, f.res, efdh.fdh);
 
     // update editsize in header
-    editsize = sizeof(efdh) + _pixelSize + efdh.fdh.blocksize;
+    editsize = sizeof(efdh) + _pixelSize + efdh.fdh.blocksize();
 
     // rewind and write headers
     fseeko(_fp, pos, SEEK_SET);
@@ -1124,8 +1119,7 @@ bool PtexIncrWriter::writeConstantFace(int faceid, const FaceInfo& f, const void
     efdh.faceid = faceid;
     efdh.faceinfo = f;
     efdh.faceinfo.flags = FaceInfo::flag_constant;
-    efdh.fdh.blocksize = 0; // const value already stored
-    efdh.fdh.encoding = enc_constant;
+    efdh.fdh.set(0, enc_constant);
     editsize = sizeof(efdh) + _pixelSize;
 
     // write headers
@@ -1135,6 +1129,18 @@ bool PtexIncrWriter::writeConstantFace(int faceid, const FaceInfo& f, const void
     // write data
     writeBlock(_fp, data, _pixelSize);
     return 1;
+}
+
+
+bool PtexIncrWriter::close(Ptex::String& error)
+{
+    // closing base writer will write all pending data via finish() method
+    bool result = PtexWriterBase::close(error);
+    if (_fp) {
+	fclose(_fp);
+	_fp = 0;
+    }
+    return result;
 }
 
 

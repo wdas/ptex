@@ -43,7 +43,7 @@ public:
 
 protected:
     virtual void finish() = 0;
-    PtexWriterBase(const char* path, FILE* fp,
+    PtexWriterBase(const char* path,
 		   Ptex::MeshType mt, Ptex::DataType dt,
 		   int nchannels, int alphachan, int nfaces,
 		   bool compress);
@@ -68,8 +68,8 @@ protected:
     bool _ok;			// true if no error has occurred
     std::string _error;		// the error text (if any)
     std::string _path;		// file path
-    FILE* _fp;			// main file pointer
-    FILE* _tilefp;		// temp file for writing tiles
+    std::string _tilepath;	// temp tile file path ("<path>.tiles.tmp")
+    FILE* _tilefp;		// temp tile file handle
     Header _header;		// the file header
     int _pixelSize;		// size of a pixel in bytes
 
@@ -109,6 +109,8 @@ private:
     void storeConstValue(int faceid, const void* data, int stride, Res res);
 
     std::string _newpath;		  // path to ".new" file
+    std::string _tmppath;		  // temp file path ("<path>.tmp")
+    FILE* _tmpfp;			  // temp file handle
     bool _hasNewData;			  // true if data has been written
     bool _genmipmaps;			  // true if mipmaps should be generated
     std::vector<FaceInfo> _faceinfo;	  // info about each face
@@ -139,12 +141,16 @@ class PtexIncrWriter : public PtexWriterBase {
 		   Ptex::MeshType mt, Ptex::DataType dt,
 		   int nchannels, int alphachan, int nfaces);
 
+    virtual bool close(Ptex::String& error);
     virtual bool writeFace(int faceid, const FaceInfo& f, const void* data, int stride);
     virtual bool writeConstantFace(int faceid, const FaceInfo& f, const void* data);
 
  protected:
     virtual void finish();
     virtual ~PtexIncrWriter();
+
+ private:
+    FILE* _fp;		// the file being edited
 };
 
 #endif

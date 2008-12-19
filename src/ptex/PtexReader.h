@@ -434,7 +434,7 @@ protected:
 
     int unpackedSize(FaceDataHeader fdh, int levelid, int faceid)
     {
-	if (fdh.encoding == enc_constant) 
+	if (fdh.encoding() == enc_constant) 
 	    // level 0 constant faces are not stored
 	    return levelid == 0 ? 0 : _pixelsize;
 	else 
@@ -456,7 +456,7 @@ protected:
     void computeOffsets(FilePos pos, int noffsets, const FaceDataHeader* fdh, FilePos* offsets)
     {
 	FilePos* end = offsets + noffsets;
-	while (offsets != end) { *offsets++ = pos; pos += fdh->blocksize; fdh++; }
+	while (offsets != end) { *offsets++ = pos; pos += fdh->blocksize(); fdh++; }
     }
     void blendFaces(FaceData*& face, int faceid, Res res, bool blendu);
 

@@ -1,17 +1,6 @@
 #ifndef Ptexture_h
 #define Ptexture_h
 
-#if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
-#  ifdef PTEX_EXPORTS
-#     define PTEXAPI __declspec(dllexport)
-#  else
-#     define PTEXAPI __declspec(dllimport)
-#  endif
-#else
-#  define PTEXAPI
-#endif
-
-
 /* 
    CONFIDENTIAL INFORMATION: This software is the confidential and
    proprietary information of Walt Disney Animation Studios ("Disney").
@@ -21,6 +10,16 @@
    this software must include this legend and all copyright notices.
    (c) Disney. All rights reserved.
 */
+
+#if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
+#  ifdef PTEX_EXPORTS
+#     define PTEXAPI __declspec(dllexport)
+#  else
+#     define PTEXAPI __declspec(dllimport)
+#  endif
+#else
+#  define PTEXAPI
+#endif
 
 #include <stdint.h>
 
@@ -46,9 +45,9 @@ struct Ptex {
 	static const double one[] = { 1.0/255.0, 1.0/65535.0, 1.0, 1.0 };
 	return one[dt]; 
     }
-    static void ConvertToFloat(float* dst, const void* src,
+    PTEXAPI static void ConvertToFloat(float* dst, const void* src,
 				       Ptex::DataType dt, int numChannels);
-    static void ConvertFromFloat(void* dst, const float* src,
+    PTEXAPI static void ConvertFromFloat(void* dst, const float* src,
 					 Ptex::DataType dt, int numChannels);
 
     struct Res {

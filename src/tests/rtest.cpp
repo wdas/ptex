@@ -1,13 +1,12 @@
 #include <string>
-#include <alloca.h>
 #include <iostream>
 #include "Ptexture.h"
 
 void DumpData(Ptex::DataType dt, int nchan, PtexFaceData* dh, std::string prefix)
 {
-    void* dpixel = alloca(Ptex::DataSize(dt)*nchan);
-    float* pixel = (float*) alloca(sizeof(float)*nchan);
-    uint8_t* cpixel = (uint8_t*) alloca(sizeof(uint8_t)*nchan);
+    void* dpixel = malloc(Ptex::DataSize(dt)*nchan);
+    float* pixel = (float*) malloc(sizeof(float)*nchan);
+    uint8_t* cpixel = (uint8_t*) malloc(sizeof(uint8_t)*nchan);
     Ptex::Res res = dh->res();
     printf("%sdata (%d x %d)", prefix.c_str(), res.u(), res.v());
     if (dh->isTiled()) {
@@ -49,6 +48,9 @@ void DumpData(Ptex::DataType dt, int nchan, PtexFaceData* dh, std::string prefix
 	}
 	if (vimax != vres) std::cout << prefix << "  ..." << std::endl;
     }
+    free(cpixel);
+    free(pixel);
+    free(dpixel);
 }
 
 void DumpMetaData(PtexMetaData* meta)
@@ -113,13 +115,10 @@ void DumpMetaData(PtexMetaData* meta)
     }
 }
 
-int main(int argc, char** argv)
+int main(int /*argc*/, char** /*argv*/)
 {
-    int maxmem = argc >= 2 ? atoi(argv[1]) : 0;
-    PtexCache* c = PtexCache::create(0, maxmem);
-
     Ptex::String error;
-    PtexTexture* r = c->get("test.ptx", error);
+    PtexTexture* r = PtexTexture::open("test.ptx", error);
 
     if (!r) {
 	std::cerr << error.c_str() << std::endl;
@@ -141,7 +140,6 @@ int main(int argc, char** argv)
     int nfaces = r->numFaces();
     for (int i = 0; i < nfaces; i++) {
 	const Ptex::FaceInfo& f = r->getFaceInfo(i);
-#if 1
 	std::cout << "face " << i << ":\n"
 		  << "  res: " << int(f.res.ulog2) << ' ' << int(f.res.vlog2) << "\n"
 		  << "  adjface: " 
@@ -155,10 +153,8 @@ int main(int argc, char** argv)
 		  << f.adjedge(2) << ' '
 		  << f.adjedge(3) << "\n"
 		  << "  flags: " << int(f.flags) << "\n";
-#endif
 
 	Ptex::Res res = f.res;
-	//	res.vlog2--;
 	while (res.ulog2 > 0 || res.vlog2 > 0) {
 	    PtexFaceData* dh = r->getData(i, res);
 	    if (!dh) break;
@@ -167,66 +163,13 @@ int main(int argc, char** argv)
 	    dh->release();
 	    if (isconst) break;
 	    if (res.ulog2) res.ulog2--;
-	    //else
-		if (res.vlog2) res.vlog2--;
+	    if (res.vlog2) res.vlog2--;
 	}
 	PtexFaceData* dh = r->getData(i, Ptex::Res(0,0));
 	DumpData(r->dataType(), r->numChannels(), dh, "  ");
 	dh->release();
-
-#if 0
-	{
-	    int ures=f.res.u(), vres=f.res.v();
-	    Ptex::DataType dt = r->dataType();
-	    int nchan = r->numChannels();
-	    float* pixel = (float*) alloca(sizeof(float)*nchan);
-	    uint8_t* cpixel = (uint8_t*) alloca(sizeof(uint8_t)*nchan);
-	    int pixelsize = Ptex::DataSize(dt) * nchan;
-	    int rowlen = ures * pixelsize;
-	    int stride = rowlen + 64;
-	    void* buff = malloc(stride * vres);
-	    r->getData(i, buff, stride);
-	    std::cout << "data:";
-	
-	    int vimax = vres; if (vimax > 16) vimax = 16;
-	    for (int vi = 0; vi < vimax; vi++) {
-		std::cout << "  ";
-		int uimax = ures; if (uimax > 16) uimax = 16;
-		for (int ui = 0; ui < uimax; ui++) {
-#if 0
-		    void* src = ((char*)buff) + stride * vi + pixelsize * ui;
-#else
-		    void* src = dh->getPixel(ui, vi);
-#endif
-		    Ptex::ConvertToFloat(pixel, src, dt, nchan);
-		    Ptex::ConvertFromFloat(cpixel, pixel, Ptex::dt_uint8, nchan);
-		    for (int c=0; c < nchan; c++) {
-			printf("%02x", cpixel[c]);
-		    }
-		    printf(" ");
-		}
-		if (uimax != ures) printf(" ...");
-		printf("\n");
-	    }
-	    if (vimax != vres) std::cout << "  ..." << std::endl;
-	}
-#endif
     }
 
-#if 0
-#define log(x) x // std::cout << "\n*** " #x "\n" << std::endl; x
-
-    log(c->get("test.ptx", error)->release(););
-    log(c->get("test2.ptx", error)->release(););
-    log(c->purge("test.ptx"););
-    log(c->get("test.ptx", error)->release(););
-    log(c->get("test2.ptx", error)->release(););
-    log(c->purgeAll(););
-    log(c->get("test2.ptx", error)->release(););
-    log(c->release(););
-    log(r->release(););
-#endif
-    c->release();
     r->release();
     return 0;
 }

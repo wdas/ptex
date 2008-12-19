@@ -487,7 +487,7 @@ void PtexReader::readFace(int levelid, Level* level, int faceid)
     int totalsize = 0;
 
     FaceDataHeader fdh = level->fdh[faceid];
-    if (fdh.encoding != enc_tiled) {
+    if (fdh.encoding() != enc_tiled) {
 	totalsize += unpackedSize(fdh, levelid, faceid);
 
 	int nfaces = int(level->fdh.size());
@@ -495,7 +495,7 @@ void PtexReader::readFace(int levelid, Level* level, int faceid)
 	    int f = first-1;
 	    if (f < 0 || level->faces[f]) break;
 	    fdh = level->fdh[f];
-	    if (fdh.encoding == enc_tiled) break;
+	    if (fdh.encoding() == enc_tiled) break;
 	    int size = totalsize + unpackedSize(fdh, levelid, f);
 	    if (size > BlockSize) break;
 	    first = f;
@@ -505,7 +505,7 @@ void PtexReader::readFace(int levelid, Level* level, int faceid)
 	    int f = last+1;
 	    if (f >= nfaces || level->faces[f]) break;
 	    fdh = level->fdh[f];
-	    if (fdh.encoding == enc_tiled) break;
+	    if (fdh.encoding() == enc_tiled) break;
 	    int size = totalsize + unpackedSize(fdh, levelid, f);
 	    if (size > BlockSize) break;
 	    last = f;
@@ -521,7 +521,7 @@ void PtexReader::readFace(int levelid, Level* level, int faceid)
     for (int i = first; i <= last; i++) {
 	fdh = level->fdh[i];
 	// skip faces with zero size (which is true for level-0 constant faces)
-	if (fdh.blocksize) {
+	if (fdh.blocksize()) {
 	    FaceData*& face = level->faces[i];
 	    readFaceData(level->offsets[i], fdh, getRes(levelid, i), levelid, face);
 	    if (i != faceid) extraFaces.push_back(face);
@@ -571,7 +571,7 @@ void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int leve
     FaceData* volatile newface = 0;
 
     seek(pos);
-    switch (fdh.encoding) {
+    switch (fdh.encoding()) {
     case enc_constant: 
 	{
 	    ConstantFace* pf = new ConstantFace((void**)&face, _cache, _pixelsize);
@@ -603,8 +603,8 @@ void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int leve
 	    PackedFace* pf = new PackedFace((void**)&face, _cache, 
 					    res, _pixelsize, unpackedSize);
 	    void* tmp = alloca(unpackedSize);
-	    readZipBlock(tmp, fdh.blocksize, unpackedSize);
-	    if (fdh.encoding == enc_diffzipped)
+	    readZipBlock(tmp, fdh.blocksize(), unpackedSize);
+	    if (fdh.encoding() == enc_diffzipped)
 		PtexUtils::decodeDifference(tmp, unpackedSize, _header.datatype);
 	    PtexUtils::interleave(tmp, uw * DataSize(_header.datatype), uw, vw,
 				  pf->data(), uw * _pixelsize,

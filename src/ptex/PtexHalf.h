@@ -31,6 +31,16 @@
         NaN,                                 if E == 31 and M != 0,
 */
 
+#if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
+#  ifdef PTEX_EXPORTS
+#     define PTEXAPI __declspec(dllexport)
+#  else
+#     define PTEXAPI __declspec(dllimport)
+#  endif
+#else
+#  define PTEXAPI
+#endif
+
 #include <stdint.h>
 
 struct PtexHalf {
@@ -59,10 +69,10 @@ struct PtexHalf {
     }
 
  private:
-    static uint16_t fromFloat_except(uint32_t val);
+    PTEXAPI static uint16_t fromFloat_except(uint32_t val);
     /* internal */ public:
-    static uint32_t h2fTable[65536];
-    static uint16_t f2hTable[512];
+    PTEXAPI static uint32_t h2fTable[65536];
+    PTEXAPI static uint16_t f2hTable[512];
 };
 
 #endif

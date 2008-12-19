@@ -18,6 +18,10 @@
 #include <stdint.h>
 #include <iostream>
 
+#if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
+#include <float.h>
+#define isfinite _finite
+#endif
 
 #ifdef OPEN_EXR
 
@@ -364,7 +368,7 @@ void printall()
 	printf("0x%x -> %g 0x%x\n", i, f, floatToBits(f));
     }
     for (int e = -10; e < 10; e++) {
-	float f = pow(10, e);
+	double f = pow(10.0, e);
 	int i = f2h(f);
 	printf("%g -> 0x%x ->%g\n", f, i, h2f(i));
     }
