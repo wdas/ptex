@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ftest", "..\ftest\ftest.vcp
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "halftest", "..\halftest\halftest.vcproj", "{5A3D6A62-F920-4844-8FB8-D7BDC5297683}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ptxinfo", "..\ptxinfo\ptxinfo.vcproj", "{C55C660C-E58F-441C-B338-7A7E0BD64EE6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -37,6 +39,10 @@ Global
 		{5A3D6A62-F920-4844-8FB8-D7BDC5297683}.Debug|Win32.Build.0 = Debug|Win32
 		{5A3D6A62-F920-4844-8FB8-D7BDC5297683}.Release|Win32.ActiveCfg = Release|Win32
 		{5A3D6A62-F920-4844-8FB8-D7BDC5297683}.Release|Win32.Build.0 = Release|Win32
+		{C55C660C-E58F-441C-B338-7A7E0BD64EE6}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C55C660C-E58F-441C-B338-7A7E0BD64EE6}.Debug|Win32.Build.0 = Debug|Win32
+		{C55C660C-E58F-441C-B338-7A7E0BD64EE6}.Release|Win32.ActiveCfg = Release|Win32
+		{C55C660C-E58F-441C-B338-7A7E0BD64EE6}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

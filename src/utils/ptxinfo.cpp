@@ -8,7 +8,6 @@
    (c) Disney. All rights reserved.
 */
 #include <string>
-#include <alloca.h>
 #include <iostream>
 #include "Ptexture.h"
 #include "PtexReader.h"
@@ -64,7 +63,7 @@ void DumpData(PtexTexture* r, int faceid)
 {
     const Ptex::FaceInfo& f = r->getFaceInfo(faceid);
     int nchan = r->numChannels();
-    float* pixel = (float*) alloca(sizeof(float)*nchan);
+    float* pixel = (float*) malloc(sizeof(float)*nchan);
     int ures = f.res.u(), vres = f.res.v();
     std::cout << "  data (" << ures << " x " << vres << ")";
     if (f.isConstant()) { ures = vres = 1; }
@@ -81,6 +80,7 @@ void DumpData(PtexTexture* r, int faceid)
 	}
     }
     std::cout << std::endl;
+    free(pixel);
 }
 
 void DumpMetaData(PtexMetaData* meta)
