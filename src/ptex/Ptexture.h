@@ -23,6 +23,8 @@
 
 #include <stdint.h>
 
+namespace PtexV2 {
+
 struct Ptex {
     enum MeshType     { mt_triangle, mt_quad };
     enum DataType     { dt_uint8, dt_uint16, dt_half, dt_float };
@@ -272,5 +274,7 @@ template <class T> class PtexPtr {
     void operator= (PtexPtr& p);
 };
 
+}
+using namespace PtexV2;
 
 #endif
