@@ -16,10 +16,11 @@ INSTALLDIR = ../../install
 INSTALL = \
 	bin/ptxinfo \
 	bin/subdivideobj \
+	bin/subdivideptx \
 	bin/unsubdivideptx \
 	bin/objtorib
 
-ALL = ptxinfo subdivideobj unsubdivideptx objtorib
+ALL = ptxinfo subdivideobj subdivideptx unsubdivideptx objtorib
 
 $(INSTALLDIR)/bin/% : %
 	@ mkdir -p $(@D)
@@ -40,6 +41,9 @@ subdivideobj: subdivideobj.o mesh.o
 
 objtorib: objtorib.o mesh.o ${RMANTREE}/lib/libprman.so
 	$(LINK) $(LFLAGS) $^ -o $@ $(LIBS) 
+
+subdivideptx: subdivideptx.o mesh.o $(PTEX)
+	$(LINK) $(LFLAGS) $^ -o $@ $(LIBS)
 
 unsubdivideptx: unsubdivideptx.o mesh.o $(PTEX)
 	$(LINK) $(LFLAGS) $^ -o $@ $(LIBS)

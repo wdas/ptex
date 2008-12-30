@@ -123,17 +123,23 @@ struct Ptex {
     {
      public:
 	String() : _str(0) {}
+	String(const String& str) : _str(0) { *this = str; }
 	PTEXAPI ~String();
 	PTEXAPI String& operator=(const char* str);
+	String& operator=(const String& str) { *this = str._str; return *this; }
 	const char* c_str() const { return _str ? _str : ""; }
 	bool empty() const { return _str == 0; }
      private:
 	char* _str;
-	String(const String&);
-	void operator=(const String&);
     };
+
 };
 
+template <class T>
+T& operator << (T& stream, const Ptex::String& str) 
+{
+    stream << str.c_str(); return stream;
+}
 
 class PtexMetaData {
  public:

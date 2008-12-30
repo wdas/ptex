@@ -560,6 +560,6 @@ Ptex::String::~String()
 Ptex::String& Ptex::String::operator=(const char* str)
 {
     if (_str) free(_str);
-    _str = strdup(str);
+    _str = str ? strdup(str) : 0;
     return *this;
 }
