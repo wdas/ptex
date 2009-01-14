@@ -127,7 +127,7 @@ namespace {
 
 
 void PtexUtils::interleave(const void* src, int sstride, int uw, int vw, 
-			   void* dst, int dstride, Ptex::DataType dt, int nchan)
+			   void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
     case dt_uint8:   ::interleave((const uint8_t*) src, sstride, uw, vw, 
@@ -164,7 +164,7 @@ namespace {
 
 
 void PtexUtils::deinterleave(const void* src, int sstride, int uw, int vw, 
-			     void* dst, int dstride, Ptex::DataType dt, int nchan)
+			     void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
     case dt_uint8:   ::deinterleave((const uint8_t*) src, sstride, uw, vw, 
@@ -551,6 +551,7 @@ void PtexUtils::genRfaceids(const FaceInfo* faces, int nfaces,
 }
 
 	
+#ifndef PTEX_USE_STDSTRING
 Ptex::String::~String()
 {
     if (_str) free(_str);
@@ -563,3 +564,12 @@ Ptex::String& Ptex::String::operator=(const char* str)
     _str = str ? strdup(str) : 0;
     return *this;
 }
+
+std::ostream& operator << (std::ostream& stream, const Ptex::String& str)
+{
+    stream << str.c_str();
+    return stream;
+}
+#endif
+
+

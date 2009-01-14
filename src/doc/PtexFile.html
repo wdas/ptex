@@ -6,7 +6,7 @@
   <title>Ptex File Format Specification</title>
 </head>
 <body>
-<h1>Ptex File Format Specification Version 1.1<br>
+<h1>Ptex File Format Specification Version 1.2<br>
 </h1>
 Revision history:<br>
 <table style="text-align: left;" border="1" cellpadding="2"
@@ -29,20 +29,37 @@ Revision history:<br>
 included precomputed constant value<br>
       </td>
     </tr>
+    <tr>
+      <td style="vertical-align: top;">1.2<br>
+      </td>
+      <td style="vertical-align: top;">1/5/08<br>
+      </td>
+      <td style="vertical-align: top;">Added: subface flag, const
+neighborhood flag, u/v border modes, separately stored large metadata
+items <br>
+      </td>
+    </tr>
   </tbody>
 </table>
 <br>
 <br>
 <h3>General Notes:</h3>
 <ul>
-  <li>A "face" is one face of a polymesh.&nbsp; Only triangle and quad
-meshes are supported (but not mixed).&nbsp; Extension to non-quads
-embedded in a quad mesh (or non-tris in a tri-mesh) may also be
-possible but the task is significantly more difficult due to the
-lack of a simple 0-1 parameterization per face.</li>
-  <li>Every face has a unique index, or "faceid", which is implied by
+  <li>A "face" is one face of a polymesh.&nbsp; The polymesh has a base
+type of either quad or triangle.&nbsp; For quad meshes, ptex stores
+rectangular textures.&nbsp; For triangle meshes, ptex stores triangular
+textures.<br>
+  </li>
+  <li>Non-quads
+embedded in a quad mesh and non-tris embedded in a tri-mesh are
+subdivided once to generate quad/tri subfaces and textures are stored
+per subface.<br>
+  </li>
+  <li>Every face (or subface) has a unique index, or "faceid", which is
+implied by
 the ordering in the "Face Info" block.&nbsp; The faceids are numbered
-starting from zero.<br>
+starting from zero.&nbsp; Subfaces are ordered in following the edge
+order within the parent face.<br>
   </li>
   <li>A "channel" is a scalar data value stored in the file (e.g. one
 component of a color).&nbsp; There can
@@ -55,12 +72,15 @@ resolution of each face is specified in the "Face Info"
 block.&nbsp; Subsequent levels are power-of-two reductions (i.e. "mip
 maps").<br>
   </li>
-  <li>One channel may be indicated as the alpha channel.&nbsp; When an
+  <li>One channel may optionally be indicated as the alpha
+channel.&nbsp; When an
 alpha
-channel is present, the data values in the first level are stored
+channel is present, the data values in the first level are expected to
+be stored
 "unmultiplied" (as opposed to being premultiplied with the
 alpha).&nbsp; This choice was made to preserve the original data
-in the file as premultiplying can result in data loss.&nbsp; The
+in the file for subsequent editing as premultiplying can result in data
+loss.&nbsp; The
 tradeoff is that the multiplication must now be handled during
 filtering.&nbsp;&nbsp; Reduction levels are stored premultiplied.</li>
   <li>Compression, where indicated, uses the "deflate" algorithm as
@@ -71,8 +91,10 @@ preceeding value) is used where indicated to achieve
 better compression.<br>
   </li>
   <li>All data is stored in "little endian" format.</li>
-  <li>Face data is stored in v-major order with the first sample corresponding to
-u=v=0.  This is considered the bottom-left corner with u pointing right and v pointing up.</li>
+  <li>Face data is stored in v-major order with the first sample
+corresponding to
+u=v=0. This is considered the bottom-left corner with u pointing right
+and v pointing up.</li>
   <li>Triangle mesh data is stored in a packed triangle form (still in
 v-major order, but rows become progressively shorter).<br>
   </li>
@@ -86,22 +108,24 @@ compression.<br>
 <h3><br>
 </h3>
 <h3>General File Structure</h3>
-
-The file is composed of a number of data blocks stored in the order listed in the table below: <p>
-
+The file is composed of a number of data blocks stored in the order
+listed in the table below:
+<p>
 <table style="text-align: left;" border="1" cellpadding="2"
  cellspacing="2">
   <tbody>
     <tr>
       <td style="vertical-align: top;">Header<br>
       </td>
-      <td style="vertical-align: top;">description of file contents<br>
+      <td style="vertical-align: top;">description of file contents
+(fixed length, will never grow)<br>
       </td>
     </tr>
     <tr>
       <td style="vertical-align: top;">Extended Header<br>
       </td>
-      <td style="vertical-align: top;">(reserved for future use)<br>
+      <td style="vertical-align: top;">additional header data, may grow
+in future<br>
       </td>
     </tr>
     <tr>
@@ -129,7 +153,16 @@ data for each face</td>
     </tr>
     <tr>
       <td style="vertical-align: top;">Meta Data</td>
-      <td style="vertical-align: top;">miscellaneous data</td>
+      <td style="vertical-align: top;">miscellaneous small data stored
+as single block<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">Large Meta Data<br>
+      </td>
+      <td style="vertical-align: top;">separately stored large meta
+data items<br>
+      </td>
     </tr>
     <tr>
       <td style="vertical-align: top;">Edit Data<br>
@@ -141,6 +174,7 @@ file<br>
   </tbody>
 </table>
 <br>
+</p>
 <h3>Header</h3>
 <table style="text-align: left;" border="1" cellpadding="2"
  cellspacing="2">
@@ -207,7 +241,7 @@ alpha channel<br>
       </td>
     </tr>
     <tr>
-      <td style="vertical-align: top;">extheadersize<br>
+      <td style="vertical-align: top;">extheader size<br>
       </td>
       <td style="vertical-align: top;">uint32<br>
       </td>
@@ -215,19 +249,19 @@ alpha channel<br>
       </td>
     </tr>
     <tr>
-      <td style="vertical-align: top;">faceinfosize<br>
+      <td style="vertical-align: top;">faceinfo size<br>
       </td>
       <td style="vertical-align: top;">uint32<br>
       </td>
       <td style="vertical-align: top;">size of Face Info block </td>
     </tr>
     <tr>
-      <td style="vertical-align: top;">constdatasize</td>
+      <td style="vertical-align: top;">constdata size</td>
       <td style="vertical-align: top;">uint32</td>
       <td style="vertical-align: top;">size of Constant Data block</td>
     </tr>
     <tr>
-      <td style="vertical-align: top;">levelinfosize<br>
+      <td style="vertical-align: top;">levelinfo size<br>
       </td>
       <td style="vertical-align: top;">uint32<br>
       </td>
@@ -240,14 +274,14 @@ alpha channel<br>
       </td>
     </tr>
     <tr>
-      <td style="vertical-align: top;">leveldatasize</td>
+      <td style="vertical-align: top;">leveldata size</td>
       <td style="vertical-align: top;">uint64</td>
       <td style="vertical-align: top;">total size of all Level Data
 blocks<br>
       </td>
     </tr>
     <tr>
-      <td style="vertical-align: top;">metadatazipsize<br>
+      <td style="vertical-align: top;">metadata zipsize<br>
       </td>
       <td style="vertical-align: top;">uint32<br>
       </td>
@@ -256,7 +290,7 @@ blocks<br>
       </td>
     </tr>
     <tr>
-      <td style="vertical-align: top;">metadatamemsize<br>
+      <td style="vertical-align: top;">metadata memsize<br>
       </td>
       <td style="vertical-align: top;">uint32<br>
       </td>
@@ -268,7 +302,61 @@ block (unzipped)<br>
 </table>
 <br>
 <h3>Extended Header</h3>
-This block is reserved for future use.<br>
+<br>
+<table style="text-align: left;" border="1" cellpadding="2"
+ cellspacing="2">
+  <tbody>
+    <tr>
+      <td style="vertical-align: top;">ubordermode<br>
+      </td>
+      <td style="vertical-align: top;">uint16<br>
+      </td>
+      <td style="vertical-align: top;">0=clamp (default), 1=black,
+2=repeat<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">vbordermode</td>
+      <td style="vertical-align: top;">uint16</td>
+      <td style="vertical-align: top;">0=clamp (default), 1=black,
+2=repeat</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">(reserved)<br>
+      </td>
+      <td style="vertical-align: top;">uint32<br>
+      </td>
+      <td style="vertical-align: top;">must be zero<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">largemetadata header zipsize<br>
+      </td>
+      <td style="vertical-align: top;">uint32<br>
+      </td>
+      <td style="vertical-align: top;">on-disk size of Large Meta Data
+Header (zipped)<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">largemetadata header memsize<br>
+      </td>
+      <td style="vertical-align: top;">uint32<br>
+      </td>
+      <td style="vertical-align: top;">in-memory size of Large Meta
+Data Header (unzipped)</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">largemetadata size<br>
+      </td>
+      <td style="vertical-align: top;">uint64<br>
+      </td>
+      <td style="vertical-align: top;">total on-disk size of Large Meta
+Data blocks (not including header)nei<br>
+      </td>
+    </tr>
+  </tbody>
+</table>
 <br>
 <h3>Face Info</h3>
 Information about the resolution and topological adjacency of each face.<br>
@@ -308,6 +396,10 @@ direction)<br>
       </td>
       <td style="vertical-align: top;">bit0=constant - all pixels in
 face have same value<br>
+bit1=has edits (not stored in file, for api only)<br>
+bit2=constant neighborhood - all neighboring faces have same value as
+this face<br>
+bit3=subface - face is a subface<br>
       </td>
     </tr>
     <tr>
@@ -339,12 +431,18 @@ bits, etc.). <br>
 entries but 4 entries are still
 allocated to simplify the implementation (the 4th entry in each case is
 0).</li>
+  <li>For a face adjacent to a subface, there will always be two
+subfaces sharing the edge with the face.&nbsp; The face's adjface id
+must point to the first subface as encountered in a counter-clockwise
+traversal of the face.<br>
+  </li>
 </ul>
 <br>
 <h3>Constant Data</h3>
 The constant data block contains a single value per channel for
 each
-face.&nbsp; These values represent the average of the values for the
+face.&nbsp; For non-constant faces, these values represent the average
+of the values for each
 face.<br>
 <ul>
   <li>The data block contains the first channel for all the faces (in
@@ -355,8 +453,11 @@ compressed
 as a single unit (with no differencing).</li>
   <li>For textures with alpha, the values are stored
 un-multiplied.&nbsp; This is done to exactly preserve the original data
-values for constant-valued faces.&nbsp; Faces that are not constant are
-pre-multiplied with alpha, averaged, and then divided by alpha.<br>
+values for constant-valued faces.</li>
+  <li>To determine the average value of a non-constant face, the data
+are
+pre-multiplied with alpha, averaged, and then divided by alpha before
+being stored.<br>
   </li>
 </ul>
 <br>
@@ -404,8 +505,9 @@ header<br>
 <br>
 Notes:<br>
 <ul>
-  <li>The first level stores faces in faceid order.&nbsp; All faces in
-the file are included.<br>
+  <li>The first level stores faces in faceid order.&nbsp; Only
+non-constant faces are stored, though all the faces are included in the
+level data header.<br>
   </li>
   <li>Reduction levels exclude constant faces and store non-constant
 faces in largest-to-smallest order
@@ -421,16 +523,16 @@ total number of faces in the file:</li>
     <li>The level data only includes non-constant faces (as indicated
 by the
 "constant" flag in the face data header).</li>
-  </ul>
-  <ul>
     <li>As face resolutions are reduced, small faces may be omitted
 from further reduction levels.<br>
     </li>
   </ul>
 </ul>
+<ul>
+</ul>
 <br>
 <h3>Level Data</h3>
-Each Level Data block (one per chunk) consists of a header containing a
+Each Level Data block (one per level) consists of a header containing a
 list of face sizes
 followed by a
 number of face data blocks of the given sizes.&nbsp; Non-constant
@@ -599,6 +701,60 @@ are stored null-terminated.&nbsp; The size includes the null character.<br>
   </li>
 </ul>
 <br>
+<h3>Large Meta Data</h3>
+The large meta data section includes meta data blocks that are stored
+separately for individual access (presumably because the items are
+large, though there's no real limit).&nbsp; The large meta data section
+consists of a header followed by a series of individually compressed
+blocks.<br>
+<br>
+Large meta data header (compressed)<br>
+<table style="text-align: left;" border="1" cellpadding="2"
+ cellspacing="2">
+  <tbody>
+    <tr>
+      <td style="vertical-align: top;">metadatazipsize</td>
+      <td style="vertical-align: top;">uint32</td>
+      <td style="vertical-align: top;">on-disk size of Meta Data block
+(zipped)</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">metadatamemsize</td>
+      <td style="vertical-align: top;">uint32</td>
+      <td style="vertical-align: top;">in-memory size of Meta Data
+block (unzipped)</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">keysize<br>
+      </td>
+      <td style="vertical-align: top;">uint32<br>
+      </td>
+      <td style="vertical-align: top;">length of key string (including
+null)</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">key<br>
+      </td>
+      <td style="vertical-align: top;">uint8[keysize]<br>
+      </td>
+      <td style="vertical-align: top;">ascii character string
+(null-terminated)</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">datatype<br>
+      </td>
+      <td style="vertical-align: top;">uint32<br>
+      </td>
+      <td style="vertical-align: top;">0=ascii, 1=int8, 2=int16,
+3=int32, 4=float, 5=double</td>
+    </tr>
+  </tbody>
+</table>
+(times number of large meta data blocks)<br>
+<br>
+The individual compressed data blocks follow.<br>
+<br>
+<br>
 <h3>Edit Data</h3>
 The edit data block includes incremental data edits that are pending to
 be applied to the file.&nbsp; The format is designed to allow appending
@@ -706,8 +862,8 @@ Edit meta data<br>
       </td>
       <td style="vertical-align: top;">uint8[metazipsize]<br>
       </td>
-      <td style="vertical-align: top;">one or more data blocks as
-described in (Meta Data)<br>
+      <td style="vertical-align: top;">one or more data blocks (as
+described in Meta Data section)<br>
       </td>
     </tr>
   </tbody>

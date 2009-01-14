@@ -14,6 +14,7 @@
 // #define DEBUG_THREADING
 
 namespace PtexInternal {
+#ifndef NDEBUG
     template <class T>
     class DebugLock : public T {
      public:
@@ -24,6 +25,7 @@ namespace PtexInternal {
      private:
 	int _locked;
     };
+#endif
 
     template <class T>
     class AutoLock {

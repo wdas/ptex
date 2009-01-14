@@ -20,9 +20,7 @@
 #include "PtexCache.h"
 #include "PtexUtils.h"
 
-namespace PtexInternal {
-#include "DGHashMap.h"
-}
+#include "PtexHashMap.h"
 using namespace PtexInternal;
 
 #ifndef NDEBUG
@@ -520,7 +518,7 @@ protected:
 	    }
 	};
     };
-    typedef DGHashMap<ReductionKey, FaceData*, ReductionKey::Hasher> ReductionMap;
+    typedef PtexHashMap<ReductionKey, FaceData*, ReductionKey::Hasher> ReductionMap;
     ReductionMap _reductions;
 
     z_stream_s _zstream;

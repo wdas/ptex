@@ -168,6 +168,7 @@ PtexFilter* PtexFilter::mitchell(float sharpness)
 
 
 PtexFilter* PtexFilter::box() { return new PtexBoxFilter(); }
+#if 0
 PtexFilter* PtexFilter::gaussian() { return 0; }
 PtexFilter* PtexFilter::trilinear() { return 0; }
-PtexFilter* PtexFilter::radialBSpline() { return 0; }
+#endif

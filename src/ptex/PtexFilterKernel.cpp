@@ -310,7 +310,7 @@ namespace {
 
 void PtexFilterKernel::apply(int faceid, int rotate, const PtexFilterContext& c) const
 {
-    PtexPtr<PtexFaceData> dh = c.tx->getData(faceid, (rotate & 1) ? res.swappeduv() : res);
+    PtexPtr<PtexFaceData> dh ( c.tx->getData(faceid, (rotate & 1) ? res.swappeduv() : res) );
     if (!dh) return;
 
     if (dh->isConstant()) {
@@ -320,7 +320,7 @@ void PtexFilterKernel::apply(int faceid, int rotate, const PtexFilterContext& c)
 	Res tres = dh->tileRes();
 	TileIter tileiter(*this, rotate, (rotate & 1) ? tres.swappeduv() : tres);
 	do {
-	    PtexPtr<PtexFaceData> th = dh->getTile(tileiter.tile());
+	    PtexPtr<PtexFaceData> th ( dh->getTile(tileiter.tile()) );
 	    if (th->isConstant()) {
 		ApplyConst(th->getData(), c, tileiter.kernel().totalWeight());
 	    }

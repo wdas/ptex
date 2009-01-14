@@ -59,7 +59,7 @@ bool subdivideptx(const char* inobjname, const char* inptxname, const char* outp
 
     // open input texture and check number of faces
     Ptex::String error;
-    PtexPtr<PtexTexture> inptx = PtexTexture::open(inptxname, error);
+    PtexPtr<PtexTexture> inptx ( PtexTexture::open(inptxname, error) );
     if (!inptx) {
 	std::cerr << error << std::endl;
 	return 0;
@@ -73,8 +73,8 @@ bool subdivideptx(const char* inobjname, const char* inptxname, const char* outp
 
     // open output texture
     PtexPtr<PtexWriter> outptx
-	= PtexWriter::open(outptxname, Ptex::mt_quad, inptx->dataType(),
-			   inptx->numChannels(), inptx->alphaChannel(), nSubFaces, error);
+	( PtexWriter::open(outptxname, Ptex::mt_quad, inptx->dataType(),
+			   inptx->numChannels(), inptx->alphaChannel(), nSubFaces, error) );
     if (!outptx) {
 	std::cerr << error << std::endl;
 	return 0;

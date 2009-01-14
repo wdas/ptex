@@ -8,18 +8,16 @@
    (c) Disney. All rights reserved.
 */
 /**
-  @file DGDict.h
-  @brief Contains DGDict, and efficient string keyed hash table.
- 
-  <B>Copyright &copy; 2002 Walt Disney Feature Animation </B>
+  @file PtexDict.h
+  @brief Contains PtexDict, a string-keyed hash table.
 */
 
-#ifndef DGDict_h
-#define DGDict_h
+#ifndef PtexDict_h
+#define PtexDict_h
 
 /**
-   @class DGDict 
-   @brief An efficient string dictionary template, using a hash table.
+   @class PtexDict
+   @brief A string-keyed dictionary template, using a hash table.
 
    <P>
    An efficient string dictionary template.  A hash table is used
@@ -45,7 +43,7 @@
    </UL>
 
    <P>
-   Unlike std::hash_map<>, DGDict doesn't have to construct a string
+   Unlike std::hash_map<>, PtexDict doesn't have to construct a string
    object to do a lookup.  As a result, it is about 4-10 times faster
    depending on the length of the keys.  And when compiling
    non-optimized, it is 6-10 times faster.
@@ -65,7 +63,7 @@
 */
 
 /**
-   @struct DGDict::value_type
+   @struct PtexDict::value_type
    @brief Internal class used to provide a return value for the value type
 
    All data members and member functions are declared public by design
@@ -85,15 +83,15 @@
 */
 
 template<class T>
-class DGDict
+class PtexDict
 {
     class Entry; ///< forward declared private class
     
 public: // Public Types   
     class iterator;        ///< forward declared class
     class const_iterator;  ///< forward declared class
-    friend class iterator;        
-    friend class const_iterator; 
+    friend class iterator;
+    friend class const_iterator;
     
     typedef const char*    key_type;       ///< This is the lookup type
     typedef T              mapped_type;    ///< The data type stored
@@ -112,9 +110,9 @@ public: // Public Types
 public:  // Public Member Interfce
     
     /// Default contructor initializes the dictionary.
-    DGDict() :  _numEntries(0), _numBuckets(0), _bucketMask(0), _buckets(0) {}
+    PtexDict() :  _numEntries(0), _numBuckets(0), _bucketMask(0), _buckets(0) {}
     /// clears the entries in the dictionary
-    virtual ~DGDict() { clear(); }
+    virtual ~PtexDict() { clear(); }
 
     /// Locates an entry, creating a new one if necessary.
     /** operator[] will look up an entry and return the value.  A new entry
@@ -188,7 +186,7 @@ private: // Private Member Interface
 		  _val(_key,T()), _pad(0) {}	
     private: // Private Member Interface	
 	/// Copy constructor prohibited by design.
-	Entry(const Entry&); 
+	Entry(const Entry&);
 	/// Assignment operator prohibited by design.
 	Entry& operator=(const Entry&);
 	
@@ -204,9 +202,9 @@ private: // Private Member Interface
     };
 
     /// Copy constructor prohibited by design.
-    DGDict(const DGDict&); 
+    PtexDict(const PtexDict&);
     /// Assignment operator prohibited by design.
-    DGDict& operator=(const DGDict&); 
+    PtexDict& operator=(const PtexDict&);
 
     /// Returns the integer hash index for the key and length of the key.
     int hash(const char* key, int& keylen) const
@@ -264,7 +262,7 @@ private:  // Private Member data
 
 
 /**
-   @class DGDict::iterator
+   @class PtexDict::iterator
    @brief Internal class used to provide iteration through the dictionary
 
    This works on non-const types, and provides type safe modification access
@@ -278,7 +276,7 @@ private:  // Private Member data
       
 */
 template<class T>
-class DGDict<T>::iterator {
+class PtexDict<T>::iterator {
 public:
     /// Default Constructor
     iterator() : _d(0), _e(0), _b(0) {}
@@ -316,7 +314,7 @@ public:
 private:  // Private interface
 
     /// Constructor Helper for inline creation.
-    iterator( Entry** e, const DGDict* d, int b): _d(d), _e(e), _b(b) {}
+    iterator( Entry** e, const PtexDict* d, int b): _d(d), _e(e), _b(b) {}
     
     /// simple helper function for retrieving the value from the Entry
     inline value_type& getValue() const{
@@ -324,9 +322,9 @@ private:  // Private interface
 	else   return _defaultVal;
     }
     
-    friend class DGDict;
-    friend class const_iterator; 
-    const DGDict* _d;  ///< dictionary back reference
+    friend class PtexDict;
+    friend class const_iterator;
+    const PtexDict* _d;  ///< dictionary back reference
     Entry** _e;      ///< pointer to entry in table this iterator refs
     int _b;          ///< bucket number this references
 
@@ -334,14 +332,14 @@ private:  // Private interface
 };
 
 // define the static type for the iterator
-template<class T> typename DGDict<T>::value_type DGDict<T>::iterator::_defaultVal;
+template<class T> typename PtexDict<T>::value_type PtexDict<T>::iterator::_defaultVal;
 
 /**
-   @class DGDict::const_iterator
+   @class PtexDict::const_iterator
    @brief Internal class used to provide iteration through the dictionary
 
    This works on const data types, and provides const safe access.
-   This class can also be created from a DGDict::iterator class instance.
+   This class can also be created from a PtexDict::iterator class instance.
    
    @author  longson
    
@@ -349,7 +347,7 @@ template<class T> typename DGDict<T>::value_type DGDict<T>::iterator::_defaultVa
       
 */
 template<class T>
-class DGDict<T>::const_iterator {
+class PtexDict<T>::const_iterator {
 public:
     /// Default Constructor
     const_iterator() : _d(0), _e(0), _b(0) {}
@@ -393,7 +391,7 @@ public:
 private:  // Private interface
     
     /// Constructor Helper for inline creation.
-    const_iterator( Entry** e, const DGDict* d, int b): _d(d),_e(e),_b(b) {}
+    const_iterator( Entry** e, const PtexDict* d, int b): _d(d),_e(e),_b(b) {}
 
     /// simple helper function for retrieving the value from the Entry
     inline const value_type& getValue() const{
@@ -401,9 +399,9 @@ private:  // Private interface
 	else   return _defaultVal;
     }
     
-    friend class DGDict;
+    friend class PtexDict;
     friend class iterator;
-    const DGDict* _d;  ///< dictionary back reference
+    const PtexDict* _d;  ///< dictionary back reference
     Entry** _e;      ///< pointer to entry in table this iterator refs
     int _b;          ///< bucket number this references
 
@@ -411,10 +409,10 @@ private:  // Private interface
 };
 
 // define the static type for the iterator
-template<class T> typename DGDict<T>::value_type DGDict<T>::const_iterator::_defaultVal;
+template<class T> typename PtexDict<T>::value_type PtexDict<T>::const_iterator::_defaultVal;
 
 template<class T>
-typename DGDict<T>::iterator& DGDict<T>::iterator::operator++(int)
+typename PtexDict<T>::iterator& PtexDict<T>::iterator::operator++(int)
 {
     if (_e) {
 	// move to next entry
@@ -432,7 +430,7 @@ typename DGDict<T>::iterator& DGDict<T>::iterator::operator++(int)
 }
 
 template<class T>
-typename DGDict<T>::const_iterator& DGDict<T>::const_iterator::operator++(int)
+typename PtexDict<T>::const_iterator& PtexDict<T>::const_iterator::operator++(int)
 {
     if (_e) {
 	// move to next entry
@@ -450,29 +448,29 @@ typename DGDict<T>::const_iterator& DGDict<T>::const_iterator::operator++(int)
 }
 
 template<class T>
-typename DGDict<T>::iterator DGDict<T>::find(const char* key)
+typename PtexDict<T>::iterator PtexDict<T>::find(const char* key)
 {
     int keylen, hashval;
     Entry** e = locate(key, keylen, hashval);
 
     /// return a valid iterator if we found an entry, else return end()
     if (e) return iterator( e, this, hashval & _bucketMask );
-    else   return end(); 
+    else   return end();
 }
 
 template<class T>
-typename DGDict<T>::const_iterator DGDict<T>::find(const char* key) const
+typename PtexDict<T>::const_iterator PtexDict<T>::find(const char* key) const
 {
     int keylen, hashval;
     Entry** e = locate(key, keylen, hashval);
 
     /// return a valid iterator if we found an entry, else return end()
     if (e) return const_iterator( e, this, hashval & _bucketMask );
-    else   return end(); 
+    else   return end();
 }
 
 template<class T>
-T& DGDict<T>::operator[](const char* key)
+T& PtexDict<T>::operator[](const char* key)
 {
     int keylen, hashval;
     Entry** e = locate(key, keylen, hashval);
@@ -484,7 +482,7 @@ T& DGDict<T>::operator[](const char* key)
 
     // allocate a buffer big enough to hold Entry + (the key length )
     // Note: the NULL character is already accounted for by Entry::_key's size
-    void* ebuf = malloc( sizeof(Entry) + (keylen) * sizeof(char) ); 
+    void* ebuf = malloc( sizeof(Entry) + (keylen) * sizeof(char) );
     Entry* ne = new(ebuf) Entry; // note: placement new 
 
     // Store the values in the Entry structure
@@ -494,14 +492,14 @@ T& DGDict<T>::operator[](const char* key)
     ne->_keylen = keylen;
     
     // copy the string given into the new location
-    memcpy(ne->_key, key, keylen); 
+    memcpy(ne->_key, key, keylen);
     ne->_key[keylen] = '\0';
     return ne->_val.second;
 }
 
 
 template<class T>
-void DGDict<T>::grow()
+void PtexDict<T>::grow()
 {
     if (!_buckets) {
 	_numBuckets = 16;
@@ -527,7 +525,7 @@ void DGDict<T>::grow()
 
 
 template<class T>
-bool DGDict<T>::erase(const char* key)
+bool PtexDict<T>::erase(const char* key)
 {
     iterator iter = find(key);
     if (!iter) return false;
@@ -538,7 +536,7 @@ bool DGDict<T>::erase(const char* key)
 
 
 template<class T>
-typename DGDict<T>::iterator DGDict<T>::erase(iterator iter)
+typename PtexDict<T>::iterator PtexDict<T>::erase(iterator iter)
 {
     Entry** eptr = iter._e;
     if (!eptr) return iter;
@@ -560,7 +558,7 @@ typename DGDict<T>::iterator DGDict<T>::erase(iterator iter)
 
 
 template<class T>
-void DGDict<T>::clear()
+void PtexDict<T>::clear()
 {
     for (iterator i=begin(); i != end(); i = erase(i));
     free(_buckets);
@@ -569,4 +567,4 @@ void DGDict<T>::clear()
     _numBuckets = 0;
 }
 
-#endif //DGDict_h
+#endif //PtexDict_h

@@ -16,11 +16,11 @@
 
 #include "PtexMutex.h"
 #include "Ptexture.h"
+#include "PtexDict.h"
 
 #define USE_SPIN // use spinlocks instead of mutex for main cache lock
 
 namespace PtexInternal {
-#include "DGDict.h"
 
 #ifdef USE_SPIN
     typedef SpinLock CacheLock;

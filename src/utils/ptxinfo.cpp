@@ -230,7 +230,7 @@ int main(int argc, char** argv)
     if (!fname) usage();
 
     Ptex::String error;
-    PtexPtr<PtexTexture> r = PtexTexture::open(fname, error);
+    PtexPtr<PtexTexture> r ( PtexTexture::open(fname, error) );
     if (!r) {
 	std::cerr << error.c_str() << std::endl;
 	return 1;
@@ -250,7 +250,7 @@ int main(int argc, char** argv)
     if (hasEdits) std::cout << " (" << hasEdits << " faces)";
     std::cout << std::endl;
 
-    PtexPtr<PtexMetaData> meta = r->getMetaData();
+    PtexPtr<PtexMetaData> meta ( r->getMetaData() );
     if (meta) {
 	std::cout << "numMetaKeys: " << meta->numKeys() << std::endl;
 	if (dumpmeta && meta->numKeys()) DumpMetaData(meta);
@@ -265,7 +265,7 @@ int main(int argc, char** argv)
 	    texels += f.res.size();
 
 	    if (dumptiling) {
-		PtexPtr<PtexFaceData> dh = r->getData(i, f.res);
+		PtexPtr<PtexFaceData> dh ( r->getData(i, f.res) );
 		DumpTiling(dh);
 	    }
 	    if (dumpdata) DumpData(r, i);

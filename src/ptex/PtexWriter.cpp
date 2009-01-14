@@ -385,6 +385,7 @@ int PtexWriterBase::readBlock(FILE* fp, void* data, int size)
 
 int PtexWriterBase::copyBlock(FILE* dst, FILE* src, FilePos pos, int size)
 {
+    if (size <= 0) return 0;
     fseeko(src, pos, SEEK_SET);
     int remain = size;
     void* buff = alloca(BlockSize);
@@ -628,7 +629,7 @@ PtexMainWriter::PtexMainWriter(const char* path, bool newfile,
 	}
 
 	// copy meta data from existing file
-	PtexPtr<PtexMetaData> meta = _reader->getMetaData();
+	PtexPtr<PtexMetaData> meta ( _reader->getMetaData() );
 	writeMeta(meta);
 
 	// see if we have any edits
@@ -778,7 +779,7 @@ void PtexMainWriter::finish()
                 const Ptex::FaceInfo& info = _reader->getFaceInfo(i);
                 int size = _pixelSize * info.res.size();
                 if (info.isConstant()) {
-                    PtexPtr<PtexFaceData> data = _reader->getData(i);
+                    PtexPtr<PtexFaceData> data ( _reader->getData(i) );
                     if (data) {
                         writeConstantFace(i, info, data->getData());
                     }

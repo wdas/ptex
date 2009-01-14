@@ -1,0 +1,16 @@
+/*! \mainpage Ptex
+
+
+Main API pages:
+- Ptex - Namespace containing public data structures and enums.
+- PtexCache - Create a cache for reading one or more ptex files.
+- PtexTexture - Access data from a ptex file.
+- PtexFaceData - Access per-face texture data from a PtexTexture.
+- PtexMetaData - Access meta data from a PtexTexture.
+- PtexWriter - Create or update a ptex file.
+- PtexFilter - Apply a filter to ptex data.
+- PtexPtr - Use a smart pointer to automatically hold and release API objects.
+
+File Format Specification: <A HREF='PtexFile.html'>PtexFile.html</A>
+
+*/

@@ -8,18 +8,16 @@
    (c) Disney. All rights reserved.
 */
 /**
-  @file DGHashMap.h
-  @brief Contains DGHashMap, a lightweight hash table.
- 
-  <B>Copyright &copy; 2006 Walt Disney Feature Animation </B>
+  @file PtexHashMap.h
+  @brief Contains PtexHashMap, a lightweight hash table.
 */
 
-#ifndef DGHashMap_h
-#define DGHashMap_h
+#ifndef PtexHashMap_h
+#define PtexHashMap_h
 
 /**
-   @class DGHashMap 
-   @brief An lightweight hash table.
+   @class PtexHashMap
+   @brief A lightweight hash table.
    
    <P>
    The hash table automatically doubles in size when it is more than 50% full.
@@ -48,7 +46,7 @@
 */
 
 /**
-   @class DGHashMap::iterator
+   @class PtexHashMap::iterator
    @brief Internal class used to provide iteration through the hash table
   
    @author  brentb
@@ -59,7 +57,7 @@
 */
 
 template<typename KeyType, typename DataType, typename HashFn>
-class DGHashMap
+class PtexHashMap
 {
     struct Entry; // forward decl
 
@@ -110,9 +108,9 @@ public:
 	iterator& operator++(int);
 
     private:
-	friend class DGHashMap;
+	friend class PtexHashMap;
 	Entry** e; // pointer to prev entry or hash entry
-	const DGHashMap* h;
+	const PtexHashMap* h;
 	int b; // bucket number
     };
     
@@ -139,9 +137,9 @@ public:
 
 
     /// Default contructor initializes the hash table.
-     DGHashMap() : _numEntries(0), _numBuckets(0), _bucketMask(0), _buckets(0) {}
+     PtexHashMap() : _numEntries(0), _numBuckets(0), _bucketMask(0), _buckets(0) {}
     /// Non-Virtual destructor by design, clears the entries in the hash table
-    ~DGHashMap() { clear(); }
+    ~PtexHashMap() { clear(); }
 
     /// Locates an entry, creating a new one if necessary.
     /** operator[] will look up an entry and return the value.  A new entry
@@ -171,9 +169,9 @@ public:
 
 private:
     /// Copy constructor prohibited by design.
-    DGHashMap(const DGHashMap&); // disallow
+    PtexHashMap(const PtexHashMap&); // disallow
     /// Assignment operator prohibited by design.
-    bool operator=(const DGHashMap&); // disallow
+    bool operator=(const PtexHashMap&); // disallow
     
     friend class iterator;
     
@@ -206,8 +204,8 @@ private:
 
 
 template<class KeyType, class DataType, class HashFn>
-typename DGHashMap<KeyType, DataType, HashFn>::iterator&
-DGHashMap<KeyType, DataType, HashFn>::iterator::operator++(int)
+typename PtexHashMap<KeyType, DataType, HashFn>::iterator&
+PtexHashMap<KeyType, DataType, HashFn>::iterator::operator++(int)
 {
     if (e) {
 	// move to next entry
@@ -226,8 +224,8 @@ DGHashMap<KeyType, DataType, HashFn>::iterator::operator++(int)
 
 
 template<class KeyType, class DataType, class HashFn>
-typename DGHashMap<KeyType, DataType, HashFn>::iterator
-DGHashMap<KeyType, DataType, HashFn>::find(const KeyType& key) const
+typename PtexHashMap<KeyType, DataType, HashFn>::iterator
+PtexHashMap<KeyType, DataType, HashFn>::find(const KeyType& key) const
 {
     iterator iter;
     Entry** e = locate(key);
@@ -240,7 +238,7 @@ DGHashMap<KeyType, DataType, HashFn>::find(const KeyType& key) const
 }
 
 template<class KeyType, class DataType, class HashFn>
-DataType& DGHashMap<KeyType, DataType, HashFn>::operator[](const KeyType& key)
+DataType& PtexHashMap<KeyType, DataType, HashFn>::operator[](const KeyType& key)
 {
     Entry** e = locate(key);
     if (e) return (*e)->val;
@@ -258,7 +256,7 @@ DataType& DGHashMap<KeyType, DataType, HashFn>::operator[](const KeyType& key)
 
 
 template<class KeyType, class DataType, class HashFn>
-void DGHashMap<KeyType, DataType, HashFn>::grow()
+void PtexHashMap<KeyType, DataType, HashFn>::grow()
 {
     if (!_buckets) {
 	_numBuckets = 16;
@@ -284,7 +282,7 @@ void DGHashMap<KeyType, DataType, HashFn>::grow()
 
 
 template<class KeyType, class DataType, class HashFn>
-bool DGHashMap<KeyType, DataType, HashFn>::erase(const KeyType& key)
+bool PtexHashMap<KeyType, DataType, HashFn>::erase(const KeyType& key)
 {
     iterator iter = find(key);
     if (iter == end()) return 0;
@@ -294,8 +292,8 @@ bool DGHashMap<KeyType, DataType, HashFn>::erase(const KeyType& key)
 
 
 template<class KeyType, class DataType, class HashFn>
-typename DGHashMap<KeyType, DataType, HashFn>::iterator
-DGHashMap<KeyType, DataType, HashFn>::erase(iterator iter)
+typename PtexHashMap<KeyType, DataType, HashFn>::iterator
+PtexHashMap<KeyType, DataType, HashFn>::erase(iterator iter)
 {
     Entry** eptr = iter.e;
     if (!eptr) return iter;
@@ -317,7 +315,7 @@ DGHashMap<KeyType, DataType, HashFn>::erase(iterator iter)
 
 
 template<class KeyType, class DataType, class HashFn>
-void DGHashMap<KeyType, DataType, HashFn>::clear()
+void PtexHashMap<KeyType, DataType, HashFn>::clear()
 {
     for (iterator i = begin(); i != end(); i = erase(i));
     free(_buckets);
@@ -325,6 +323,5 @@ void DGHashMap<KeyType, DataType, HashFn>::clear()
     _numEntries = 0;
     _numBuckets = 0;
 }
-
 
 #endif

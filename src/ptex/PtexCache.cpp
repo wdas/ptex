@@ -82,6 +82,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdlib.h>
+#include <iostream>
 #include "Ptexture.h"
 #include "PtexReader.h"
 #include "PtexCache.h"
@@ -193,6 +194,7 @@ public:
 	_searchpath = path ? path : ""; 
 
 	// split into dirs
+	_searchdirs.clear();
 	char* buff = strdup(path);
 	char* pos = 0;
 	char* token = strtok_r(buff, ":", &pos);
@@ -261,7 +263,7 @@ public:
 private:
     std::string _searchpath;
     std::vector<std::string> _searchdirs;
-    typedef DGDict<PtexReader*> FileMap;
+    typedef PtexDict<PtexReader*> FileMap;
     FileMap _files;
     int _cleanupCount;
     bool _premultiply;
@@ -357,8 +359,18 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 
 PtexCache* PtexCache::create(int maxFiles, int maxMem, bool premultiply)
 {
+    // set default files to 100
     if (maxFiles <= 0) maxFiles = 100;
-    if (maxMem <= 0) maxMem = 1024*1024*100;
+
+    // set default memory to 100 MB
+    const int MB = 1024*1024;
+    if (maxMem <= 0) maxMem = 100 * MB;
+
+    // if memory is < 1 MB, warn
+    if (maxMem < 1 * MB) {
+	std::cerr << "Warning, PtexCache created with < 1 MB" << std::endl;
+    }
+
     return new PtexReaderCache(maxFiles, maxMem, premultiply);
 }
 

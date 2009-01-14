@@ -59,7 +59,7 @@ bool unsubptx(const char* inobjname, const char* inptxname, const char* outptxna
 
     // open input texture and check number of faces
     Ptex::String error;
-    PtexPtr<PtexTexture> inptx = PtexTexture::open(inptxname, error);
+    PtexPtr<PtexTexture> inptx ( PtexTexture::open(inptxname, error) );
     if (!inptx) {
 	std::cerr << error << std::endl;
 	return 0;
@@ -73,8 +73,8 @@ bool unsubptx(const char* inobjname, const char* inptxname, const char* outptxna
 
     // open output texture
     PtexPtr<PtexWriter> outptx
-	= PtexWriter::open(outptxname, Ptex::mt_quad, inptx->dataType(),
-			   inptx->numChannels(), inptx->alphaChannel(), nUnSubFaces, error);
+	( PtexWriter::open(outptxname, Ptex::mt_quad, inptx->dataType(),
+			   inptx->numChannels(), inptx->alphaChannel(), nUnSubFaces, error) );
     if (!outptx) {
 	std::cerr << error << std::endl;
 	return 0;

@@ -13,8 +13,8 @@
 
 #include "Ptexture.h"
 
-
 struct PtexUtils : public Ptex {
+
     static bool isPowerOfTwo(int x)
     {
 	return !(x&(x-1));
@@ -156,7 +156,5 @@ struct PtexUtils : public Ptex {
     static void genRfaceids(const FaceInfo* faces, int nfaces, 
 			    uint32_t* rfaceids, uint32_t* faceids);
 };
-
-
 
 #endif
