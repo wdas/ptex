@@ -11,6 +11,10 @@
    (c) Disney. All rights reserved.
 */
 
+/** @file PtexPlatform.h
+    @brief Platform-specific classes, functions, and includes.
+*/
+
 // platform-specific includes
 #if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
 #ifndef WINDOWS
@@ -57,7 +61,6 @@ typedef off_t FilePos;
 #endif
     
 
-// platform-specific classes / functions
 namespace PtexInternal {
 
     /*

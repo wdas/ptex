@@ -8,22 +8,23 @@
    (c) Disney. All rights reserved.
 */
 
-/*
-   PtexCache - LRU Cache class for file handles and data (in memory).
+/**
+   @file PtexCache.cpp
+   @brief LRU Cache Implementation
 
-   * Ownership:
+   <b> Ownership.</b>
    The cache owns all files and data.  If an object is in use, the
    cache will not delete it.  When it is no longer in use, it may be
    kept or may be deleted to keep resource usage under the set limits.
    Deletions are done in lru order.
 
-   * Resource Tracking:
+   <b> Resource Tracking.</b>
    All objects are created as part of the cache and have a ptr back to
    the cache.  Each object updates the cache's resource total when it is
    created or deleted.  Unused objects are kept in an lru list in the
    cache.  Only objects in the lru list can be deleted.
    
-   * Reference Counting:
+   <b> Reference Counting.</b>
    Every object has a ref count to track whether it is being used.
    But objects don't generally ref their parent or children (otherwise
    nothing would get freed).
@@ -33,7 +34,7 @@
    the single face data block.  For a tiled face, the file, the tiled
    face, and the current tile must all be ref'd.
 
-   * Parents, Children, and Orphans:
+   <b> Parents, Children, and Orphans.</b>
    Every object must be reachable by some other object, generally the
    object that created it, i.e. it's parent.  Even though the parent
    doesn't own it's children (the cache does), it must still track
@@ -51,13 +52,13 @@
    the object is deleted by the cache, it clears this pointer so that
    the parent no longer sees it.
 
-   * Cache LifeTime:
+   <b> Cache LifeTime.</b>
    When a cache is released from its owner, it will delete itself but
    only after all objects it owns are no longer in use.  To do this, a
    ref count on the cache is used.  The owner holds 1 ref (only one
    owner allowed), and each object holds a ref (maintained internally).
 
-   * Threading:
+   <b> Threading.</b>
    To fully support multi-threading, the following data structures
    must be protected with a mutex: the cache lru lists, ref counts,
    and parent/child ptrs.  This is done with a single mutex per cache.
@@ -170,6 +171,7 @@ void PtexCacheImpl::removeData(int size) {
 }
 
 
+/** Cache for reading Ptex texture files */
 class PtexReaderCache : public PtexCacheImpl
 {
 public:

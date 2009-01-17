@@ -13,6 +13,7 @@
 
 // #define DEBUG_THREADING
 
+/** For internal use only */
 namespace PtexInternal {
 #ifndef NDEBUG
     template <class T>
@@ -27,6 +28,7 @@ namespace PtexInternal {
     };
 #endif
 
+    /** Automatically acquire and release lock within enclosing scope. */
     template <class T>
     class AutoLock {
     public:

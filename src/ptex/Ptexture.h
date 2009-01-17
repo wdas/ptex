@@ -39,14 +39,8 @@
 namespace PtexAPINamespace {
 #endif
 
-#ifdef DOXYGEN
-    // for doxygen, pretend Ptex is a namespace rather than a base class
-    /** Public data structures and enums. */
-namespace Ptex {
-#else
-    // when compiling, use inheritence to emulate a namespace
+/** Common data structures and enums used throughout the API. */
 struct Ptex {
-#endif
     /** Type of base mesh for which the textures are defined.  A mesh
 	can be triangle-based (with triangular textures) or quad-based
 	(with rectangular textures). */
@@ -825,7 +819,8 @@ class PtexFilter {
    All public API objects must be released back to the Ptex library
    via the release() method.  This smart-pointer class can wrap any of
    the Ptex API objects and will automatically release the object when
-   the pointer goes out of scope.
+   the pointer goes out of scope.  Usage of PtexPtr is optional, but
+   recommended.
 
    Example:
    \code
@@ -848,7 +843,7 @@ template <class T> class PtexPtr {
     /// Constructor.
     PtexPtr(T* ptr=0) : _ptr(ptr) {}
 
-    /// Destructor, calls ptr->release(). */
+    /// Destructor, calls ptr->release().
     ~PtexPtr() { if (_ptr) _ptr->release(); }
 
     /// Use as pointer value.

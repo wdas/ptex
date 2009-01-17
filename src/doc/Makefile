@@ -1,14 +1,20 @@
-INSTALLDIR = ../../install/doc/html
 
 .PHONY : all install dox
 
 all: install dox
 
-install: $(INSTALLDIR)/PtexFile.html
+INSTALLDIR = ../../install/doc/html
+
+INSTALL = \
+	PtexFile.html \
+	ptex-teaser.png \
+	adjdata1.jpg
+
+$(INSTALLDIR)/% : %
+	@ mkdir -p $(@D)
+	cp $^ $@
+
+install: $(patsubst %,$(INSTALLDIR)/%,$(INSTALL))
 
 dox:
 	doxygen Doxyfile
-
-$(INSTALLDIR)/PtexFile.html : PtexFile.html
-	@mkdir -p $(INSTALLDIR)
-	cp $^ $@

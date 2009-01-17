@@ -1,0 +1,24 @@
+/** \mainpage Ptex
+
+\section mainapi Main API pages
+ - Ptex - Common data structures and enums used throughout the API.
+ - PtexCache - Create a cache for reading one or more ptex files.
+ - PtexTexture - Access data from a ptex file.
+ - PtexFaceData - Access per-face texture data from a PtexTexture.
+ - PtexMetaData - Access meta data from a PtexTexture.
+ - PtexWriter - Create or update a ptex file.
+ - PtexFilter - Apply a filter to ptex data.
+ - PtexPtr - Use a smart pointer to automatically hold and release API objects.
+
+\section addtionaldocs Additional documenatation pages
+- \subpage intro
+- \subpage apiintro
+- \subpage adjdata
+- \subpage fileformat
+- \subpage todo
+*/
+
+/**
+\page fileformat Ptex File Format Specification
+\htmlinclude PtexFile.html
+*/

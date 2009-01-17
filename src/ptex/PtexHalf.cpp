@@ -14,6 +14,7 @@
 uint16_t PtexHalf::f2hTable[512];
 uint32_t PtexHalf::h2fTable[65536];
 
+/** Table initializations. */
 static bool PtexHalfInit()
 {
     union { int i; float f; } u;
@@ -57,6 +58,7 @@ static bool PtexHalfInit()
 static bool PtexHalfInitialized = PtexHalfInit();
 
 
+/** Handle exceptional cases for half-to-float conversion */
 uint16_t PtexHalf::fromFloat_except(uint32_t i)
 {
     uint32_t s = ((i>>16) & 0x8000);

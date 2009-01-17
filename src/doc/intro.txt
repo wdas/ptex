@@ -1,0 +1,48 @@
+/**
+\page intro Introduction to Ptex
+
+%Ptex is a texture mapping system that uses the intrinsic per-face UVs
+of a poly mesh.  No explicit UV assignment is required.  Textures are
+stored along with adjacency data in a single texture file per surface.
+%Ptex uses the adjacency data to perform seamless anisotropic filtering
+of multi-resolution textures across surfaces of arbitrary topology.
+
+The %Ptex API provides the ability to read and write ptex files, access
+texture data through a memory-managed cache, and apply various filters
+to the data.  The API is designed to allow easy integration with
+production renderers such as PRMan.
+
+Technical information about %Ptex filtering is available in the paper:
+
+<b>%Ptex: Per-Face Texture Mapping for Production Rendering, Burley and Lacewell,
+Eurographics Symposium on Rendering 2008.</b>
+
+\image html "ptex-teaser.png"
+
+T. Rex with 2694 faces rendered with %Ptex. No explicit UV assignment
+was used. The largest texture layer, the fine-scale displacements, has
+836 million texels stored in a single %Ptex file with individual face
+resolutions ranging from 64 x 64 to 2048 x 2048 texels. No seams are
+visible across faces, even under close magnification. ((c) Walt Disney
+Animation Studios)
+
+Abstract:
+
+Explicit parameterization of subdivision surfaces for texture mapping
+adds significant cost and complexity to film production. Most
+parameterization methods currently in use require setup effort, and
+none are completely general. We propose a new texture mapping method
+for Catmull-Clark subdivision surfaces that requires no explicit
+parameterization. Our method, %Ptex, stores a separate texture per quad
+face of the subdivision control mesh, along with a novel per-face
+adjacency map, in a single texture file per surface. %Ptex uses the
+adjacency data to perform seamless anisotropic filtering of
+multi-resolution textures across surfaces of arbitrary topology. Just
+as importantly, %Ptex requires no manual setup and scales to models of
+arbitrary mesh complexity and texture detail. %Ptex has been
+successfully used to texture all of the models in an animated
+theatrical short and is currently being applied to an entire animated
+feature. %Ptex has eliminated UV assignment from our studio and
+significantly increased the efficiency of our pipeline.
+*/
+

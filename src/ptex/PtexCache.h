@@ -75,6 +75,7 @@ namespace PtexInternal {
 }
 using namespace PtexInternal;
 
+/** One item in a cache, typically an open file or a block of memory */
 class PtexLruItem {
 public:
     bool inuse() { return _prev == 0; }
@@ -121,6 +122,8 @@ private:
 
 
 
+/** A list of items kept in least-recently-used (LRU) order.
+    Only items not in use are kept in the list. */
 class PtexLruList {
 public:
     PtexLruList() { _end._prev = _end._next = &_end; }
@@ -159,6 +162,8 @@ private:
 };
 
 
+/** Ptex cache implementation.  Maintains a file and memory cache
+    within set limits */
 class PtexCacheImpl : public PtexCache {
 public:
     PtexCacheImpl(int maxFiles, int maxMem)
@@ -231,6 +236,7 @@ private:
 };
 
 
+/** Cache entry for open file handle */
 class PtexCachedFile : public PtexLruItem
 {
 public:
@@ -247,6 +253,7 @@ private:
 };
 
 
+/** Cache entry for allocated memory block */
 class PtexCachedData : public PtexLruItem
 {
 public:

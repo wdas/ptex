@@ -1,0 +1,34 @@
+/**
+\page todo To-do list
+
+In work:
+- individually stored large meta-data
+- clamp/black/periodic modes
+- htex - trilinear
+
+Planned:
+- multi-split on subfaces (for kernel width > 0.5)
+- lerp
+- htex - user mipmaps
+- improve blur quality near EVs
+- gaussian filter
+
+Considering:
+- htex - trilinear w/ 2n+1
+- ptxconvert updates (support format conversions, remove image toolkit dependency)
+- ptxview updates (add features: 3dview, adjacency-based layout, res control, etc.)
+- large filter width
+- loop subd filter (2n+1)
+- CC subd filter (2n+1)
+- multi-level cache
+- big-endian
+
+Recently done:
+- support non-quads via quad subfaces
+- automated regression test
+- 'const neighborhood' flag generation in PtexWriter
+- new utils: subdivideobj, subdivideptx, unsubdivideptx, objtorib
+- switch cachelock to spinlock
+- windows port
+- namespace for api version encapsulation
+*/
