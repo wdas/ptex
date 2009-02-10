@@ -279,4 +279,6 @@ static RslFunction ptexFunctions[] =
 };
 
 
+extern "C" {
 RSLEXPORT RslFunctionTable RslPublicFunctions(ptexFunctions, initPtexCache, termPtexCache);
+};
