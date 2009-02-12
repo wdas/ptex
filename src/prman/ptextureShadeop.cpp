@@ -19,6 +19,13 @@
 
 static PtexCache* cache = 0;
 
+namespace {
+    PtexFilter* getFilter(float sharpness)
+    {
+	return PtexFilter::bicubic(sharpness);
+    }
+}
+
 static void initPtexCache(RixContext *)
 { 
     if (!cache) {
@@ -92,7 +99,7 @@ static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
     PtexPtr<PtexTexture> tx ( cache->get(*mapname, error) );
     if (tx) {
 	int chan = int(*channel);
-	PtexPtr<PtexFilter> filter ( PtexFilter::mitchell(sharp) );
+	PtexPtr<PtexFilter> filter ( getFilter(sharp) );
 	//PtexFilter* filter = PtexFilter::box();
 	int numVals = RslArg::NumValues(argc, argv);
 	for (int i = 0; i < numVals; ++i) {
@@ -140,7 +147,7 @@ static int ptextureFloat(RslContext*, int argc, const RslArg* argv[] )
     PtexTexture* tx = cache->get(*mapname, error);
     if (tx) {
 	int chan = int(*channel);
-	PtexFilter* filter = PtexFilter::mitchell(*sharpness);
+	PtexFilter* filter = getFilter(*sharpness);
 	int numVals = RslArg::NumValues(argc, argv);
 	for (int i = 0; i < numVals; ++i) {
 	    filter->eval(*result, chan, 1, tx, int(*faceid), *u, *v, *uw, *vw);
@@ -190,7 +197,7 @@ static int ptexenvColor(RslContext*, int argc, const RslArg* argv[] )
     PtexTexture* tx = cache->get(*mapname, error);
     if (tx) {
 	int chan = int(*channel);
-	PtexFilter* filter = PtexFilter::mitchell(sharp);
+	PtexFilter* filter = getFilter(sharp);
 	int numVals = RslArg::NumValues(argc, argv);
 	for (int i = 0; i < numVals; ++i) {
 	    float* resultval = *result;

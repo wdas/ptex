@@ -755,7 +755,7 @@ class PtexWriter {
  */
 class PtexFilter {
  public:
-    /** Construct a cubic Mitchell filter.  The sharpness parameter
+    /** Construct a cubic filter.  The sharpness parameter
 	controls the response of the filter.  Usual sharpness values
 	range between zero and one.  At the value of zero, the filter
 	is equivalent to the cubic B-Spline.  At the value of one, the
@@ -775,16 +775,14 @@ class PtexFilter {
 	Sharpness values outside of the zero-to-one range are possible,
 	but are not typically used.
     */
-    PTEXAPI static PtexFilter* mitchell(float sharpness);
-
-    /** Construct a box filter.  This is implemented as a box
-	convolved with the texels treated as area samples.  Thus, the
-	kernel shape is generally trapezoidal.  This produces a
-	higher-quality result than simple point sampling. */
+    PTEXAPI static PtexFilter* mitchell_orig(float sharpness);
+    PTEXAPI static PtexFilter* bicubic(float sharpness);
+    PTEXAPI static PtexFilter* mitchell();
+    PTEXAPI static PtexFilter* bspline();
+    PTEXAPI static PtexFilter* catmullrom();
     PTEXAPI static PtexFilter* box();
-
-    //    PTEXAPI static PtexFilter* gaussian();
-    //    PTEXAPI static PtexFilter* trilinear();
+    PTEXAPI static PtexFilter* gaussian();
+    PTEXAPI static PtexFilter* bilinear();
 
     /** Release resources held by this pointer (pointer becomes invalid). */
     virtual void release() = 0;
