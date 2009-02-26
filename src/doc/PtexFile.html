@@ -24,11 +24,11 @@ included precomputed constant value<br>
     <tr>
       <td style="vertical-align: top;">1.2<br>
       </td>
-      <td style="vertical-align: top;">1/5/08<br>
+      <td style="vertical-align: top;">1/5/09<br>
       </td>
       <td style="vertical-align: top;">Added: subface flag, const
 neighborhood flag, u/v border modes, separately stored large metadata
-items <br>
+items.<br> Clarified triangle texture storage.<br>
       </td>
     </tr>
   </tbody>
@@ -87,8 +87,13 @@ better compression.<br>
 corresponding to
 u=v=0. This is considered the bottom-left corner with u pointing right
 and v pointing up.</li>
-  <li>Triangle mesh data is stored in a packed triangle form (still in
-v-major order, but rows become progressively shorter).<br>
+  <li>Triangle texture data is stored in a specialized layout
+  (documented elsewhere).  The texels are packed into a square texture
+  for storage.  The number of texels is the same as for quad textures
+  (n-squared texels where n is a power-of-two) though only isotropic
+  textures are supported (i.e. ures = vres).  Storage of the
+  square-packed triangle textures is identical to quad textures
+  including tiling, compression, etc.<br>
   </li>
   <li>No padding or data alignment within the file is assumed beyond
 what is explicitly specified, though an attempt is made to keep data
@@ -301,25 +306,17 @@ block (unzipped)<br>
     <tr>
       <td style="vertical-align: top;">ubordermode<br>
       </td>
-      <td style="vertical-align: top;">uint16<br>
+      <td style="vertical-align: top;">uint32<br>
       </td>
       <td style="vertical-align: top;">0=clamp (default), 1=black,
-2=repeat<br>
+2=periodic<br>
       </td>
     </tr>
     <tr>
       <td style="vertical-align: top;">vbordermode</td>
-      <td style="vertical-align: top;">uint16</td>
+      <td style="vertical-align: top;">uint32</td>
       <td style="vertical-align: top;">0=clamp (default), 1=black,
-2=repeat</td>
-    </tr>
-    <tr>
-      <td style="vertical-align: top;">(reserved)<br>
-      </td>
-      <td style="vertical-align: top;">uint32<br>
-      </td>
-      <td style="vertical-align: top;">must be zero<br>
-      </td>
+2=periodic</td>
     </tr>
     <tr>
       <td style="vertical-align: top;">largemetadata header zipsize<br>
@@ -344,7 +341,7 @@ Data Header (unzipped)</td>
       <td style="vertical-align: top;">uint64<br>
       </td>
       <td style="vertical-align: top;">total on-disk size of Large Meta
-Data blocks (not including header)nei<br>
+Data blocks (not including header)<br>
       </td>
     </tr>
   </tbody>
@@ -624,9 +621,8 @@ per channel)<br>
 Each tile is then stored separately (with tiles in v-major order) in
 the same manner as the untiled face data.&nbsp; Note: the number of
 tiles for a face is determined by comparing the tile_ures and tile_vres
-with the ures and vres of the face.&nbsp;
-For triangle meshes, some of the tiles may be rectangular.&nbsp; (A
-diagram is probably needed here.)<br>
+with the ures and vres of the face.
+<br>
 <br>
 <br>
 <h3>Meta Data<br>

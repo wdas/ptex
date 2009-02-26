@@ -15,6 +15,7 @@
 - \subpage apiintro
 - \subpage adjdata
 - \subpage fileformat
+- \subpage tritex
 - \subpage todo
 */
 
