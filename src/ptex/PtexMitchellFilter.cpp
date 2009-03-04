@@ -42,8 +42,7 @@ void PtexMitchellFilter::setSharpness(float sharpness)
 
 
 void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
-			      PtexTexture* tx, int faceid,
-			      float u, float v, float uw, float vw)
+			      int faceid, float u, float v, float uw, float vw)
 {
 #if 0
     // for debugging only!
@@ -81,13 +80,13 @@ void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
       - smoothstep between edge/mid-face resolutions (mid-face = u or v == 0.5)
     */
 
-    if (!_ctx.prepare(result, firstchan, nchannels, tx, faceid, u, v, uw, vw))
+    if (!_ctx.prepare(result, firstchan, nchannels, _tx, faceid, u, v, uw, vw))
 	return;
 
     double weight = OneValueInv(_ctx.dt);
 
     // get face
-    const FaceInfo& f = tx->getFaceInfo(faceid);
+    const FaceInfo& f = _tx->getFaceInfo(faceid);
     _isConstant = f.isConstant();
 
 #if 0
@@ -130,7 +129,7 @@ void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
 
     // if neighborhood is constant, just return constant value of face
     if (_isConstant) {
-	PtexFaceData* data = tx->getData(faceid, 0);
+	PtexFaceData* data = _tx->getData(faceid, 0);
 	if (data) {
 	    char* d = (char*) data->getData() + _ctx.firstchan*DataSize(_ctx.dt);
 	    Ptex::ConvertToFloat(_ctx.result, d, _ctx.dt, _ctx.nchannels);

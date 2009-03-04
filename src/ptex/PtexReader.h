@@ -53,6 +53,8 @@ public:
     virtual const char* path() { return _path.c_str(); }
     virtual Ptex::MeshType meshType() { return MeshType(_header.meshtype); }
     virtual Ptex::DataType dataType() { return DataType(_header.datatype); }
+    virtual Ptex::BorderMode uBorderMode() { return BorderMode(_extheader.ubordermode); };
+    virtual Ptex::BorderMode vBorderMode() { return BorderMode(_extheader.ubordermode); };
     virtual int alphaChannel() { return _header.alphachan; }
     virtual int numChannels() { return _header.nchannels; }
     virtual int numFaces() { return _header.nfaces; }
@@ -466,6 +468,7 @@ protected:
     FilePos _pos;		      // current seek position
     std::string _path;		      // current file path
     Header _header;		      // the header
+    ExtHeader _extheader;	      // extended header
     FilePos _extheaderpos;	      // file positions of data sections
     FilePos _faceinfopos;	      // ...
     FilePos _constdatapos;

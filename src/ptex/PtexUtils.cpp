@@ -35,6 +35,15 @@ const char* Ptex::DataTypeName(DataType dt)
 }
 
 
+const char* Ptex::BorderModeName(BorderMode m)
+{
+    static const char* names[] = { "clamp", "black", "periodic" };
+    if (m < 0 || m >= int(sizeof(names)/sizeof(const char*)))
+	return "(invalid border mode)";
+    return names[m];
+}
+
+
 const char* Ptex::EdgeIdName(EdgeId eid)
 {
     static const char* names[] = { "bottom", "right", "top", "left" };

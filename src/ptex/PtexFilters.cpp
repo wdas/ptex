@@ -14,10 +14,66 @@
 #include "PtexSeparableFilter.h"
 #include "PtexSeparableKernel.h"
 
+class PtexPointFilter : public PtexFilter, public Ptex
+{
+ public:
+    PtexPointFilter(PtexTexture* tx) : _tx(tx) {}
+    virtual void release() { delete this; }
+    virtual void eval(float* result, int firstchan, int nchannels,
+		      int faceid, float u, float v, float /*uw*/, float /*vw*/)
+    {
+	if (!_tx || nchannels <= 0) return;
+	if (faceid < 0 || faceid >= _tx->numFaces()) return;
+	const FaceInfo& f = _tx->getFaceInfo(faceid);
+	int resu = f.res.u(), resv = f.res.v();
+	int ui = PtexUtils::clamp(int(u*resu), 0, resu-1);
+	int vi = PtexUtils::clamp(int(v*resv), 0, resv-1);
+	_tx->getPixel(faceid, ui, vi, result, firstchan, nchannels);
+    }
+    
+ private:
+    PtexTexture* _tx;
+};
+
+
+class PtexPointFilterTri : public PtexFilter, public Ptex
+{
+ public:
+    PtexPointFilterTri(PtexTexture* tx) : _tx(tx) {}
+    virtual void release() { delete this; }
+    virtual void eval(float* result, int firstchan, int nchannels,
+		      int faceid, float u, float v, float /*uw*/, float /*vw*/)
+    {
+	if (!_tx || nchannels <= 0) return;
+	if (faceid < 0 || faceid >= _tx->numFaces()) return;
+	const FaceInfo& f = _tx->getFaceInfo(faceid);
+	int res = f.res.u();
+	int resm1 = res - 1;
+	float ut = u * res, vt = v * res;
+	int ui = PtexUtils::clamp(int(ut), 0, resm1);
+	int vi = PtexUtils::clamp(int(vt), 0, resm1);
+	float uf = ut - floor(ui), vf = vt - floor(vi);
+	
+	if (uf + vf <= 1.0) {
+	    // "even" triangles are stored in lower-left half-texture
+	    _tx->getPixel(faceid, ui, vi, result, firstchan, nchannels);
+	}
+	else {
+	    // "odd" triangles are stored in upper-right half-texture
+	    _tx->getPixel(faceid, resm1-vi, resm1-ui, result, firstchan, nchannels);
+	}
+    }
+    
+ private:
+    PtexTexture* _tx;
+};
+
+
 class PtexBicubicFilter : public PtexSeparableFilter
 {
  public:
-    PtexBicubicFilter(float sharpness)
+    PtexBicubicFilter(PtexTexture* tx, float sharpness)
+	: PtexSeparableFilter(tx)
     {
 	// compute Cubic filter coefficients:
 	// abs(x) < 1:
@@ -101,7 +157,8 @@ class PtexBicubicFilter : public PtexSeparableFilter
 class PtexGaussianFilter : public PtexSeparableFilter
 {
  public:
-    PtexGaussianFilter() {}
+    PtexGaussianFilter(PtexTexture* tx)
+	: PtexSeparableFilter(tx) {}
 
  protected:
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
@@ -159,7 +216,8 @@ class PtexGaussianFilter : public PtexSeparableFilter
 class PtexBoxFilter : public PtexSeparableFilter
 {
  public:
-    PtexBoxFilter() {}
+    PtexBoxFilter(PtexTexture* tx)
+	: PtexSeparableFilter(tx) {}
 
  protected:
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
@@ -221,7 +279,8 @@ class PtexBoxFilter : public PtexSeparableFilter
 class PtexBilinearFilter : public PtexSeparableFilter
 {
  public:
-    PtexBilinearFilter() {}
+    PtexBilinearFilter(PtexTexture* tx)
+	: PtexSeparableFilter(tx) {}
 
  protected:
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
@@ -270,11 +329,30 @@ class PtexBilinearFilter : public PtexSeparableFilter
 };
 
 
-PtexFilter* PtexFilter::mitchell_orig(float sharpness) { return new PtexMitchellFilter(sharpness); }
-PtexFilter* PtexFilter::bicubic(float sharpness) { return new PtexBicubicFilter(sharpness); }
-PtexFilter* PtexFilter::bspline() { return new PtexBicubicFilter(0.0); }
-PtexFilter* PtexFilter::catmullrom() { return new PtexBicubicFilter(1.0); }
-PtexFilter* PtexFilter::mitchell() { return new PtexBicubicFilter(2.0/3.0); }
-PtexFilter* PtexFilter::box() { return new PtexBoxFilter(); }
-PtexFilter* PtexFilter::bilinear() { return new PtexBilinearFilter(); }
-PtexFilter* PtexFilter::gaussian() { return new PtexGaussianFilter(); }
+PtexFilter* PtexFilter::getFilter(PtexTexture* tex, const PtexFilter::Options& opts)
+{
+
+    switch (tex->meshType()) {
+    case Ptex::mt_quad:
+	switch (opts.filter) {
+	case -1:	    return new PtexMitchellFilter(tex, opts.sharpness);
+	case f_point:       return new PtexPointFilter(tex);
+	case f_bilinear:    return new PtexBilinearFilter(tex);
+	default:
+	case f_box:         return new PtexBoxFilter(tex);
+	case f_gaussian:    return new PtexGaussianFilter(tex);
+	case f_bicubic:     return new PtexBicubicFilter(tex, opts.sharpness);
+	case f_bspline:     return new PtexBicubicFilter(tex, 0.0);
+	case f_catmullrom:  return new PtexBicubicFilter(tex, 1.0);
+	case f_mitchell:    return new PtexBicubicFilter(tex, 2.0/3.0);
+	}
+	break;
+
+    case Ptex::mt_triangle:
+// 	switch (opts.filter) {
+// 	case f_point:       return new PtexPointFilterTri(tex);
+// 	}
+	return new PtexPointFilterTri(tex);
+    }
+    return 0;
+}

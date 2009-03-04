@@ -1,12 +1,17 @@
-CC       = gcc
+# use compiler from CXX env var if present, otherwise default to g++
+ifndef CXX
 CXX      = g++
+LINK     = g++
+else
+LINK = $(CXX)
+endif
+
 # DEBUG = -g -DDEBUG
 DEBUG    = -O2 -DNDEBUG
 INCPATH  = -I../ptex -I ${RP_subEngine}/include -I${RMANTREE}/include
 # prman headers won't compile with -pedantic
 #CXXFLAGS = -Wall -W -pedantic -std=c++98 $(DEBUG) $(INCPATH) -fPIC
 CXXFLAGS = -Wall -W -std=c++98 $(DEBUG) $(INCPATH) -fPIC
-LINK     = g++
 LFLAGS   = 
 PTEX     = ../ptex/libPtex.a
 LIBS     = -lm -lz -lpthread ${RP_subEngine}/lib/libSubEngine.so

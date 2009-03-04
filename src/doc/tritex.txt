@@ -1,0 +1,6 @@
+/**
+\page tritex Triangle textures
+
+\image html tritex1.jpg
+\image html tritex2.jpg
+*/

@@ -34,6 +34,13 @@ struct PtexIO : public Ptex {
 	int pixelSize() const { return DataSize(datatype) * nchannels; }
 	bool hasAlpha() const { return alphachan >= 0 && alphachan < nchannels; }
     };
+    struct ExtHeader {
+	BorderMode ubordermode:32;
+	BorderMode vbordermode:32;
+	uint32_t lmdheaderzipsize;
+	uint32_t lmdheadermemsize;
+	uint64_t largemetadatasize;
+    };
     struct LevelInfo {
 	uint64_t leveldatasize;
 	uint32_t levelheadersize;

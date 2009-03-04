@@ -44,22 +44,29 @@ struct Ptex {
     /** Type of base mesh for which the textures are defined.  A mesh
 	can be triangle-based (with triangular textures) or quad-based
 	(with rectangular textures). */
-    enum MeshType     {
+    enum MeshType {
 	mt_triangle,		///< Mesh is triangle-based (placeholder, not yet supported).
 	mt_quad			///< Mesh is quad-based.
     };
 
     /** Type of data stored in texture file. */
-    enum DataType     {
+    enum DataType {
 	dt_uint8,		///< Unsigned, 8-bit integer.
 	dt_uint16,		///< Unsigned, 16-bit integer.
 	dt_half,		///< Half-precision (16-bit) floating point.
 	dt_float		///< Single-precision (32-bit) floating point.
     };
 
+    /** How to handle mesh border when filtering. */
+    enum BorderMode {
+	m_clamp,		///< texel access is clamped to border
+	m_black,		///< texel beyond border are assumed to be black
+	m_periodic		///< texel access wraps to other side of face
+    };
+
     /** Edge IDs used in adjacency data in the Ptex::FaceInfo struct.
 	Edge ID usage for triangle meshes is TBD. */
-    enum EdgeId       {
+    enum EdgeId {
 	e_bottom,		///< Bottom edge, from UV (0,0) to (1,0)
 	e_right,		///< Right edge, from UV (1,0) to (1,1)
 	e_top,			///< Top edge, from UV (1,1) to (0,1)
@@ -81,6 +88,9 @@ struct Ptex {
 
     /** Look up name of given data type. */
     PTEXAPI static const char* DataTypeName(DataType dt);
+
+    /** Look up name of given border mode. */
+    PTEXAPI static const char* BorderModeName(BorderMode m);
 
     /** Look up name of given edge ID. */
     PTEXAPI static const char* EdgeIdName(EdgeId eid);
@@ -420,6 +430,12 @@ class PtexTexture {
     /** Type of data stored in file. */
     virtual Ptex::DataType dataType() = 0;
 
+    /** Mode for filtering texture access beyond mesh border. */
+    virtual Ptex::BorderMode uBorderMode() = 0;
+
+    /** Mode for filtering texture access beyond mesh border. */
+    virtual Ptex::BorderMode vBorderMode() = 0;
+
     /** Index of alpha channel (if any).  One channel in the file can be flagged to be the alpha channel.
 	If no channel is acting as the alpha channel, -1 is returned.
 	See PtexWriter for more details.  */
@@ -755,34 +771,34 @@ class PtexWriter {
  */
 class PtexFilter {
  public:
-    /** Construct a cubic filter.  The sharpness parameter
-	controls the response of the filter.  Usual sharpness values
-	range between zero and one.  At the value of zero, the filter
-	is equivalent to the cubic B-Spline.  At the value of one, the
-	filter is equivalent to the Catmull-Rom interpolating spline.
+    /// Filter types
+    enum FilterType {
+	f_point,		///< Point-sampled (no filtering)
+	f_bilinear,		///< Bi-linear interpolation
+	f_box,			///< Box filter
+	f_gaussian,		///< Gaussian filter
+	f_bicubic,		///< General bi-cubic filter (uses sharpness option)
+	f_bspline,		///< BSpline (equivalent to bi-cubic w/ sharpness=0)
+	f_catmullrom,		///< Catmull-Rom (equivalent to bi-cubic w/ sharpness=1)
+	f_mitchell		///< Mitchell (equivalent to bi-cubic w/ sharpness=2/3)
+    };
 
-	In terms of the Mitchell "BC" representation, B = 1-sharpness
-	and C = (1-B)/2.  Thus, the value of 2/3 corresponds to the
-	classic "B = 1/3, C = 1/3" setting recommended for general
-	use.
+    /// Choose filter options
+    struct Options {
+	int __structSize;	///< (for internal use only)
+	FilterType filter;	///< Filter type.
+	float sharpness;	///< Filter sharpness, 0..1 (for general bi-cubic filter only).
+	bool lerp;		///< Interpolate between mipmap levels.
 
-	When sharpness values > 0 are used, negative filter lobes
-	can cause overshooting of the data points.  For data such as
-	color values, the results may need to be clamped to a defined
-	range to avoid problems.
+	/// Constructor - sets defaults
+	Options(FilterType filter=f_box, float sharpness=0, bool lerp=0) :
+	    __structSize(sizeof(Options)),
+	    filter(filter), sharpness(sharpness), lerp(lerp) {}
+    };
 
-	The smoothest results are obtained with sharpness set to zero.
-	Sharpness values outside of the zero-to-one range are possible,
-	but are not typically used.
+    /* Construct a filter for the given texture.
     */
-    PTEXAPI static PtexFilter* mitchell_orig(float sharpness);
-    PTEXAPI static PtexFilter* bicubic(float sharpness);
-    PTEXAPI static PtexFilter* mitchell();
-    PTEXAPI static PtexFilter* bspline();
-    PTEXAPI static PtexFilter* catmullrom();
-    PTEXAPI static PtexFilter* box();
-    PTEXAPI static PtexFilter* gaussian();
-    PTEXAPI static PtexFilter* bilinear();
+    PTEXAPI static PtexFilter* getFilter(PtexTexture* tx, const Options& opts);
 
     /** Release resources held by this pointer (pointer becomes invalid). */
     virtual void release() = 0;
@@ -795,7 +811,6 @@ class PtexFilter {
         @param result Buffer to hold filter result.  Must be large enough to hold nchannels worth of data.
 	@param firstchan First channel to evaluate [0..tx->numChannels()-1]
 	@param nchannels Number of channels to evaluate
-	@param tx Texture file to evaluate
 	@param faceid Face index [0..tx->numFaces()-1]
 	@param u U coordinate, normalized [0..1]
 	@param v V coordinate, normalized [0..1]
@@ -803,8 +818,8 @@ class PtexFilter {
 	@param vw V filter width, normalized [0..1]
     */
     virtual void eval(float* result, int firstchan, int nchannels,
-		      PtexTexture* tx, int faceid,
-		      float u, float v, float uw, float vw) = 0;
+		      int faceid, float u, float v, float uw, float vw) = 0;
+
  protected:
     virtual ~PtexFilter() {}; ///< Destructor not for public use.  Use release() instead.
 };

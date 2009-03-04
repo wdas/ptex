@@ -20,12 +20,11 @@ class PtexSeparableFilter : public PtexFilter, public Ptex
  public:
     virtual void release() { delete this; }
     virtual void eval(float* result, int firstchan, int nchannels,
-		      PtexTexture* tx, int faceid,
-		      float u, float v, float uw, float vw);
+		      int faceid, float u, float v, float uw, float vw);
 
  protected:
-    PtexSeparableFilter() :
-	_tx(0), _result(0), _weight(0), 
+    PtexSeparableFilter(PtexTexture* tx) :
+	_tx(tx), _result(0), _weight(0), 
 	_firstChanOffset(0), _nchan(0), _ntxchan(0),
 	_dt((DataType)0) {}
     virtual ~PtexSeparableFilter() {}

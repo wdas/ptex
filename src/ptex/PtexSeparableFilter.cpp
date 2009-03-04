@@ -19,15 +19,13 @@
 //#define NOEDGEBLEND // enable for debugging
 
 void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
-			       PtexTexture* tx, int faceid,
-			       float u, float v, float uw, float vw)
+			       int faceid, float u, float v, float uw, float vw)
 {
     // init
-    if (!tx || nChannels <= 0) return;
-    if (faceid < 0 || faceid >= tx->numFaces()) return;
-    _tx = tx;
-    _ntxchan = tx->numChannels();
-    _dt = tx->dataType();
+    if (!_tx || nChannels <= 0) return;
+    if (faceid < 0 || faceid >= _tx->numFaces()) return;
+    _ntxchan = _tx->numChannels();
+    _dt = _tx->dataType();
     _firstChanOffset = firstChan*DataSize(_dt);
     _nchan = PtexUtils::min(nChannels, _ntxchan-firstChan);
 
@@ -36,11 +34,11 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     v = PtexUtils::clamp(v, 0.0f, 1.0f);
 
     // get face info
-    const FaceInfo& f = tx->getFaceInfo(faceid);
+    const FaceInfo& f = _tx->getFaceInfo(faceid);
 
     // if neighborhood is constant, just return constant value of face
     if (f.isNeighborhoodConstant()) {
-	PtexPtr<PtexFaceData> data ( tx->getData(faceid, 0) );
+	PtexPtr<PtexFaceData> data ( _tx->getData(faceid, 0) );
 	if (data) {
 	    char* d = (char*) data->getData() + _firstChanOffset;
 	    Ptex::ConvertToFloat(result, d, _dt, _nchan);
@@ -247,11 +245,11 @@ void PtexSeparableFilter::apply(PtexSeparableKernel& k, int faceid, const Ptex::
     }
     else if (dh->isTiled()) {
 	Ptex::Res tileres = dh->tileRes();
+	PtexSeparableKernel kt;
+	kt.res = tileres;
 	int tileresu = tileres.u();
 	int tileresv = tileres.v();
 	int ntilesu = k.res.u() / tileresu;
-	PtexSeparableKernel kt;
-	kt.res = tileres;
 	for (int v = k.v, vw = k.vw; vw > 0; vw -= kt.vw, v += kt.vw) {
 	    int tilev = v / tileresv;
 	    kt.v = v % tileresv;

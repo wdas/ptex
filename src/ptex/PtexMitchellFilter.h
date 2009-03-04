@@ -20,14 +20,14 @@
 class PtexMitchellFilter : public PtexFilter, public Ptex
 {
  public:
-    PtexMitchellFilter(float sharpness)
+    PtexMitchellFilter(PtexTexture* tx, float sharpness)
+	: _tx(tx)
     {
 	setSharpness(sharpness);
     }
     virtual void release() { delete this; }
     virtual void eval(float* result, int firstchan, int nchannels,
-		      PtexTexture* tx, int faceid,
-		      float u, float v, float uw, float vw);
+		      int faceid, float u, float v, float uw, float vw);
 
  protected:
     struct Face {
@@ -84,6 +84,7 @@ class PtexMitchellFilter : public PtexFilter, public Ptex
     void evalLargeDu(float du, float weight);
     void evalLargeDuFace(int faceid, int level, float weight);
 
+    PtexTexture* _tx;		// the texture
     PtexFilterContext _ctx;	// filter context
 
     bool _isConstant;		// true if neighborhood is constant

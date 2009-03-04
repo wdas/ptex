@@ -2,15 +2,16 @@
 \page todo To-do list
 
 In work:
+- API rework to support PRMan integration
 - individually stored large meta-data
 - clamp/black/periodic modes
 
 Planned:
+- triangle mesh support (w/ triangular textures)
 - multi-split on subfaces (for kernel width > 0.5)
 - lerp
 - user mipmaps
 - improve blur quality near EVs
-- triangle mesh support (w/ triangular textures)
 
 Considering:
 - ptxconvert updates (support format conversions, remove image toolkit dependency)

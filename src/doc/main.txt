@@ -16,6 +16,7 @@
 - \subpage adjdata
 - \subpage fileformat
 - \subpage tritex
+- \subpage metadata
 - \subpage todo
 */
 
