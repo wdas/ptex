@@ -765,9 +765,17 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 	std::cerr << "PtexReader::getData - enlargements not supported" << std::endl;
 	return 0;
     }
-    if (_header.meshtype == mt_triangle) { //  && res.ulog2 != res.vlog2) {
-	std::cerr << "PtexReader::getData - anisotropic reductions not supported for triangle mesh" << std::endl;
-	return 0;
+    if (_header.meshtype == mt_triangle)
+    {
+	if (redu != redv) {
+	    std::cerr << "PtexReader::getData - anisotropic reductions not supported for triangle mesh" << std::endl;
+	    return 0;
+	}
+	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res(res.ulog2+1, res.vlog2+1)) );
+	FaceData* src = dynamic_cast<FaceData*>(psrc.get());
+	assert(src);
+	if (src) src->reduce(face, this, res, PtexUtils::reduceTri);
+	return face;
     }
 
     // determine which direction to blend
