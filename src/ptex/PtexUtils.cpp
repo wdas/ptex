@@ -65,6 +65,13 @@ const char* Ptex::MetaDataTypeName(MetaDataType mdt)
 
 namespace {
     template<typename DST, typename SRC>
+    void ConvertArrayClamped(DST* dst, SRC* src, int numChannels, double scale, double round=0)
+    {
+        for (int i = 0; i < numChannels; i++)
+	    dst[i] = DST(PtexUtils::clamp(src[i], 0.0f, 1.0f) * scale + round);
+    }
+
+    template<typename DST, typename SRC>
     void ConvertArray(DST* dst, SRC* src, int numChannels, double scale, double round=0)
     {
 	for (int i = 0; i < numChannels; i++) dst[i] = DST(src[i] * scale + round);
@@ -85,8 +92,8 @@ void Ptex::ConvertToFloat(float* dst, const void* src, Ptex::DataType dt, int nu
 void Ptex::ConvertFromFloat(void* dst, const float* src, Ptex::DataType dt, int numChannels)
 {
     switch (dt) {
-    case dt_uint8:  ConvertArray((uint8_t*)dst,  src, numChannels, 255.0, 0.5); break;
-    case dt_uint16: ConvertArray((uint16_t*)dst, src, numChannels, 65535.0, 0.5); break;
+    case dt_uint8:  ConvertArrayClamped((uint8_t*)dst,  src, numChannels, 255.0, 0.5); break;
+    case dt_uint16: ConvertArrayClamped((uint16_t*)dst, src, numChannels, 65535.0, 0.5); break;
     case dt_half:   ConvertArray((PtexHalf*)dst, src, numChannels, 1.0); break;
     case dt_float:  memcpy(dst, src, sizeof(float)*numChannels); break;
     }
