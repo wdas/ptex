@@ -142,6 +142,8 @@ struct PtexUtils : public Ptex {
 			void* dst, int dstride, DataType dt, int nchannels);
     static void reducev(const void* src, int sstride, int ures, int vres,
 			void* dst, int dstride, DataType dt, int nchannels);
+    static void reduceTri(const void* src, int sstride, int ures, int vres,
+			  void* dst, int dstride, DataType dt, int nchannels);
     static void average(const void* src, int sstride, int ures, int vres,
 			void* dst, DataType dt, int nchannels);
     static void fill(const void* src, void* dst, int dstride,

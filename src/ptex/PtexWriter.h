@@ -81,6 +81,8 @@ protected:
     typedef std::map<std::string, MetaEntry> MetaData;
     MetaData _metadata;
     z_stream_s _zstream;	// libzip compression stream
+
+    PtexUtils::ReduceFn* _reduceFn;
 };
 
 

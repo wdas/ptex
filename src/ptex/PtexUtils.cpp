@@ -249,7 +249,6 @@ namespace {
 void PtexUtils::reduce(const void* src, int sstride, int uw, int vw,
 		       void* dst, int dstride, DataType dt, int nchan)
 {
-    //    printf("reduce %dx%d->%dx%d\n", uw, vw, uw/2, vw/2);
     switch (dt) {
     case dt_uint8:   ::reduce((const uint8_t*) src, sstride, uw, vw, 
 			      (uint8_t*) dst, dstride, nchan); break;
@@ -284,7 +283,6 @@ namespace {
 void PtexUtils::reduceu(const void* src, int sstride, int uw, int vw,
 			void* dst, int dstride, DataType dt, int nchan)
 {
-    //    printf("reduceu %dx%d->%dx%d\n", uw, vw, uw/2, vw);
     switch (dt) {
     case dt_uint8:   ::reduceu((const uint8_t*) src, sstride, uw, vw, 
 			       (uint8_t*) dst, dstride, nchan); break;
@@ -318,7 +316,6 @@ namespace {
 void PtexUtils::reducev(const void* src, int sstride, int uw, int vw,
 			void* dst, int dstride, DataType dt, int nchan)
 {
-    //    printf("reducev %dx%d->%dx%d\n", uw, vw, uw, vw/2);
     switch (dt) {
     case dt_uint8:   ::reducev((const uint8_t*) src, sstride, uw, vw, 
 			       (uint8_t*) dst, dstride, nchan); break;
@@ -331,6 +328,45 @@ void PtexUtils::reducev(const void* src, int sstride, int uw, int vw,
     }
 }
 
+
+
+namespace {
+    // generate a reduction of a packed-triangle texture
+    // note: this method won't work for tiled textures
+    template<typename T>
+    inline void reduceTri(const T* src, int sstride, int w, int /*vw*/, 
+			  T* dst, int dstride, int nchan)
+    {
+	sstride /= sizeof(T);
+	dstride /= sizeof(T);
+	int rowlen = w*nchan;
+	const T* src2 = src + (w-1) * sstride + rowlen - nchan;
+	int srowinc2 = -2*sstride - nchan;
+	int srowskip = 2*sstride - rowlen;
+	int srowskip2 = w*sstride - 2 * nchan;
+	int drowskip = dstride - rowlen/2;
+	for (const T* end = src + w*sstride; src != end; 
+	     src += srowskip, src2 += srowskip2, dst += drowskip)
+	    for (const T* rowend = src + rowlen; src != rowend; src += nchan, src2 += srowinc2)
+		for (const T* pixend = src+nchan; src != pixend; src++, src2++)
+		    *dst++ = T(0.25 * (src[0] + src[nchan] + src[sstride] + src2[0]));
+    }
+}
+
+void PtexUtils::reduceTri(const void* src, int sstride, int w, int /*vw*/,
+			  void* dst, int dstride, DataType dt, int nchan)
+{
+    switch (dt) {
+    case dt_uint8:   ::reduceTri((const uint8_t*) src, sstride, w, 0, 
+				 (uint8_t*) dst, dstride, nchan); break;
+    case dt_half:    ::reduceTri((const PtexHalf*) src, sstride, w, 0, 
+				 (PtexHalf*) dst, dstride, nchan); break;
+    case dt_uint16:  ::reduceTri((const uint16_t*) src, sstride, w, 0, 
+				 (uint16_t*) dst, dstride, nchan); break;
+    case dt_float:   ::reduceTri((const float*) src, sstride, w, 0, 
+				 (float*) dst, dstride, nchan); break;
+    }
+}
 
 
 void PtexUtils::fill(const void* src, void* dst, int dstride,

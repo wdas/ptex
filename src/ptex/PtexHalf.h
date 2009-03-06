@@ -17,16 +17,20 @@
 */
 
 #if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
-#  ifdef PTEX_EXPORTS
-#     define PTEXAPI __declspec(dllexport)
+#  ifndef PTEX_STATIC
+#    ifdef PTEX_EXPORTS
+#       define PTEXAPI __declspec(dllexport)
+#    else
+#       define PTEXAPI __declspec(dllimport)
+#    endif
 #  else
-#     define PTEXAPI __declspec(dllimport)
+#    define PTEXAPI
 #  endif
 #else
 #  define PTEXAPI
 #endif
 
-#include <stdint.h>
+#include "PtexInt.h"
 
 /**
    @class PtexHalf

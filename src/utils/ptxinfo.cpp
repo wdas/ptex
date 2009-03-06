@@ -59,27 +59,39 @@ void DumpTiling(PtexFaceData* dh)
 }
 			
 
-void DumpData(PtexTexture* r, int faceid)
+void DumpData(PtexTexture* r, int faceid, bool dumpall)
 {
+    int levels = 1;
+    if (dumpall) {
+	PtexReader* R = dynamic_cast<PtexReader*> (r);
+	if (R) levels = R->header().nlevels;
+    }
+
     const Ptex::FaceInfo& f = r->getFaceInfo(faceid);
     int nchan = r->numChannels();
     float* pixel = (float*) malloc(sizeof(float)*nchan);
-    int ures = f.res.u(), vres = f.res.v();
-    std::cout << "  data (" << ures << " x " << vres << ")";
-    if (f.isConstant()) { ures = vres = 1; }
-    bool isconst = (ures == 1 && vres == 1);
-    if (isconst) std::cout << ", const: ";
-    else std::cout << ":";
-    for (int vi = 0; vi < vres; vi++) {
-	for (int ui = 0; ui < ures; ui++) {
-	    if (!isconst) std::cout << "\n    (" << ui << ", " << vi << "): ";
-	    r->getPixel(faceid, ui, vi, pixel, 0, nchan);
- 	    for (int c=0; c < nchan; c++) {
- 		printf(" %.3f", pixel[c]);
- 	    }
+    Ptex::Res res = f.res;
+    while (levels && res.ulog2 >= 1 && res.vlog2 >= 1) {
+	int ures = res.u(), vres = res.v();
+	std::cout << "  data (" << ures << " x " << vres << ")";
+	if (f.isConstant()) { ures = vres = 1; }
+	bool isconst = (ures == 1 && vres == 1);
+	if (isconst) std::cout << ", const: ";
+	else std::cout << ":";
+	for (int vi = 0; vi < vres; vi++) {
+	    for (int ui = 0; ui < ures; ui++) {
+		if (!isconst) std::cout << "\n    (" << ui << ", " << vi << "): ";
+		r->getPixel(faceid, ui, vi, pixel, 0, nchan, res);
+		for (int c=0; c < nchan; c++) {
+		    printf(" %.3f", pixel[c]);
+		}
+	    }
 	}
+	std::cout << std::endl;
+	res.ulog2--;
+	res.vlog2--;
+	levels--;
     }
-    std::cout << std::endl;
     free(pixel);
 }
 
@@ -194,6 +206,7 @@ void usage()
 	      << "  -m Dump meta data\n"
 	      << "  -f Dump face info\n"
 	      << "  -d Dump data\n"
+	      << "  -D Dump data for all mipmap levels\n"
 	      << "  -t Dump tiling info\n"
 	      << "  -i Dump internal info\n";
     exit(1);
@@ -205,6 +218,7 @@ int main(int argc, char** argv)
     bool dumpmeta = 0;
     bool dumpfaceinfo = 0;
     bool dumpdata = 0;
+    bool dumpalldata = 0;
     bool dumpinternal = 0;
     bool dumptiling = 0;
     const char* fname = 0;
@@ -217,6 +231,7 @@ int main(int argc, char** argv)
 		switch (*cp++) {
 		case 'm': dumpmeta = 1; break;
 		case 'd': dumpdata = 1; break;
+		case 'D': dumpdata = 1; dumpalldata = 1; break;
 		case 'f': dumpfaceinfo = 1; break;
 		case 't': dumptiling = 1; break;
 		case 'i': dumpinternal = 1; break;
@@ -268,7 +283,7 @@ int main(int argc, char** argv)
 		PtexPtr<PtexFaceData> dh ( r->getData(i, f.res) );
 		DumpTiling(dh);
 	    }
-	    if (dumpdata) DumpData(r, i);
+	    if (dumpdata) DumpData(r, i, dumpalldata);
 	}
 	std::cout << "texels: " << texels << std::endl;
     }

@@ -70,11 +70,6 @@ namespace {
 	    return 0;
 	}
 
-	if (mt == Ptex::mt_triangle) {
-	    error = "PtexWriter error: Triangle mesh type not yet supported";
-	    return 0;
-	}
-
 	if (dt < Ptex::dt_uint8 || dt > Ptex::dt_float) {
 	    error = "PtexWriter error: Invalid data type";
 	    return 0;
@@ -174,6 +169,11 @@ PtexWriterBase::PtexWriterBase(const char* path,
     _header.nfaces = nfaces;
     _header.nlevels = 0;
     _pixelSize = _header.pixelSize();
+
+    if (mt == mt_triangle) 
+	_reduceFn = &PtexUtils::reduceTri;
+    else
+	_reduceFn = &PtexUtils::reduce;
 
     memset(&_zstream, 0, sizeof(_zstream));
     deflateInit(&_zstream, compress ? Z_DEFAULT_COMPRESSION : 0);
@@ -531,8 +531,7 @@ void PtexWriterBase::writeReduction(FILE* fp, const void* data, int stride, Res 
     char* buff = useMalloc ? (char*) malloc(buffsize) : (char*)alloca(buffsize);
 
     int dstride = newres.u() * _pixelSize;
-    PtexUtils::reduce(data, stride, res.u(), res.v(), buff, dstride,
-		      _header.datatype, _header.nchannels);
+    _reduceFn(data, stride, res.u(), res.v(), buff, dstride, _header.datatype, _header.nchannels);
     writeBlock(fp, buff, buffsize);
 
     if (useMalloc) free(buff);
@@ -677,6 +676,11 @@ bool PtexMainWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
 	setError("PtexWriter error: faceid out of range");
 	return 0;
     }
+    if (_header.meshtype == mt_triangle && (f.res.ulog2 != f.res.vlog2)) {
+	setError("PtexWriter error: asymmetric face res not supported for triangle textures");
+	return 0;
+    }
+
     if (stride == 0) stride = f.res.u()*_pixelSize;
 
     // handle constant case

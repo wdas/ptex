@@ -34,6 +34,7 @@ INSTALL = \
 	lib/libPtex.so \
 	include/Ptexture.h \
 	include/PtexHalf.h \
+	include/PtexInt.h \
 	include/PtexUtils.h
 
 ALL = libPtex.a libPtex.so

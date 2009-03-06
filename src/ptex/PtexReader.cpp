@@ -710,13 +710,9 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
     // lock cache (can't autolock since we might need to unlock early)
     _cache->cachelock.lock();
 
+
     // determine how many reduction levels are needed
     int redu = fi.res.ulog2 - res.ulog2, redv = fi.res.vlog2 - res.vlog2;
-    if (redu < 0 || redv < 0) {
-	std::cerr << "PtexReader::getData - enlargements not supported" << std::endl;
-	_cache->cachelock.unlock();
-	return 0;
-    }
     
     if (redu == 0 && redv == 0) {
 	// no reduction - get level zero (full) res face
@@ -726,7 +722,8 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 	_cache->cachelock.unlock();
 	return face;
     }
-    else if (redu == redv && !fi.hasEdits() && res >= 0) {
+
+    if (redu == redv && !fi.hasEdits() && res >= 0) {
 	// reduction is symmetric and non-negative 
 	// and face has no edits => access data from reduction level (if present)
 	int levelid = redu;
@@ -760,22 +757,26 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
     // unlock cache - getData and reduce will handle their own locking
     _cache->cachelock.unlock();
     
+    if (res.ulog2 < 0 || res.vlog2 < 0) {
+	std::cerr << "PtexReader::getData - reductions below 1 pixel not supported" << std::endl;
+	return 0;
+    }
+    if (redu < 0 || redv < 0) {
+	std::cerr << "PtexReader::getData - enlargements not supported" << std::endl;
+	return 0;
+    }
+    if (_header.meshtype == mt_triangle) { //  && res.ulog2 != res.vlog2) {
+	std::cerr << "PtexReader::getData - anisotropic reductions not supported for triangle mesh" << std::endl;
+	return 0;
+    }
+
     // determine which direction to blend
     bool blendu;
     if (redu == redv) {
 	// for symmetric face blends, alternate u and v blending
 	blendu = (res.ulog2 & 1);
     }
-    else if (redu > redv) blendu = 1;
-    else blendu = 0;
-
-    // see if full-face neighborhood blending is needed
-    if (blendu ? res.ulog2 < 0 : res.vlog2 < 0) {
-	// already down to a single pixel in at blend dimension
-	// blend w/ neighbors instead of reducing
-	blendFaces(face, faceid, res, blendu);
-	return face;
-    }
+    else blendu = redu > redv;
 
     if (blendu) {
 	// get next-higher u-res and reduce in u
@@ -791,20 +792,6 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 	assert(src);
 	if (src) src->reduce(face, this, res, PtexUtils::reducev);
     }
-
-#if 0
-    // This happens rarely (only when the symmetric reduction is not
-    // already on-disk), and it's not clear whether it's better
-    // (faster) than separate uni-directional reductions anyway.  Can
-    // re-enable later and test.  Having one less case means less can go wrong!
-    else { // redu == redv => symmetric reduction
-	// get next-higher res and reduce (in both u and v)
-	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res(res.ulog2+1, res.vlog2+1)) );
-	FaceData* src = dynamic_cast<FaceData*>(psrc.get);
-	assert(src);
-	if (src) src->reduce(face, this, res, PtexUtils::reduce);
-    }
-#endif
 
     return face;
 }

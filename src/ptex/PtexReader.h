@@ -386,7 +386,6 @@ protected:
     void setError(const char* error)
     {
 	_error = error; _error += " PtexFile: "; _error += _path;
-	printf("%s\n", _error.c_str());
 	_ok = 0;
     }
 
