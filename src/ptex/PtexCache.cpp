@@ -175,9 +175,9 @@ void PtexCacheImpl::removeData(int size) {
 class PtexReaderCache : public PtexCacheImpl
 {
 public:
-    PtexReaderCache(int maxFiles, int maxMem, bool premultiply)
+    PtexReaderCache(int maxFiles, int maxMem, bool premultiply, PtexInputHandler* handler)
 	: PtexCacheImpl(maxFiles, maxMem),
-	  _cleanupCount(0), _premultiply(premultiply)
+	  _io(handler), _cleanupCount(0), _premultiply(premultiply)
     {}
 
     ~PtexReaderCache()
@@ -263,6 +263,7 @@ public:
 
 
 private:
+    PtexInputHandler* _io;
     std::string _searchpath;
     std::vector<std::string> _searchdirs;
     typedef PtexDict<PtexReader*> FileMap;
@@ -304,28 +305,30 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 	}
 		
 	// make a new reader
-	reader = new PtexReader((void**)entry, this, _premultiply);
+	reader = new PtexReader((void**)entry, this, _premultiply, _io);
 
 	// temporarily release cache lock while we open the file
 	cachelock.unlock();
-	char tmppath[PATH_MAX+1];
-	if (filename[0] != '/' && !_searchdirs.empty()) {
-	    // file is relative, search in searchpath
-	    bool found = false;
-	    struct stat statbuf;
-	    for (size_t i = 0, size = _searchdirs.size(); i < size; i++) {
-		snprintf(tmppath, sizeof(tmppath), "%s/%s", _searchdirs[i].c_str(), filename);
-		if (stat(tmppath, &statbuf) == 0) {
-		    found = true;
-		    filename = tmppath;
-		    break;
+	if (!_io) {
+	    char tmppath[PATH_MAX+1];
+	    if (filename[0] != '/' && !_searchdirs.empty()) {
+		// file is relative, search in searchpath
+		bool found = false;
+		struct stat statbuf;
+		for (size_t i = 0, size = _searchdirs.size(); i < size; i++) {
+		    snprintf(tmppath, sizeof(tmppath), "%s/%s", _searchdirs[i].c_str(), filename);
+		    if (stat(tmppath, &statbuf) == 0) {
+			found = true;
+			filename = tmppath;
+			break;
+		    }
 		}
-	    }
-	    if (!found) {
-		std::string errstr = "Can't find ptex file: ";
-		errstr += filename;
-		error = errstr.c_str();
-		ok = false;
+		if (!found) {
+		    std::string errstr = "Can't find ptex file: ";
+		    errstr += filename;
+		    error = errstr.c_str();
+		    ok = false;
+		}
 	    }
 	}
 	if (ok) ok = reader->open(filename, error);
@@ -359,7 +362,8 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
     return reader;
 }
 
-PtexCache* PtexCache::create(int maxFiles, int maxMem, bool premultiply)
+PtexCache* PtexCache::create(int maxFiles, int maxMem, bool premultiply,
+			     PtexInputHandler* handler)
 {
     // set default files to 100
     if (maxFiles <= 0) maxFiles = 100;
@@ -373,7 +377,7 @@ PtexCache* PtexCache::create(int maxFiles, int maxMem, bool premultiply)
 	std::cerr << "Warning, PtexCache created with < 1 MB" << std::endl;
     }
 
-    return new PtexReaderCache(maxFiles, maxMem, premultiply);
+    return new PtexReaderCache(maxFiles, maxMem, premultiply, handler);
 }
 
 

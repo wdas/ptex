@@ -45,7 +45,8 @@ public:
 
 class PtexReader : public PtexCachedFile, public PtexTexture, public PtexIO {
 public:
-    PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply);
+    PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply, 
+	       PtexInputHandler* handler);
     bool open(const char* path, Ptex::String& error);
 
     void setOwnsCache() { _ownsCache = true; }
@@ -393,7 +394,7 @@ protected:
     void seek(FilePos pos) 
     {
 	if (pos != _pos) {
-	    fseeko(_fp, pos, SEEK_SET); 
+	    _io->seek(_fp, pos); 
 	    _pos = pos;
 #ifdef GATHER_STATS
 	    stats.nseeks++;
@@ -459,11 +460,12 @@ protected:
     }
     void blendFaces(FaceData*& face, int faceid, Res res, bool blendu);
 
+    PtexInputHandler* _io;	      // IO handler
     bool _premultiply;		      // true if reader should premultiply the alpha chan
     bool _ownsCache;		      // true if reader owns the cache
     bool _ok;			      // flag set if read error occurred)
     std::string _error;		      // error string (if !_ok)
-    FILE* _fp;			      // file pointer
+    PtexInputHandler::Handle _fp;     // file pointer
     FilePos _pos;		      // current seek position
     std::string _path;		      // current file path
     Header _header;		      // the header

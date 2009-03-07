@@ -539,6 +539,45 @@ class PtexTexture {
 };
 
 
+/** @class PtexInputHandler
+    @brief Custom handler interface for intercepting and redirecting Ptex input stream calls
+
+    A custom instance of this class can be defined and supplied to the PtexCache class.
+    Files accessed through the cache will have their input streams redirected through this
+    interface.
+ */
+class PtexInputHandler {
+ public:
+    typedef void* Handle;
+
+    /** Open a file in read mode.  
+	Returns null if there was an error.
+	If an error occurs, the error string is available via lastError().
+    */
+    virtual Handle open(const char* path) = 0;
+
+    /** Seek to an absolute byte position in the input stream. */
+    virtual void seek(Handle handle, int64_t pos) = 0;
+
+    /** Read a number of bytes from the file. 
+	Returns the number of bytes successfully read.
+	If less than the requested number of bytes is read, the error string
+	is available via lastError(). 
+    */
+    virtual size_t read(void* buffer, size_t size, Handle handle) = 0;
+
+    /** Close a file.  Returns false if an error occurs, and the error
+	string is available via lastError().  */
+    virtual bool close(Handle handle) = 0;
+
+    /** Return the last error message encountered. */
+    virtual const char* lastError() = 0;
+
+ protected:
+    virtual ~PtexInputHandler() {}
+};
+
+
 /**
    @class PtexCache
    @brief File-handle and memory cache for reading ptex files
@@ -569,16 +608,20 @@ class PtexCache {
 	@param premultiply If true, textures will be premultiplied by the alpha
         channel (if any) when read from disk.  See PtexTexture and PtexWriter
 	for more details.
+	
+	@param handler If specified, all input calls made through this cache will
+	be directed through the handler.
      */
     PTEXAPI static PtexCache* create(int maxFiles=0,
 				     int maxMem=0,
-				     bool premultiply=false
-				     );
+				     bool premultiply=false,
+				     PtexInputHandler* handler=0);
 
     /// Release resources held by this pointer (pointer becomes invalid).
     virtual void release() = 0;
 
     /** Set a search path for finding textures.
+	Note: if an input handler is installed the search path will be ignored.
 
         @param path colon-delimited search path.
      */

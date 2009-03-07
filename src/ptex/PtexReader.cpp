@@ -19,6 +19,20 @@
 #include "PtexReader.h"
 
 
+namespace {
+    class DefaultInputHandler : public PtexInputHandler
+    {
+     public:
+	virtual Handle open(const char* path) { return (Handle) fopen(path, "rb"); }
+	virtual void seek(Handle handle, int64_t pos) { fseeko((FILE*)handle, pos, SEEK_SET); }
+	virtual size_t read(void* buffer, size_t size, Handle handle) {
+	    return fread(buffer, size, 1, (FILE*)handle) == 1 ? size : 0;
+	}
+	virtual bool close(Handle handle) { return fclose((FILE*)handle); }
+	virtual const char* lastError() { return strerror(errno); }
+    } defaultInputHandler;
+}
+
 
 PtexTexture* PtexTexture::open(const char* path, Ptex::String& error, bool premultiply)
 {
@@ -43,10 +57,10 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 	return 0;
     }
     _path = path;
-    _fp = fopen(path, "rb");
+    _fp = _io->open(path);
     if (!_fp) { 
 	std::string errstr = "Can't open ptex file: ";
-	errstr += path; errstr += "\n"; errstr += strerror(errno);
+	errstr += path; errstr += "\n"; errstr += _io->lastError();
 	error = errstr.c_str();
 	return 0;
     }
@@ -91,8 +105,10 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 }
 
 
-PtexReader::PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply)
+PtexReader::PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply,
+		       PtexInputHandler* io)
     : PtexCachedFile(parent, cache),
+      _io(io ? io : &defaultInputHandler),
       _premultiply(premultiply),
       _ownsCache(false),
       _ok(true),
@@ -111,7 +127,7 @@ PtexReader::PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply)
 
 PtexReader::~PtexReader()
 {
-    if (_fp) fclose(_fp);
+    if (_fp) _io->close(_fp);
     
     // we can free the const data directly since we own it (it doesn't go through the cache)
     if (_constdata) free(_constdata);
@@ -367,8 +383,8 @@ void PtexReader::readEditMetaData()
 
 bool PtexReader::readBlock(void* data, int size, bool reporterror)
 {
-    size_t result = fread(data, size, 1, _fp);
-    if (result == 1) {
+    int result = _io->read(data, size, _fp);
+    if (result == size) {
 	_pos += size;
 	STATS_INC(nblocksRead);
 	STATS_ADD(nbytesRead, size);
