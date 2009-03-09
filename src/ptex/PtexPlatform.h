@@ -35,7 +35,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-
+// OS for spinlock
+#ifdef __APPLE__
+#include <libkern/OSAtomic.h>
+#include <sys/types.h>
+#endif
 #endif
 
 // general includes
@@ -102,6 +106,17 @@ namespace PtexInternal {
 	pthread_mutex_t _mutex;
     };
 
+#ifdef __APPLE__
+    class _SpinLock {
+    public:
+	_SpinLock()   { _spinlock = 0; }
+	~_SpinLock()  { }
+	void lock()   { OSSpinLockLock(&_spinlock); }
+	void unlock() { OSSpinLockUnlock(&_spinlock); }
+    private:
+	OSSpinLock _spinlock;
+    };
+#else
     class _SpinLock {
     public:
 	_SpinLock()   { pthread_spin_init(&_spinlock, PTHREAD_PROCESS_PRIVATE); }
@@ -111,6 +126,7 @@ namespace PtexInternal {
     private:
 	pthread_spinlock_t _spinlock;
     };
+#endif // __APPLE__
 #endif
 }
 
