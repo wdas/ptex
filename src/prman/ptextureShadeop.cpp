@@ -207,30 +207,35 @@ static int ptexenvColor(RslContext*, int argc, const RslArg* argv[] )
 	    float ax=fabs(x), ay=fabs(y), az=fabs(z);
 	    int faceid;
 	    float u, v, du, dv;
-	    if (ax > ay && ax > az) {
-		if (x > 0) { faceid=0; u = -z/x; v =  y/x; } // px
-		else       { faceid=1; u = -z/x; v = -y/x; } // nx
-		du = range4(z0/x0, z1/x1, z2/x2, z3/x3);
-		dv = range4(y0/x0, y1/x1, y2/x2, y3/x3);
+	    if (ax >= ay && ax >= az) {
+		if (ax > 0) {
+		    // x is largest component
+		    if (x > 0) { faceid=0; u = -z/x; v =  y/x; } // px
+		    else       { faceid=1; u = -z/x; v = -y/x; } // nx
+		    du = range4(z0/x0, z1/x1, z2/x2, z3/x3);
+		    dv = range4(y0/x0, y1/x1, y2/x2, y3/x3);
+		}
+		else {
+		    // vector is zero length (bad input data)
+		    // default to large filter in +y dir
+		    u = v = 0.5;
+		    du = dv = 1;
+		    faceid = 2;
+		}
 	    }
-	    else if (ay > ax && ay > az) {
+	    else if (ay >= ax && ay >= az) {
+		// y is largest component
 		if (y > 0) { faceid=2; u =  x/y; v = -z/y; } // py
 		else       { faceid=3; u = -x/y; v = -z/y; } // ny
 		du = range4(x0/y0, x1/y1, x2/y2, x3/y3);
 		dv = range4(z0/y0, z1/y1, z2/y2, z3/y3);
 	    }
-	    else if (az > 0) {
+	    else {
+		// z is largest component
 		if (z > 0) { faceid=4; u =  x/z; v =  y/z; } // pz
 		else       { faceid=5; u =  x/z; v = -y/z; } // nz
 		du = range4(x0/z0, x1/z1, x2/z2, x3/z3);
 		dv = range4(y0/z0, y1/z1, y2/z2, y3/z3);
-	    }
-	    else {
-		// average vector is zero length (bad input data)
-		// use large filter in py
-		u = v = 0.5;
-		du = dv = 1;
-		faceid = 2;
 	    }
 	    filter->eval(resultval, chan, 3, faceid, (1+u)/2, (1+v)/2, 
 			 du/2 + *blur, dv/2 + *blur);

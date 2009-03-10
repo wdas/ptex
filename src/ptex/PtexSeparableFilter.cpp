@@ -68,7 +68,7 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
 
     // build kernel
     PtexSeparableKernel k;
-    buildKernel(k, u, v, uw, vw, f.res, f.isSubface());
+    buildKernel(k, u, v, uw, vw, f.res);
     assert(k.uw > 0 && k.vw > 0);
     assert(k.uw <= PtexSeparableKernel::kmax && k.vw <= PtexSeparableKernel::kmax);
     assert(k.u + k.uw - 1 >= 0 && k.u < k.res.u());

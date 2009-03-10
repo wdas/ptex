@@ -52,7 +52,7 @@ class PtexPointFilterTri : public PtexFilter, public Ptex
 	float ut = u * res, vt = v * res;
 	int ui = PtexUtils::clamp(int(ut), 0, resm1);
 	int vi = PtexUtils::clamp(int(vt), 0, resm1);
-	float uf = ut - floor(ui), vf = vt - floor(vi);
+	float uf = ut - ui, vf = vt - vi;
 	
 	if (uf + vf <= 1.0) {
 	    // "even" triangles are stored in lower-left half-texture
@@ -96,16 +96,15 @@ class PtexBicubicFilter : public PtexSeparableFilter
 
  protected:
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
-			     Res faceRes, bool isSubface)
+			     Res faceRes)
     {
 	// clamp filter width to no smaller than a texel
 	uw = PtexUtils::max(uw, 1.0f/(faceRes.u()));
 	vw = PtexUtils::max(vw, 1.0f/(faceRes.v()));
 
 	// clamp filter width to no larger than 0.25
-	float minw = isSubface ? .25f : .125f;
-	uw = PtexUtils::min(uw, minw);
-	vw = PtexUtils::min(vw, minw);
+	uw = PtexUtils::min(uw, .25f);
+	vw = PtexUtils::min(vw, .25f);
 
 	// compute desired texture res based on filter width
 	int ureslog2 = int(ceil(log2(1.0/uw)));
@@ -162,16 +161,15 @@ class PtexGaussianFilter : public PtexSeparableFilter
 
  protected:
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
-			     Res faceRes, bool isSubface)
+			     Res faceRes)
     {
 	// clamp filter width to no smaller than a texel
 	uw = PtexUtils::max(uw, 1.0f/(faceRes.u()));
 	vw = PtexUtils::max(vw, 1.0f/(faceRes.v()));
 
 	// clamp filter width to no larger than 0.25
-	float minw = isSubface ? .25f : .125f;
-	uw = PtexUtils::min(uw, minw);
-	vw = PtexUtils::min(vw, minw);
+	uw = PtexUtils::min(uw, .25f);
+	vw = PtexUtils::min(vw, .25f);
 
 	// compute desired texture res based on filter width
 	int ureslog2 = int(ceil(log2(1.0/uw)));
@@ -221,7 +219,7 @@ class PtexBoxFilter : public PtexSeparableFilter
 
  protected:
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
-			     Res faceRes, bool /*isSubface*/)
+			     Res faceRes)
     {
 	// clamp filter width to no larger than 1.0
 	uw = PtexUtils::min(uw, 1.0f);
@@ -284,7 +282,7 @@ class PtexBilinearFilter : public PtexSeparableFilter
 
  protected:
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
-			     Res faceRes, bool /*isSubface*/)
+			     Res faceRes)
     {
 	// clamp filter width to no larger than 1.0
 	uw = PtexUtils::min(uw, 1.0f);
@@ -301,7 +299,7 @@ class PtexBilinearFilter : public PtexSeparableFilter
 	// 3) closest in terms of resolution level (log2(1/filter width))
 	// Choice (1) probably makes the most sense.  In log2 terms, that means you should
 	// use the next higher level when the fractional part of the log2 res is > log2(1/.75),
-	// and you should add 1-log2(4/3) to round up.
+	// and you should add 1-log2(1/.75) to round up.
 	const double roundWidth = 0.5849625007211563; // 1-log2(1/.75)
 	int ureslog2 = int(log2(1.0/uw) + roundWidth);
 	int vreslog2 = int(log2(1.0/vw) + roundWidth);
