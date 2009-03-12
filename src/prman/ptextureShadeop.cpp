@@ -110,8 +110,10 @@ static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
 	    filter->eval(resultval, chan, 3, int(*faceid), *u, *v, *uw, *vw);
 
 	    // copy first channel into missing channels (e.g. promote 1-chan to gray)
-	    for (int i = chan + tx->numChannels(); i < 3; i++)
-		resultval[i] = resultval[0];
+	    int nChanAvailable = tx->numChannels() - chan;
+	    if (nChanAvailable > 0)
+		for (int i = nChanAvailable; i < 3; i++)
+		    resultval[i] = resultval[0];
 
 	    ++result; ++faceid; ++u; ++v; ++uw; ++vw;
 	}

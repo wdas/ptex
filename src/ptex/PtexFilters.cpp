@@ -14,6 +14,9 @@
 #include "PtexSeparableFilter.h"
 #include "PtexSeparableKernel.h"
 
+namespace {
+
+/** Point-sampling filter for rectangular textures */
 class PtexPointFilter : public PtexFilter, public Ptex
 {
  public:
@@ -36,6 +39,7 @@ class PtexPointFilter : public PtexFilter, public Ptex
 };
 
 
+/** Point-sampling filter for triangular textures */
 class PtexPointFilterTri : public PtexFilter, public Ptex
 {
  public:
@@ -69,11 +73,87 @@ class PtexPointFilterTri : public PtexFilter, public Ptex
 };
 
 
-class PtexBicubicFilter : public PtexSeparableFilter
+/** Separable filter with width=4 support.
+
+    The kernel width is calculated as a multiple of 4 times the filter
+    width and the texture resolution is chosen such that each kernel
+    axis has between 4 and 8.
+
+    For kernel widths to large to handle (because the kernel would
+    extend significantly beyond both sides of the face), a special
+    Hermite smoothstep is used on the nearest 2 samples in the affected
+    axis (or axes).
+*/
+class PtexWidth4Filter : public PtexSeparableFilter
+{
+ public:
+    typedef double KernelFn(double x, const double* c);
+
+    PtexWidth4Filter(PtexTexture* tx, KernelFn k, const double* c = 0) 
+	: PtexSeparableFilter(tx), _k(k), _c(c) {}
+
+    void buildKernelAxis(int8_t& k_ureslog2, int& k_u, int& k_uw, double* ku,
+			 float u, float uw, int f_ureslog2)
+    {
+	// build 1 axis (note: "u" labels may repesent either u or v axis)
+
+	// handle large filter widths as a special case
+	// Note: 5/4 * 1/4 = .3125 = largest filter size that will won't
+	// require samples from both neighbors.
+	if (uw > .25) {
+	    double upix;
+	    if (uw > .5) { k_ureslog2 = 0; upix = u - .5; }
+	    else         { k_ureslog2 = 1; upix = 2 * u - .5; }
+	    k_uw = 2;
+	    double ui = floor(upix);
+	    k_u = int(ui);
+  	    ku[0] = 1-PtexUtils::smoothstep(upix-ui, 0, 1);
+ 	    ku[1] = 1-ku[0];
+	    return;
+	}
+
+	// clamp filter width to no smaller than a texel
+	uw = PtexUtils::max(uw, 1.0f/(1<<f_ureslog2));
+
+	// compute desired texture res based on filter width
+	k_ureslog2 = int(ceil(log2(1.0/uw)));
+	
+	// convert from normalized coords to pixel coords
+	int resu = 1 << k_ureslog2;
+	double upix = u * resu - 0.5;
+	double uwpix = uw * resu;
+
+	// find integer pixel extent: [u,v] +/- [2*uw,2*vw]
+	// (kernel width is 4 times filter width)
+	double dupix = 2*uwpix;
+	int u1 = int(ceil(upix - dupix)), u2 = int(ceil(upix + dupix));
+	k_u = u1;
+	k_uw = u2-u1;
+
+	// compute kernel weights along u and v directions
+	double x1 = (u1-upix)/uwpix, step = 1.0/uwpix;
+	for (int i = 0; i < k_uw; i++) ku[i] = _k(x1 + i*step, _c);
+    }
+
+    virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
+			     Res faceRes)
+    {
+	buildKernelAxis(k.res.ulog2, k.u, k.uw, k.ku, u, uw, faceRes.ulog2);
+	buildKernelAxis(k.res.vlog2, k.v, k.vw, k.kv, v, vw, faceRes.vlog2);
+    }
+    
+ private:
+    KernelFn* _k;		// kernel function
+    const double* _c;		// kernel coefficients (if any)
+};
+
+
+/** Separable bicubic filter */
+class PtexBicubicFilter : public PtexWidth4Filter
 {
  public:
     PtexBicubicFilter(PtexTexture* tx, float sharpness)
-	: PtexSeparableFilter(tx)
+	: PtexWidth4Filter(tx, kernelFn, _coeffs)
     {
 	// compute Cubic filter coefficients:
 	// abs(x) < 1:
@@ -85,132 +165,49 @@ class PtexBicubicFilter : public PtexSeparableFilter
 	// else: 0
 
 	float B = 1 - sharpness; // choose C = (1-B)/2
-	_filter[0] = 1.5 - B;
-	_filter[1] = 1.5 * B - 2.5;
-	_filter[2] = 1 - (1./3) * B;
-	_filter[3] = (1./3) * B - 0.5;
-	_filter[4] = 2.5 - 1.5 * B;
-	_filter[5] = 2 * B - 4;
-	_filter[6] = 2 - (2./3) * B;
-    }
-
- protected:
-    virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
-			     Res faceRes)
-    {
-	// clamp filter width to no smaller than a texel
-	uw = PtexUtils::max(uw, 1.0f/(faceRes.u()));
-	vw = PtexUtils::max(vw, 1.0f/(faceRes.v()));
-
-	// clamp filter width to no larger than 0.25
-	uw = PtexUtils::min(uw, .25f);
-	vw = PtexUtils::min(vw, .25f);
-
-	// compute desired texture res based on filter width
-	int ureslog2 = int(ceil(log2(1.0/uw)));
-	int vreslog2 = int(ceil(log2(1.0/vw)));
-
-	Res res(ureslog2, vreslog2);
-	k.res = res;
-	
-	// convert from normalized coords to pixel coords
-	double upix = u * k.res.u() - 0.5;
-	double vpix = v * k.res.v() - 0.5;
-	double uwpix = uw * k.res.u();
-	double vwpix = vw * k.res.v();
-
-	// find integer pixel extent: [u,v] +/- [2*uw,2*vw]
-	// (mitchell is 4 units wide for a 1 unit filter period)
-	int u1 = int(ceil(upix - 2*uwpix)), u2 = int(ceil(upix + 2*uwpix));
-	int v1 = int(ceil(vpix - 2*vwpix)), v2 = int(ceil(vpix + 2*vwpix));
-	k.u = u1;
-	k.v = v1;
-	k.uw = u2-u1;
-	k.vw = v2-v1;
-
-	// compute kernel weights along u and v directions
-	computeWeights(k.ku, (u1-upix)/uwpix, 1.0/uwpix, k.uw);
-	computeWeights(k.kv, (v1-vpix)/vwpix, 1.0/vwpix, k.vw);
+	_coeffs[0] = 1.5 - B;
+	_coeffs[1] = 1.5 * B - 2.5;
+	_coeffs[2] = 1 - (1./3) * B;
+	_coeffs[3] = (1./3) * B - 0.5;
+	_coeffs[4] = 2.5 - 1.5 * B;
+	_coeffs[5] = 2 * B - 4;
+	_coeffs[6] = 2 - (2./3) * B;
     }
 
  private:
-    double k(double x)
+    static double kernelFn(double x, const double* c)
     {
-	const double* c = _filter;
 	x = fabs(x);
 	if (x < 1)      return (c[0]*x + c[1])*x*x + c[2];
 	else if (x < 2) return ((c[3]*x + c[4])*x + c[5])*x + c[6];
 	else            return 0;
     }
 
-    void computeWeights(double* kernel, double x1, double step, int size)
-    {
-	for (int i = 0; i < size; i++) kernel[i] = k(x1 + i*step);
-    }
-
-    double _filter[7]; // filter coefficients for current sharpness
+    double _coeffs[7]; // filter coefficients for current sharpness
 };
 
 
 
-class PtexGaussianFilter : public PtexSeparableFilter
+/** Separable gaussian filter */
+class PtexGaussianFilter : public PtexWidth4Filter
 {
  public:
     PtexGaussianFilter(PtexTexture* tx)
-	: PtexSeparableFilter(tx) {}
-
- protected:
-    virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
-			     Res faceRes)
-    {
-	// clamp filter width to no smaller than a texel
-	uw = PtexUtils::max(uw, 1.0f/(faceRes.u()));
-	vw = PtexUtils::max(vw, 1.0f/(faceRes.v()));
-
-	// clamp filter width to no larger than 0.25
-	uw = PtexUtils::min(uw, .25f);
-	vw = PtexUtils::min(vw, .25f);
-
-	// compute desired texture res based on filter width
-	int ureslog2 = int(ceil(log2(1.0/uw)));
-	int vreslog2 = int(ceil(log2(1.0/vw)));
-	Res res(ureslog2, vreslog2);
-	k.res = res;
-	
-	// convert from normalized coords to pixel coords
-	double upix = u * k.res.u() - 0.5;
-	double vpix = v * k.res.v() - 0.5;
-	double uwpix = uw * k.res.u();
-	double vwpix = vw * k.res.v();
-
-	// find integer pixel extent: [u,v] +/- [2*uw,2*vw]
-	// (gaussian is 4 units wide for a 1 unit filter period)
-	int u1 = int(ceil(upix - 2*uwpix)), u2 = int(ceil(upix + 2*uwpix));
-	int v1 = int(ceil(vpix - 2*vwpix)), v2 = int(ceil(vpix + 2*vwpix));
-	k.u = u1;
-	k.v = v1;
-	k.uw = u2-u1;
-	k.vw = v2-v1;
-
-	// compute kernel weights along u and v directions
-	computeWeights(k.ku, (u1-upix)/uwpix, 1.0/uwpix, k.uw);
-	computeWeights(k.kv, (v1-vpix)/vwpix, 1.0/vwpix, k.vw);
-    }
+	: PtexWidth4Filter(tx, kernelFn) {}
 
  private:
-    double k(double x)
+    static double kernelFn(double x, const double*)
     {
 	return exp(-2*x*x);
-    }
-
-    void computeWeights(double* kernel, double x1, double step, int size)
-    {
-	for (int i = 0; i < size; i++) kernel[i] = k(x1 + i*step);
     }
 };
 
 
 
+/** Rectangular box filter.
+    The box is convolved with the texels as area samples and thus the kernel function is
+    actually trapezoidally shaped.
+ */
 class PtexBoxFilter : public PtexSeparableFilter
 {
  public:
@@ -274,6 +271,7 @@ class PtexBoxFilter : public PtexSeparableFilter
 };
 
 
+/** Bilinear filter (for rectangular textures) */
 class PtexBilinearFilter : public PtexSeparableFilter
 {
  public:
@@ -325,6 +323,8 @@ class PtexBilinearFilter : public PtexSeparableFilter
 	k.kv[1] = vfrac;
     }
 };
+
+} // end local namespace
 
 
 PtexFilter* PtexFilter::getFilter(PtexTexture* tex, const PtexFilter::Options& opts)

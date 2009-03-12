@@ -16,6 +16,7 @@
 #include "PtexSeparableKernel.h"
 #include "PtexUtils.h"
 
+
 //#define NOEDGEBLEND // enable for debugging
 
 void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
@@ -46,26 +47,6 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
 	return;
     }
 
-#if 0
-    // if du and dv are > .25, then eval using the constant per-face data
-    float minw = std::min(uw, vw);
-    if (minw > .25) {
-	/* for minw between .25 and 1, lerp w/ regular eval */
-	if (minw <= 1) {
-	    float blend = (minw-.25)/.75; // lerp amount
-	    evalLargeDu(1.0, weight * blend);
-
-	    // continue w/ regular eval, but weighted by lerp val
-	    weight *= (1-blend);
-	}
-	else {
-	    // minw > 1, just do large du eval
-	    evalLargeDu(minw, weight);
-	    return;
-	}
-    }
-#endif
-
     // build kernel
     PtexSeparableKernel k;
     buildKernel(k, u, v, uw, vw, f.res);
@@ -90,9 +71,6 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     // clear temp result
     _result = 0;
 }
-
-
-
 
 
 void PtexSeparableFilter::splitAndApply(PtexSeparableKernel& k, int faceid, const Ptex::FaceInfo& f)
@@ -309,70 +287,3 @@ bool PtexSeparableFilter::isCornerRegular(int faceid, bool uHigh, bool vHigh)
     // we're regular iff we're back where we started
     return fid == faceid;
 }
-
-
-#if 0
-void PtexSeparableFilter::evalLargeDu(float w, float weight)
-{
-    // eval using the constant per-face values
-    // use "blended" values based on filter size
-    int level = int(ceil(log2(1.0/w)));
-    if (level > 0) level = 0;
-    static int minlev = 5;
-    if (level < minlev) { minlev = level; printf("%d\n", minlev); }
-    switch (level) {
-    case 0:   level = -1; break;
-    case -1:  level = -2; break;
-    case -2:  level = -7; break;
-    default:
-    case -3:  level = -28; break;
-    }
-    // get face
-    const FaceInfo& f = _ctx.tx->getFaceInfo(_ctx.faceid);
-
-    // get u and v neighbors
-    EdgeId ueid, veid;
-    float ublend, vblend; // lerp amounts: 0 at texel center, 0.5 at boundary
-    if (_ctx.u < .5) { ueid = e_left;   ublend = .5 - _ctx.u; } 
-    else             { ueid = e_right;  ublend = _ctx.u - .5; }
-    if (_ctx.v < .5) { veid = e_bottom; vblend = .5 - _ctx.v; }
-    else             { veid = e_top;    vblend = _ctx.v - .5; }
-    int ufid = f.adjfaces[ueid], vfid = f.adjfaces[veid], cfid = -1;
-
-    if (ufid >= 0 && vfid >= 0) {
-	// get corner face from u face (just get first face for an e.p.)
-	EdgeId ceid = f.adjedge(ueid);
-	int dir = (ueid+1)%4==veid? 3 : 1; // ccw or cw
-	int eid = EdgeId((ceid + dir) % 4);
-	const FaceInfo& uf = _ctx.tx->getFaceInfo(ufid);
-	cfid = uf.adjfaces[eid];
-    }
-
-    // apply lerp weights to each of the faces
-    double mweight = weight * (1 - ublend) * (1 - vblend); // main face
-    double uweight = weight * ublend * (1 - vblend);       // u blend
-    double vweight = weight * (1 - ublend) * vblend;       // v blend
-    double cweight = weight * ublend * vblend;	           // corner blend
-
-    // for missing faces, push weight across boundary
-    if (cfid >= 0) {
-	evalLargeDuFace(cfid, level, cweight);
-    } else {
-	if (ufid >= 0) uweight += cweight;
-	else vweight += cweight;
-    }
-    if (vfid >= 0) evalLargeDuFace(vfid, level, vweight); else mweight += vweight;
-    if (ufid >= 0) evalLargeDuFace(ufid, level, uweight); else mweight += uweight;
-    evalLargeDuFace(_ctx.faceid, level, mweight);
-}
-
-
-void PtexSeparableFilter::evalLargeDuFace(int faceid, int level, float weight)
-{
-    PtexPtr<PtexFaceData> dh ( _ctx.tx->getData(faceid, Res(level,level)) );
-    if (dh) {
-	PtexFilterKernel::applyConst(dh->getData(), _ctx, weight);
-    }
-}
-
-#endif

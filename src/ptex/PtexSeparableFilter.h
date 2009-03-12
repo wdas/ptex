@@ -23,8 +23,8 @@ class PtexSeparableFilter : public PtexFilter, public Ptex
 		      int faceid, float u, float v, float uw, float vw);
 
  protected:
-    PtexSeparableFilter(PtexTexture* tx) :
-	_tx(tx), _result(0), _weight(0), 
+    PtexSeparableFilter(PtexTexture* tx, bool lerp=0) :
+	_tx(tx), _lerp(lerp), _result(0), _weight(0), 
 	_firstChanOffset(0), _nchan(0), _ntxchan(0),
 	_dt((DataType)0) {}
     virtual ~PtexSeparableFilter() {}
@@ -44,6 +44,7 @@ class PtexSeparableFilter : public PtexFilter, public Ptex
     void evalLargeDuFace(int faceid, int level, float weight);
 
     PtexTexture* _tx;		// texture being evaluated
+    bool _lerp;			// filter should lerp between mipmap levels
     double* _result;		// temp result
     double _weight;		// accumulated weight of data in _result
     int _firstChanOffset;	// byte offset of first channel to eval
