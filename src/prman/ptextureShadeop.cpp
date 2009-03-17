@@ -214,8 +214,19 @@ static int ptexenvColor(RslContext*, int argc, const RslArg* argv[] )
 		    // x is largest component
 		    if (x > 0) { faceid=0; u = -z/x; v =  y/x; } // px
 		    else       { faceid=1; u = -z/x; v = -y/x; } // nx
-		    du = range4(z0/x0, z1/x1, z2/x2, z3/x3);
-		    dv = range4(y0/x0, y1/x1, y2/x2, y3/x3);
+		    // make sure all the x components are non-zero
+		    if (x0 * x1 * x2 * x3 > 0) {
+			// compute the filter width based on the size
+			// of the bounding box of the projected vectors
+			du = range4(z0/x0, z1/x1, z2/x2, z3/x3);
+			dv = range4(y0/x0, y1/x1, y2/x2, y3/x3);
+		    }
+		    else {
+			// one or more of the x components are zero
+			// which corresponds to a vector parallel to
+			// the x plane - use large filter
+			du = dv = 1;
+		    }
 		}
 		else {
 		    // vector is zero length (bad input data)
@@ -229,15 +240,25 @@ static int ptexenvColor(RslContext*, int argc, const RslArg* argv[] )
 		// y is largest component
 		if (y > 0) { faceid=2; u =  x/y; v = -z/y; } // py
 		else       { faceid=3; u = -x/y; v = -z/y; } // ny
-		du = range4(x0/y0, x1/y1, x2/y2, x3/y3);
-		dv = range4(z0/y0, z1/y1, z2/y2, z3/y3);
+		if (y0 * y1 * y2 * y3 > 0) {
+		    du = range4(x0/y0, x1/y1, x2/y2, x3/y3);
+		    dv = range4(z0/y0, z1/y1, z2/y2, z3/y3);
+		}
+		else {
+		    du = dv = 1;
+		}
 	    }
 	    else {
 		// z is largest component
 		if (z > 0) { faceid=4; u =  x/z; v =  y/z; } // pz
 		else       { faceid=5; u =  x/z; v = -y/z; } // nz
-		du = range4(x0/z0, x1/z1, x2/z2, x3/z3);
-		dv = range4(y0/z0, y1/z1, y2/z2, y3/z3);
+		if (z0 * z1 * z2 * z3 > 0) {
+		    du = range4(x0/z0, x1/z1, x2/z2, x3/z3);
+		    dv = range4(y0/z0, y1/z1, y2/z2, y3/z3);
+		}
+		else {
+		    du = dv = 1;
+		}
 	    }
 	    filter->eval(resultval, chan, 3, faceid, (1+u)/2, (1+v)/2, 
 			 du/2 + *blur, dv/2 + *blur);

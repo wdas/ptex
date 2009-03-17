@@ -86,7 +86,7 @@ Attribute "identifier" "name" ["pPlane2"]
 ##BIND pPlane2
 ConcatTransform [ 1 0 0 0  0 1 0 0  0 0 1 0  21.230429 0 -3.8245997 1 ]
 Translate -1.6054616 0 -2.1016016
-Surface "ptextest" "string mapname" ["test/pPlane1Unsub.ptx"] "float sblur" [300] "float sharpness" [0]
+Surface "ptextest" "string mapname" ["cellnoise/pPlane1Unsub.ptx"] "float sblur" [20] "float sharpness" [0]
 #Surface "ptextest" "string mapname" ["evblur/pPlane1Unsub.ptx"] "float sblur" [10] "float sharpness" [0]
 
 ReadArchive "tritest_obj.rib"

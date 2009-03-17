@@ -92,6 +92,14 @@ class PtexWidth4Filter : public PtexSeparableFilter
     PtexWidth4Filter(PtexTexture* tx, KernelFn k, const double* c = 0) 
 	: PtexSeparableFilter(tx), _k(k), _c(c) {}
 
+    virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
+			     Res faceRes)
+    {
+	buildKernelAxis(k.res.ulog2, k.u, k.uw, k.ku, u, uw, faceRes.ulog2);
+	buildKernelAxis(k.res.vlog2, k.v, k.vw, k.kv, v, vw, faceRes.vlog2);
+    }
+
+ private:
     void buildKernelAxis(int8_t& k_ureslog2, int& k_u, int& k_uw, double* ku,
 			 float u, float uw, int f_ureslog2)
     {
@@ -100,10 +108,11 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	// handle large filter widths as a special case
 	// Note: 5/4 * 1/4 = .3125 = largest filter size that will won't
 	// require samples from both neighbors.
-	if (uw > .25) {
+#if 1
+	if (uw > .5) {
 	    double upix;
-	    if (uw > .5) { k_ureslog2 = 0; upix = u - .5; }
-	    else         { k_ureslog2 = 1; upix = 2 * u - .5; }
+	    if (1 || uw > .75)  { k_ureslog2 = 0; upix = u - .5; }
+	    else          { k_ureslog2 = 1; upix = 2 * u - .5; }
 	    k_uw = 2;
 	    double ui = floor(upix);
 	    k_u = int(ui);
@@ -111,9 +120,11 @@ class PtexWidth4Filter : public PtexSeparableFilter
  	    ku[1] = 1-ku[0];
 	    return;
 	}
+#endif
 
 	// clamp filter width to no smaller than a texel
 	uw = PtexUtils::max(uw, 1.0f/(1<<f_ureslog2));
+	uw = PtexUtils::min(uw, .3125f);
 
 	// compute desired texture res based on filter width
 	k_ureslog2 = int(ceil(log2(1.0/uw)));
@@ -127,22 +138,38 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	// (kernel width is 4 times filter width)
 	double dupix = 2*uwpix;
 	int u1 = int(ceil(upix - dupix)), u2 = int(ceil(upix + dupix));
-	k_u = u1;
-	k_uw = u2-u1;
 
-	// compute kernel weights along u and v directions
-	double x1 = (u1-upix)/uwpix, step = 1.0/uwpix;
-	for (int i = 0; i < k_uw; i++) ku[i] = _k(x1 + i*step, _c);
+	if (1) {
+	    // klerp - lerp kernel weights towards next-lower res
+	    double uwhi = 2.0/resu;
+	    double uwlo = uwhi * .5;
+	    double lerp2 = (uw-uwlo)/uwlo;
+	    double lerp1 = 1-lerp2;
+
+	    // extend kernel width to cover even pairs
+	    u1 = u1 & ~1;
+	    u2 = (u2 + 1) & ~1;
+	    k_u = u1;
+	    k_uw = u2-u1;
+
+	    // compute kernel weights
+	    double step = 1.0/uwpix, x1 = (u1-upix)*step;
+	    for (int i = 0; i < k_uw; i+=2) {
+		double xa = x1 + i*step, xb = xa + step, xc = (xa+xb)*0.5;
+		double ka = _k(xa, _c), kb = _k(xb, _c), kc = _k(xc, _c);
+		ku[i] = ka * lerp1 + kc * lerp2;
+		ku[i+1] = kb * lerp1 + kc * lerp2;
+	    }
+	}
+	else {
+	    k_u = u1;
+	    k_uw = u2-u1;
+	    // compute kernel weights
+	    double x1 = (u1-upix)/uwpix, step = 1.0/uwpix;
+	    for (int i = 0; i < k_uw; i++) ku[i] = _k(x1 + i*step, _c);
+	}
     }
 
-    virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
-			     Res faceRes)
-    {
-	buildKernelAxis(k.res.ulog2, k.u, k.uw, k.ku, u, uw, faceRes.ulog2);
-	buildKernelAxis(k.res.vlog2, k.v, k.vw, k.kv, v, vw, faceRes.vlog2);
-    }
-    
- private:
     KernelFn* _k;		// kernel function
     const double* _c;		// kernel coefficients (if any)
 };

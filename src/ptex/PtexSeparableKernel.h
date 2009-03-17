@@ -20,13 +20,12 @@
 // Separable convolution kernel
 class PtexSeparableKernel : public Ptex {
  public:
-    Res res;
-    //int ures, vres;		// resolution that kernel was built for
+    Res res;			// resolution that kernel was built for
     int u, v;			// uv offset within face data
     int uw, vw;			// kernel width
     double* ku;			// kernel weights in u
     double* kv;			// kernel weights in v
-    static const int kmax = 8;	// max kernel width
+    static const int kmax = 10;	// max kernel width
     double kubuff[kmax];
     double kvbuff[kmax];
     

@@ -75,8 +75,6 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
 
 void PtexSeparableFilter::splitAndApply(PtexSeparableKernel& k, int faceid, const Ptex::FaceInfo& f)
 {
-    assert(k.uw > 0 && k.uw <= 8);
-    assert(k.vw > 0 && k.vw <= 8);
     // which quadrant are we in? (kernel can only overlap one side in each dir)
     bool uHigh = (k.u >= 0), vHigh = (k.v >= 0);
 
@@ -205,8 +203,6 @@ void PtexSeparableFilter::apply(PtexSeparableKernel& k, int faceid, const Ptex::
 {
     assert(k.u >= 0 && k.u < k.res.u());
     assert(k.v >= 0 && k.v < k.res.v());
-    assert(k.uw >= 0 && k.uw <= 8);
-    assert(k.vw >= 0 && k.vw <= 8);
 
     if (k.uw == 0 || k.vw == 0) return;
 
