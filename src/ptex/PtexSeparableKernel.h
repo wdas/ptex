@@ -32,6 +32,17 @@ class PtexSeparableKernel : public Ptex {
     PtexSeparableKernel()
 	: res(0), u(0), v(0), uw(0), vw(0), ku(kubuff), kv(kvbuff) {}
 
+    PtexSeparableKernel(const PtexSeparableKernel& k)
+    {
+	set(k.res, k.u, k.v, k.uw, k.vw, k.ku, k.kv);
+    }
+    
+    PtexSeparableKernel& operator= (const PtexSeparableKernel& k)
+    {
+	set(k.res, k.u, k.v, k.uw, k.vw, k.ku, k.kv);
+	return *this;
+    }
+
     void set(Res resVal,
 	     int uVal, int vVal,
 	     int uwVal, int vwVal,
@@ -47,6 +58,15 @@ class PtexSeparableKernel : public Ptex {
 	memcpy(kvbuff, kvVal, sizeof(*kv)*vw);
 	ku = kubuff;
 	kv = kvbuff;
+    }
+
+    void stripZeros()
+    {
+	while (ku[0] == 0) { ku++; u++; uw--; }
+	while (ku[uw-1] == 0) { uw--; }
+	while (kv[0] == 0) { kv++; v++; vw--; }
+	while (kv[vw-1] == 0) { vw--; }
+	assert(uw > 0 && vw > 0);
     }
 
     double weight() const
@@ -205,6 +225,30 @@ class PtexSeparableKernel : public Ptex {
 	}
     }
 
+    void adjustMainToSubface(int eid)
+    {
+	//	    assert(res.ulog2 > 0 && res.vlog2 > 0); TODO - fix this.
+	if (res.ulog2 > 0) res.ulog2--;
+	if (res.vlog2 > 0) res.vlog2--;
+	switch (eid&3) {
+	case e_bottom: v -= res.v(); break;
+	case e_right:  break;
+	case e_top:    u -= res.u(); break;
+	case e_left:   u -= res.u(); v -= res.v(); break;
+	}
+    }
+
+    void adjustSubfaceToMain(int eid)
+    {
+	switch (eid&3) {
+	case e_bottom: v += res.v(); break;
+	case e_right:  break;
+	case e_top:    u += res.u(); break;
+	case e_left:   u += res.u(); v += res.v(); break;
+	}
+	res.ulog2++; res.vlog2++;
+    }
+
     void downresU()
     {
 	double* src = ku;
@@ -217,7 +261,7 @@ class PtexSeparableKernel : public Ptex {
 	    uw--;
 	}
 
-	// average even pairs
+	// combine even pairs
 	for (int i = uw/2; i > 0; i--) {
 	    *dst++ = src[0] + src[1];
 	    src += 2;
@@ -246,7 +290,7 @@ class PtexSeparableKernel : public Ptex {
 	    vw--;
 	}
 
-	// average even pairs
+	// combine even pairs
 	for (int i = vw/2; i > 0; i--) {
 	    *dst++ = src[0] + src[1];
 	    src += 2;
@@ -261,6 +305,36 @@ class PtexSeparableKernel : public Ptex {
 	v /= 2;
 	vw = int(dst - kv);
 	res.vlog2--;
+    }
+
+    void makeSymmetric()
+    {
+	assert(u == 0 && v == 0);
+
+	// downres higher-res dimension until equal
+	if (res.ulog2 > res.vlog2) {
+	    do { downresU(); } while(res.ulog2 > res.vlog2);
+	}
+	else if (res.vlog2 > res.ulog2) {
+	    do { downresV(); } while (res.vlog2 > res.ulog2);
+	}
+
+	// check initial weight so we can preserve overall weight
+	double initialWeight = weight();
+
+	// truncate excess samples in longer dimension
+	uw = vw = PtexUtils::min(uw, vw);
+
+	// combine corresponding u and v samples
+	double newWeight = 0;
+	for (int i = 0; i < uw; i++) {
+	    ku[i] += kv[i];
+	    newWeight += ku[i];
+	}
+
+	// compensate for weight change by scaling v weights
+	double scale = newWeight == 0 ? 1.0 : initialWeight / (newWeight * newWeight);
+	for (int i = 0; i < uw; i++) kv[i] = ku[i] * scale;
     }
 
     void apply(double* dst, void* data, DataType dt, int nChan, int nTxChan)

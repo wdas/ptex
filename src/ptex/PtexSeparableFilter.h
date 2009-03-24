@@ -33,15 +33,11 @@ class PtexSeparableFilter : public PtexFilter, public Ptex
 			     Res faceRes) = 0;
     
     void splitAndApply(PtexSeparableKernel& k, int faceid, const Ptex::FaceInfo& f);
-    void applyAcrossEdge(PtexSeparableKernel& k, 
-			 int faceid, const Ptex::FaceInfo& f, int eid,
-			 int afid, const Ptex::FaceInfo& af,
-			 bool regularCorner);
+    void applyAcrossEdge(PtexSeparableKernel& k, int faceid, const Ptex::FaceInfo& f, int eid);
+    void applyToCorner(PtexSeparableKernel& k, int faceid, const Ptex::FaceInfo& f, int eid);
+    void applyToCornerFace(PtexSeparableKernel& k, const Ptex::FaceInfo& f, int eid,
+			   int cfaceid, const Ptex::FaceInfo& cf, int ceid);
     void apply(PtexSeparableKernel& k, int faceid, const Ptex::FaceInfo& f);
-    bool isCornerRegular(int faceid, bool uHigh, bool vHigh);
-
-    void evalLargeDu(float du, float weight);
-    void evalLargeDuFace(int faceid, int level, float weight);
 
     PtexTexture* _tx;		// texture being evaluated
     bool _lerp;			// filter should lerp between mipmap levels

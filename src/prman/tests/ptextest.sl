@@ -4,7 +4,8 @@ surface ptextest(string mapname=""; uniform float sblur=1; uniform float sharpne
 		 uniform float __faceindex=0)
 {
     if (mapname != "") {
-	Ci = ptexture(mapname, 0, __faceindex, u, v, du*sblur, dv*sblur, sharpness);
+	//Ci = ptexture(mapname, 0, __faceindex, u, v, du*sblur, dv*sblur, sharpness);
+	Ci = ptexture(mapname, 0, __faceindex, u, v, sblur, sblur, sharpness);
     }
     else {
 	Ci = 1;

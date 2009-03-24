@@ -79,10 +79,10 @@ class PtexPointFilterTri : public PtexFilter, public Ptex
     width and the texture resolution is chosen such that each kernel
     axis has between 4 and 8.
 
-    For kernel widths to large to handle (because the kernel would
+    For kernel widths too large to handle (because the kernel would
     extend significantly beyond both sides of the face), a special
-    Hermite smoothstep is used on the nearest 2 samples in the affected
-    axis (or axes).
+    Hermite smoothstep is used to interpolate the two nearest 2 samples
+    along the affected axis (or axes).
 */
 class PtexWidth4Filter : public PtexSeparableFilter
 {
@@ -100,37 +100,79 @@ class PtexWidth4Filter : public PtexSeparableFilter
     }
 
  private:
+
+    double blur(double x)
+    {
+	// 2-unit (x in -1..1) cubic hermite kernel
+	// this produces a blur roughly 1.5 times that of the 4-unit b-spline kernel
+	x = fabs(x);
+	return x < 1 ? (2*x-3)*x*x+1 : 0;
+    }
+
     void buildKernelAxis(int8_t& k_ureslog2, int& k_u, int& k_uw, double* ku,
 			 float u, float uw, int f_ureslog2)
     {
 	// build 1 axis (note: "u" labels may repesent either u or v axis)
 
-	// handle large filter widths as a special case
-	// Note: 5/4 * 1/4 = .3125 = largest filter size that will won't
-	// require samples from both neighbors.
-#if 1
-	if (uw > .5) {
-	    double upix;
-	    if (1 || uw > .75)  { k_ureslog2 = 0; upix = u - .5; }
-	    else          { k_ureslog2 = 1; upix = 2 * u - .5; }
-	    k_uw = 2;
-	    double ui = floor(upix);
-	    k_u = int(ui);
-  	    ku[0] = 1-PtexUtils::smoothstep(upix-ui, 0, 1);
- 	    ku[1] = 1-ku[0];
-	    return;
-	}
-#endif
-
 	// clamp filter width to no smaller than a texel
 	uw = PtexUtils::max(uw, 1.0f/(1<<f_ureslog2));
-	uw = PtexUtils::min(uw, .3125f);
 
 	// compute desired texture res based on filter width
 	k_ureslog2 = int(ceil(log2(1.0/uw)));
-	
-	// convert from normalized coords to pixel coords
 	int resu = 1 << k_ureslog2;
+	double uwlo = 1.0/resu;         // smallest filter width for this res
+	double lerp2 = (uw-uwlo)/uwlo;  // amount to lerp towards next-lower res
+	double lerp1 = 1-lerp2;
+
+	// adjust for large filter widths
+	if (uw >= .25) {
+	    if (uw < .5) {
+		k_ureslog2 = 2;
+		double upix = u * 4 - 0.5;
+		int u1 = int(ceil(upix - 2)), u2 = int(ceil(upix + 2));
+		u1 = u1 & ~1;	    // round down to even pair
+		u2 = (u2 + 1) & ~1; // round up to even pair
+		k_u = u1;
+		k_uw = u2-u1;
+		double x1 = u1-upix;
+		for (int i = 0; i < k_uw; i+=2) {
+		    double xa = x1 + i, xb = xa + 1, xc = (xa+xb)*0.25;
+		    double ka = _k(xa, _c), kb = _k(xb, _c), kc = blur(xc*.8);
+		    ku[i] = ka * lerp1 + kc * lerp2;
+		    ku[i+1] = kb * lerp1 + kc * lerp2;
+		}
+		return;
+	    }
+	    else if (uw < 1) {
+		k_ureslog2 = 1;
+		double upix = u * 2 - 0.5;
+		k_u = int(floor(u - .5))*2;
+		k_uw = 4;
+		double x1 = k_u-upix;
+		for (int i = 0; i < k_uw; i+=2) {
+		    double xa = x1 + i, xb = xa + 1, xc = (xa+xb)*0.5;
+		    double s = 1.0/(uw*1.5 + .5);
+		    double ka = blur(xa*s), kb = blur(xb*s), kc = blur(xc*s);
+		    ku[i] = ka * lerp1 + kc * lerp2;
+		    ku[i+1] = kb * lerp1 + kc * lerp2;
+		}
+		return;
+	    }
+	    else {
+		// use res 0 (1 texel per face) w/ no lerping
+		// (future: use face-blended values for filter > 2)
+		k_ureslog2 = 0;
+		double upix = u - .5;
+		k_uw = 2;
+		double ui = floor(upix);
+		k_u = int(ui);
+		ku[0] = blur(upix-ui);
+		ku[1] = 1-ku[0];
+		return;
+	    }
+	}
+
+	// convert from normalized coords to pixel coords
 	double upix = u * resu - 0.5;
 	double uwpix = uw * resu;
 
@@ -139,13 +181,8 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	double dupix = 2*uwpix;
 	int u1 = int(ceil(upix - dupix)), u2 = int(ceil(upix + dupix));
 
-	if (1) {
+	if (1) { // todo - add user control
 	    // klerp - lerp kernel weights towards next-lower res
-	    double uwhi = 2.0/resu;
-	    double uwlo = uwhi * .5;
-	    double lerp2 = (uw-uwlo)/uwlo;
-	    double lerp1 = 1-lerp2;
-
 	    // extend kernel width to cover even pairs
 	    u1 = u1 & ~1;
 	    u2 = (u2 + 1) & ~1;
@@ -356,7 +393,6 @@ class PtexBilinearFilter : public PtexSeparableFilter
 
 PtexFilter* PtexFilter::getFilter(PtexTexture* tex, const PtexFilter::Options& opts)
 {
-
     switch (tex->meshType()) {
     case Ptex::mt_quad:
 	switch (opts.filter) {
