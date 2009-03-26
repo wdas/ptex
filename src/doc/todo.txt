@@ -5,22 +5,22 @@ In work:
 - API rework to support PRMan integration
 - individually stored large meta-data
 - clamp/black/periodic modes
+- triangle mesh support (w/ triangular textures)
 
 Planned:
-- triangle mesh support (w/ triangular textures)
-- multi-split on subfaces (for kernel width > 0.5)
-- lerp
 - user mipmaps
-- improve blur quality near EVs
+- lerp for bilinear and box
 
 Considering:
-- ptxconvert updates (support format conversions, remove image toolkit dependency)
-- ptxview updates (add features: 3dview, adjacency-based layout, res control, etc.)
-- large filter width
+- large (> 1.0) filter width using face blending
 - multi-level cache
-- big-endian
+- big-endian?
 
 Recently done:
+- large filter (0.25 to 1.0)
+- improved blur quality near EVs
+- multi-split on subfaces (for kernel width > 0.5)
+- lerp (all except bilinear and box)
 - gaussian filter
 - bilinear filter
 - support non-quads via quad subfaces
