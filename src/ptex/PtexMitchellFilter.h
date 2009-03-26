@@ -27,7 +27,8 @@ class PtexMitchellFilter : public PtexFilter, public Ptex
     }
     virtual void release() { delete this; }
     virtual void eval(float* result, int firstchan, int nchannels,
-		      int faceid, float u, float v, float uw, float vw);
+		      int faceid, float u, float v, float uw, float vw,
+		      float width, float blur);
 
  protected:
     struct Face {

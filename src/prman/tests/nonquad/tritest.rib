@@ -50,10 +50,10 @@ Option "shutter" "float offset" [1]
 Option "statistics" "endofframe" [1]
 ErrorHandler "printonce"
 FrameBegin 1
-#ScreenWindow -1 1 -1 1
-ScreenWindow -.5 .5 -.5 .5
-#CropWindow 0.229717 0.627566 0.393939 0.772238
-#CropWindow 0.392962 0.397849 0.616813 0.623656
+ScreenWindow -1 1 -1 1
+#ScreenWindow -.5 .5 -.5 .5
+CropWindow 0.081134 0.630499 0.375367 0.930596
+#CropWindow 0.324536 0.341153 0.674487 0.691105
 Clipping 0.1 1000
 Projection "perspective" "fov" [54.432129]
 Rotate 0 0 0 1
@@ -89,9 +89,11 @@ Attribute "identifier" "name" ["pPlane2"]
 ##BIND pPlane2
 ConcatTransform [ 1 0 0 0  0 1 0 0  0 0 1 0  21.230429 0 -3.8245997 1 ]
 Translate -1.6054616 0 -2.1016016
-Surface "ptextest" "string mapname" ["test4/pPlane1Unsub.ptx"] "float sblur" [1] "float sharpness" [0]
-#Surface "ptextest" "string mapname" ["test3/pPlane1Unsub.ptx"] "float sblur" [.1] "float sharpness" [0]
-
+Surface "ptextest" "string mapname" ["test5/pPlane1Unsub.ptx"] 
+	"float width" [1] 
+	"float blur" [0.245]
+	"float sharpness" [0]
+	"float lerp" [1]
 ReadArchive "tritest_obj.rib"
 AttributeEnd 
 AttributeEnd 

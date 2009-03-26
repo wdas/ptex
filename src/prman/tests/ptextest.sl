@@ -1,11 +1,14 @@
 plugin "ptextureShadeop.so";
 
-surface ptextest(string mapname=""; uniform float sblur=1; uniform float sharpness=1.0;
+surface ptextest(string mapname="";
+		 uniform float width=1;
+		 uniform float blur=0; 
+		 uniform float sharpness=1.0;
+		 uniform float lerp=1;
 		 uniform float __faceindex=0)
 {
     if (mapname != "") {
-	//Ci = ptexture(mapname, 0, __faceindex, u, v, du*sblur, dv*sblur, sharpness);
-	Ci = ptexture(mapname, 0, __faceindex, u, v, sblur, sblur, sharpness);
+	Ci = ptexture(mapname, 0, __faceindex, u, v, du, dv, width, blur, sharpness, lerp);
     }
     else {
 	Ci = 1;

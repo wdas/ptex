@@ -42,7 +42,8 @@ void PtexMitchellFilter::setSharpness(float sharpness)
 
 
 void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
-			      int faceid, float u, float v, float uw, float vw)
+			      int faceid, float u, float v, float uw, float vw,
+			      float width, float blur)
 {
 #if 0
     // for debugging only!
@@ -89,27 +90,9 @@ void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
     const FaceInfo& f = _tx->getFaceInfo(faceid);
     _isConstant = f.isConstant();
 
-#if 0
-    // if du and dv are > .25, then eval using the constant per-face data
-    float minw = std::min(uw, vw);
-    if (minw > .25) {
-	/* for minw between .25 and 1, lerp w/ regular eval */
-	if (minw <= 1) {
-	    float blend = (minw-.25)/.75; // lerp amount
-	    evalLargeDu(1.0, weight * blend);
-
-	    // continue w/ regular eval, but weighted by lerp val
-	    weight *= (1-blend);
-	}
-	else {
-	    // minw > 1, just do large du eval
-	    evalLargeDu(minw, weight);
-	    return;
-	}
-    }
-#endif
-
     // clamp filter width to no larger than 0.25 (todo - handle larger filter widths)
+    _ctx.uw = _ctx.uw * width + blur;
+    _ctx.vw = _ctx.vw * width + blur;
     _ctx.uw = PtexUtils::min(_ctx.uw, 0.25f);
     _ctx.vw = PtexUtils::min(_ctx.vw, 0.25f);
 
@@ -472,70 +455,3 @@ void PtexMitchellFilter::evalFaces(Res res, double weight, float uw, float vw)
     // eval faces
     k.apply(_face.id, 0, _ctx);
 }
-
-
-#if 0
-void PtexMitchellFilter::evalLargeDu(float w, float weight)
-{
-    // eval using the constant per-face values
-    // use "blended" values based on filter size
-    int level = int(ceil(log2(1.0/w)));
-    if (level > 0) level = 0;
-    static int minlev = 5;
-    if (level < minlev) { minlev = level; printf("%d\n", minlev); }
-    switch (level) {
-    case 0:   level = -1; break;
-    case -1:  level = -2; break;
-    case -2:  level = -7; break;
-    default:
-    case -3:  level = -28; break;
-    }
-    // get face
-    const FaceInfo& f = _ctx.tx->getFaceInfo(_ctx.faceid);
-
-    // get u and v neighbors
-    EdgeId ueid, veid;
-    float ublend, vblend; // lerp amounts: 0 at texel center, 0.5 at boundary
-    if (_ctx.u < .5) { ueid = e_left;   ublend = .5 - _ctx.u; } 
-    else             { ueid = e_right;  ublend = _ctx.u - .5; }
-    if (_ctx.v < .5) { veid = e_bottom; vblend = .5 - _ctx.v; }
-    else             { veid = e_top;    vblend = _ctx.v - .5; }
-    int ufid = f.adjfaces[ueid], vfid = f.adjfaces[veid], cfid = -1;
-
-    if (ufid >= 0 && vfid >= 0) {
-	// get corner face from u face (just get first face for an e.p.)
-	EdgeId ceid = f.adjedge(ueid);
-	int dir = (ueid+1)%4==veid? 3 : 1; // ccw or cw
-	int eid = EdgeId((ceid + dir) % 4);
-	const FaceInfo& uf = _ctx.tx->getFaceInfo(ufid);
-	cfid = uf.adjfaces[eid];
-    }
-
-    // apply lerp weights to each of the faces
-    double mweight = weight * (1 - ublend) * (1 - vblend); // main face
-    double uweight = weight * ublend * (1 - vblend);       // u blend
-    double vweight = weight * (1 - ublend) * vblend;       // v blend
-    double cweight = weight * ublend * vblend;	           // corner blend
-
-    // for missing faces, push weight across boundary
-    if (cfid >= 0) {
-	evalLargeDuFace(cfid, level, cweight);
-    } else {
-	if (ufid >= 0) uweight += cweight;
-	else vweight += cweight;
-    }
-    if (vfid >= 0) evalLargeDuFace(vfid, level, vweight); else mweight += vweight;
-    if (ufid >= 0) evalLargeDuFace(ufid, level, uweight); else mweight += uweight;
-    evalLargeDuFace(_ctx.faceid, level, mweight);
-}
-
-
-void PtexMitchellFilter::evalLargeDuFace(int faceid, int level, float weight)
-{
-    PtexFaceData* dh = _ctx.tx->getData(faceid, Res(level,level));
-    if (dh) {
-	PtexFilterKernel::applyConst(dh->getData(), _ctx, weight);
-	dh->release();
-    }
-}
-#endif

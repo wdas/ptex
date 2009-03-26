@@ -23,7 +23,8 @@ class PtexPointFilter : public PtexFilter, public Ptex
     PtexPointFilter(PtexTexture* tx) : _tx(tx) {}
     virtual void release() { delete this; }
     virtual void eval(float* result, int firstchan, int nchannels,
-		      int faceid, float u, float v, float /*uw*/, float /*vw*/)
+		      int faceid, float u, float v, float /*uw*/, float /*vw*/,
+		      float /*width*/, float /*blur*/)
     {
 	if (!_tx || nchannels <= 0) return;
 	if (faceid < 0 || faceid >= _tx->numFaces()) return;
@@ -46,7 +47,8 @@ class PtexPointFilterTri : public PtexFilter, public Ptex
     PtexPointFilterTri(PtexTexture* tx) : _tx(tx) {}
     virtual void release() { delete this; }
     virtual void eval(float* result, int firstchan, int nchannels,
-		      int faceid, float u, float v, float /*uw*/, float /*vw*/)
+		      int faceid, float u, float v, float /*uw*/, float /*vw*/,
+		      float /*width*/, float /*blur*/)
     {
 	if (!_tx || nchannels <= 0) return;
 	if (faceid < 0 || faceid >= _tx->numFaces()) return;
@@ -89,8 +91,8 @@ class PtexWidth4Filter : public PtexSeparableFilter
  public:
     typedef double KernelFn(double x, const double* c);
 
-    PtexWidth4Filter(PtexTexture* tx, KernelFn k, const double* c = 0) 
-	: PtexSeparableFilter(tx), _k(k), _c(c) {}
+    PtexWidth4Filter(PtexTexture* tx, const PtexFilter::Options& opts, KernelFn k, const double* c = 0) 
+	: PtexSeparableFilter(tx, opts), _k(k), _c(c) {}
 
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
 			     Res faceRes)
@@ -121,7 +123,9 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	k_ureslog2 = int(ceil(log2(1.0/uw)));
 	int resu = 1 << k_ureslog2;
 	double uwlo = 1.0/resu;         // smallest filter width for this res
-	double lerp2 = (uw-uwlo)/uwlo;  // amount to lerp towards next-lower res
+
+	// compute lerp weights (amount to blend towards next-lower res)
+	double lerp2 = _options.lerp ? (uw-uwlo)/uwlo : 0;
 	double lerp1 = 1-lerp2;
 
 	// adjust for large filter widths
@@ -137,7 +141,10 @@ class PtexWidth4Filter : public PtexSeparableFilter
 		double x1 = u1-upix;
 		for (int i = 0; i < k_uw; i+=2) {
 		    double xa = x1 + i, xb = xa + 1, xc = (xa+xb)*0.25;
-		    double ka = _k(xa, _c), kb = _k(xb, _c), kc = blur(xc*.8);
+		    // spread the filter gradually to approach the next-lower-res width
+		    // at uw = .5, s = 1.0; at uw = 1, s = 0.8
+		    double s = 1.0/(uw + .75);
+		    double ka = _k(xa, _c), kb = _k(xb, _c), kc = blur(xc*s);
 		    ku[i] = ka * lerp1 + kc * lerp2;
 		    ku[i+1] = kb * lerp1 + kc * lerp2;
 		}
@@ -151,6 +158,8 @@ class PtexWidth4Filter : public PtexSeparableFilter
 		double x1 = k_u-upix;
 		for (int i = 0; i < k_uw; i+=2) {
 		    double xa = x1 + i, xb = xa + 1, xc = (xa+xb)*0.5;
+		    // spread the filter gradually to approach the next-lower-res width
+		    // at uw = .5, s = .8; at uw = 1, s = 0.5
 		    double s = 1.0/(uw*1.5 + .5);
 		    double ka = blur(xa*s), kb = blur(xb*s), kc = blur(xc*s);
 		    ku[i] = ka * lerp1 + kc * lerp2;
@@ -181,8 +190,8 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	double dupix = 2*uwpix;
 	int u1 = int(ceil(upix - dupix)), u2 = int(ceil(upix + dupix));
 
-	if (1) { // todo - add user control
-	    // klerp - lerp kernel weights towards next-lower res
+	if (lerp2) {
+	    // lerp kernel weights towards next-lower res
 	    // extend kernel width to cover even pairs
 	    u1 = u1 & ~1;
 	    u2 = (u2 + 1) & ~1;
@@ -216,8 +225,8 @@ class PtexWidth4Filter : public PtexSeparableFilter
 class PtexBicubicFilter : public PtexWidth4Filter
 {
  public:
-    PtexBicubicFilter(PtexTexture* tx, float sharpness)
-	: PtexWidth4Filter(tx, kernelFn, _coeffs)
+    PtexBicubicFilter(PtexTexture* tx, const PtexFilter::Options& opts, float sharpness)
+	: PtexWidth4Filter(tx, opts, kernelFn, _coeffs)
     {
 	// compute Cubic filter coefficients:
 	// abs(x) < 1:
@@ -256,8 +265,8 @@ class PtexBicubicFilter : public PtexWidth4Filter
 class PtexGaussianFilter : public PtexWidth4Filter
 {
  public:
-    PtexGaussianFilter(PtexTexture* tx)
-	: PtexWidth4Filter(tx, kernelFn) {}
+    PtexGaussianFilter(PtexTexture* tx, const PtexFilter::Options& opts)
+	: PtexWidth4Filter(tx, opts, kernelFn) {}
 
  private:
     static double kernelFn(double x, const double*)
@@ -275,8 +284,8 @@ class PtexGaussianFilter : public PtexWidth4Filter
 class PtexBoxFilter : public PtexSeparableFilter
 {
  public:
-    PtexBoxFilter(PtexTexture* tx)
-	: PtexSeparableFilter(tx) {}
+    PtexBoxFilter(PtexTexture* tx, const PtexFilter::Options& opts)
+	: PtexSeparableFilter(tx, opts) {}
 
  protected:
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
@@ -339,8 +348,8 @@ class PtexBoxFilter : public PtexSeparableFilter
 class PtexBilinearFilter : public PtexSeparableFilter
 {
  public:
-    PtexBilinearFilter(PtexTexture* tx)
-	: PtexSeparableFilter(tx) {}
+    PtexBilinearFilter(PtexTexture* tx, const PtexFilter::Options& opts)
+	: PtexSeparableFilter(tx, opts) {}
 
  protected:
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
@@ -398,14 +407,14 @@ PtexFilter* PtexFilter::getFilter(PtexTexture* tex, const PtexFilter::Options& o
 	switch (opts.filter) {
 	case -1:	    return new PtexMitchellFilter(tex, opts.sharpness);
 	case f_point:       return new PtexPointFilter(tex);
-	case f_bilinear:    return new PtexBilinearFilter(tex);
+	case f_bilinear:    return new PtexBilinearFilter(tex, opts);
 	default:
-	case f_box:         return new PtexBoxFilter(tex);
-	case f_gaussian:    return new PtexGaussianFilter(tex);
-	case f_bicubic:     return new PtexBicubicFilter(tex, opts.sharpness);
-	case f_bspline:     return new PtexBicubicFilter(tex, 0.0);
-	case f_catmullrom:  return new PtexBicubicFilter(tex, 1.0);
-	case f_mitchell:    return new PtexBicubicFilter(tex, 2.0/3.0);
+	case f_box:         return new PtexBoxFilter(tex, opts);
+	case f_gaussian:    return new PtexGaussianFilter(tex, opts);
+	case f_bicubic:     return new PtexBicubicFilter(tex, opts, opts.sharpness);
+	case f_bspline:     return new PtexBicubicFilter(tex, opts, 0.0);
+	case f_catmullrom:  return new PtexBicubicFilter(tex, opts, 1.0);
+	case f_mitchell:    return new PtexBicubicFilter(tex, opts, 2.0/3.0);
 	}
 	break;
 

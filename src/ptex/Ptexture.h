@@ -863,9 +863,12 @@ class PtexFilter {
 	@param v V coordinate, normalized [0..1]
 	@param uw U filter width, normalized [0..1]
 	@param vw V filter width, normalized [0..1]
+	@param width scale factor for filter width
+	@param blur amount to add to filter width [0..1]
     */
     virtual void eval(float* result, int firstchan, int nchannels,
-		      int faceid, float u, float v, float uw, float vw) = 0;
+		      int faceid, float u, float v, float uw, float vw,
+		      float width=1, float blur=0) = 0;
 
  protected:
     virtual ~PtexFilter() {}; ///< Destructor not for public use.  Use release() instead.

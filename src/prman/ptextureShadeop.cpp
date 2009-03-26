@@ -20,9 +20,9 @@
 static PtexCache* cache = 0;
 
 namespace {
-    PtexFilter* getFilter(PtexTexture* tx, float sharpness)
+    PtexFilter* getFilter(PtexTexture* tx, float sharpness, bool lerp)
     {
-	return PtexFilter::getFilter(tx, PtexFilter::Options(PtexFilter::f_bicubic, sharpness));
+	return PtexFilter::getFilter(tx, PtexFilter::Options(PtexFilter::f_bicubic, sharpness, lerp));
     }
 }
 
@@ -91,15 +91,16 @@ static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
     RslFloatIter v(argv[5]);
     RslFloatIter uw(argv[6]);
     RslFloatIter vw(argv[7]);
-    RslFloatIter sharpness(argv[8]);
-
-    float sharp = *sharpness;
+    RslFloatIter width(argv[8]);
+    RslFloatIter blur(argv[9]);
+    RslFloatIter sharpness(argv[10]);
+    RslFloatIter lerp(argv[11]);
 
     Ptex::String error;
     PtexPtr<PtexTexture> tx ( cache->get(*mapname, error) );
     if (tx) {
 	int chan = int(*channel);
-	PtexPtr<PtexFilter> filter ( getFilter(tx, sharp) );
+	PtexPtr<PtexFilter> filter ( getFilter(tx, *sharpness, *lerp) );
 	int numVals = RslArg::NumValues(argc, argv);
 	for (int i = 0; i < numVals; ++i) {
 	    bool stop = 0;
@@ -107,7 +108,7 @@ static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
 		stop = 1;
 	    }
 	    float* resultval = *result;
-	    filter->eval(resultval, chan, 3, int(*faceid), *u, *v, *uw, *vw);
+	    filter->eval(resultval, chan, 3, int(*faceid), *u, *v, *uw, *vw, *width, *blur);
 
 	    // copy first channel into missing channels (e.g. promote 1-chan to gray)
 	    int nChanAvailable = tx->numChannels() - chan;
@@ -115,7 +116,7 @@ static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
 		for (int i = nChanAvailable; i < 3; i++)
 		    resultval[i] = resultval[0];
 
-	    ++result; ++faceid; ++u; ++v; ++uw; ++vw;
+	    ++result; ++faceid; ++u; ++v; ++uw; ++vw; ++width, ++blur;
 	}
     }
     else {
@@ -142,17 +143,20 @@ static int ptextureFloat(RslContext*, int argc, const RslArg* argv[] )
     RslFloatIter v(argv[5]);
     RslFloatIter uw(argv[6]);
     RslFloatIter vw(argv[7]);
-    RslFloatIter sharpness(argv[8]);
+    RslFloatIter width(argv[8]);
+    RslFloatIter blur(argv[9]);
+    RslFloatIter sharpness(argv[10]);
+    RslFloatIter lerp(argv[11]);
 
     Ptex::String error;
     PtexPtr<PtexTexture> tx( cache->get(*mapname, error) );
     if (tx) {
 	int chan = int(*channel);
-	PtexPtr<PtexFilter> filter ( getFilter(tx, *sharpness) );
+	PtexPtr<PtexFilter> filter ( getFilter(tx, *sharpness, *lerp) );
 	int numVals = RslArg::NumValues(argc, argv);
 	for (int i = 0; i < numVals; ++i) {
-	    filter->eval(*result, chan, 1, int(*faceid), *u, *v, *uw, *vw);
-	    ++result; ++faceid; ++u; ++v; ++uw; ++vw;
+	    filter->eval(*result, chan, 1, int(*faceid), *u, *v, *uw, *vw, *width, *blur);
+	    ++result; ++faceid; ++u; ++v; ++uw; ++vw; ++width, ++blur;
 	}
     }
     else {
@@ -196,7 +200,7 @@ static int ptexenvColor(RslContext*, int argc, const RslArg* argv[] )
     PtexTexture* tx = cache->get(*mapname, error);
     if (tx) {
 	int chan = int(*channel);
-	PtexPtr<PtexFilter> filter ( getFilter(tx, sharp) );
+	PtexPtr<PtexFilter> filter ( getFilter(tx, sharp, true) );
 	int numVals = RslArg::NumValues(argc, argv);
 	for (int i = 0; i < numVals; ++i) {
 	    float* resultval = *result;
@@ -294,12 +298,12 @@ static int ptexenvColor(RslContext*, int argc, const RslArg* argv[] )
 */
 static RslFunction ptexFunctions[] =
 {
-    // color = ptexture(mapname, chan, faceid, u, v, uw, vw, sharpness)
-    { "color ptexture(string, float, float, float, float, float, float, float)",
+    // color = ptexture(mapname, chan, faceid, u, v, uw, vw, width, blur, sharpness, lerp)
+    { "color ptexture(string, float, float, float, float, float, float, float, float, float, float)",
       ptextureColor, 0, 0 },
 
-    // float = ptexture(mapname, chan, faceid, u, v, uw, vw, sharpness)
-    { "float ptexture(string, float, float, float, float, float, float, float)",
+    // float = ptexture(mapname, chan, faceid, u, v, uw, vw, width, blur, sharpness, lerp)
+    { "float ptexture(string, float, float, float, float, float, float, float, float float, float)",
       ptextureFloat, 0, 0 },
 
     // color = ptexenv(mapname, R0, R1, R2, R3, blur)

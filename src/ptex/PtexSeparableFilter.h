@@ -20,11 +20,12 @@ class PtexSeparableFilter : public PtexFilter, public Ptex
  public:
     virtual void release() { delete this; }
     virtual void eval(float* result, int firstchan, int nchannels,
-		      int faceid, float u, float v, float uw, float vw);
+		      int faceid, float u, float v, float uw, float vw,
+		      float width, float blur);
 
  protected:
-    PtexSeparableFilter(PtexTexture* tx, bool lerp=0) :
-	_tx(tx), _lerp(lerp), _result(0), _weight(0), 
+    PtexSeparableFilter(PtexTexture* tx, const PtexFilter::Options& opts ) :
+	_tx(tx), _options(opts), _result(0), _weight(0), 
 	_firstChanOffset(0), _nchan(0), _ntxchan(0),
 	_dt((DataType)0) {}
     virtual ~PtexSeparableFilter() {}
@@ -40,7 +41,7 @@ class PtexSeparableFilter : public PtexFilter, public Ptex
     void apply(PtexSeparableKernel& k, int faceid, const Ptex::FaceInfo& f);
 
     PtexTexture* _tx;		// texture being evaluated
-    bool _lerp;			// filter should lerp between mipmap levels
+    Options _options;		// options
     double* _result;		// temp result
     double _weight;		// accumulated weight of data in _result
     int _firstChanOffset;	// byte offset of first channel to eval

@@ -227,7 +227,11 @@ class PtexSeparableKernel : public Ptex {
 
     void adjustMainToSubface(int eid)
     {
-	//	    assert(res.ulog2 > 0 && res.vlog2 > 0); TODO - fix this.
+	// to adjust the kernel for the subface, we must adjust the res down and offset the uv coords
+	// however, if the res is already zero, we must upres the kernel first
+	if (res.ulog2 == 0) upresU();
+	if (res.vlog2 == 0) upresV();
+
 	if (res.ulog2 > 0) res.ulog2--;
 	if (res.vlog2 > 0) res.vlog2--;
 	switch (eid&3) {
@@ -305,6 +309,32 @@ class PtexSeparableKernel : public Ptex {
 	v /= 2;
 	vw = int(dst - kv);
 	res.vlog2--;
+    }
+
+    void upresU()
+    {
+	double* src = ku + uw-1;
+	double* dst = ku + uw*2-2;
+	for (int i = uw; i > 0; i--) {
+	    dst[0] = dst[1] = *src-- / 2;
+	    dst -=2;
+	}
+	uw *= 2;
+	u *= 2;
+	res.ulog2++;
+    }
+
+    void upresV()
+    {
+	double* src = kv + vw-1;
+	double* dst = kv + vw*2-2;
+	for (int i = vw; i > 0; i--) {
+	    dst[0] = dst[1] = *src-- / 2;
+	    dst -=2;
+	}
+	vw *= 2;
+	v *= 2;
+	res.vlog2++;
     }
 
     void makeSymmetric()
