@@ -1,0 +1,96 @@
+##RenderMan RIB-Structure 1.1
+version 3.04
+PixelFilter "mitchell" 4 4
+Declare "originOffset" "constant float[2]"
+Display "quad.tif" "it" "rgba"
+Option "limits" "eyesplits" [3]
+Option "limits" "bucketsize" [16 16]
+Option "limits" "gridsize" [256]
+Declare "enable_lerp" "uniform float"
+Option "texture" "enable lerp" [1]
+Option "texture" "enable gaussian" [1]
+Option "limits" "texturememory" [32768]
+Option "searchpath" "shader" [".:..:../.."]
+Option "searchpath" "texture" ["."]
+Option "limits" "othreshold" [0.99599999 0.99599999 0.99599999]
+Option "limits" "zthreshold" [1 1 1]
+Option "shadow" "bias0" [0.22499999] "bias1" [0.22499999]
+GeometricApproximation "motionfactor" 0
+Option "trace" "int maxdepth" [10]
+Option "trace" "float specularthreshold" [10]
+Hider "hidden" "jitter" [1] "depthfilter" ["min"]
+Exposure 1 1
+Format 512 512 1
+Matte 0
+ShadingRate 1
+ShadingInterpolation "smooth"
+Attribute "displacementbound" "sphere" [0] "coordinatesystem" ["object"]
+Attribute "dice" "binary" [1]
+Sides 2
+Attribute "sides" "backfacetolerance" [0]
+Attribute "derivatives" "centered" [1]
+Attribute "derivatives" "extrapolate" [1]
+Attribute "visibility" "int camera" [1]
+Attribute "visibility" "int trace" [0]
+Attribute "trace" "int maxdiffusedepth" [1]
+Attribute "trace" "int maxspeculardepth" [2]
+Attribute "trace" "int displacements" [0]
+Attribute "trace" "float bias" [0.0099999998]
+Attribute "trace" "int samplemotion" [0]
+Attribute "user" "string shaderSurf" ["true"]
+Attribute "user" "string shaderDisp" ["false"]
+Attribute "user" "string shaderAtm" ["false"]
+Attribute "user" "string isShadowPass" ["false"]
+Attribute "user" "uniform float passID" [0]
+PixelSamples 5 5
+Shutter 0 0
+Option "shutter" "int clampmotion" [1]
+Quantize "rgba" 255 0 255 0.5
+Option "shutter" "float offset" [1]
+Option "statistics" "endofframe" [1]
+ErrorHandler "printonce"
+FrameBegin 1
+ScreenWindow -1 1 -1 1
+Clipping 0.1 1000
+Projection "perspective" "fov" [54.432129]
+#Translate 0 0 -3
+Rotate 0 0 0 1
+Scale 1 1 -1
+ConcatTransform [ 0.96944535 -0.11719485 0.21550196 0  0 0.87849748 0.47774699 0  -0.24530742 -0.46314958 0.8516553 0  0.16369569 0.19008446 -7.679801 1 ]
+WorldBegin 
+TransformBegin 
+Rotate 90 0 1 0
+CoordinateSystem "_XTOZ"
+TransformEnd 
+TransformBegin 
+Rotate -90 1 0 0
+CoordinateSystem "_YTOZ"
+TransformEnd 
+TransformBegin 
+CoordinateSystem "_world_lefthanded"
+TransformEnd 
+TransformBegin 
+CoordSysTransform "_YTOZ"
+CoordinateSystem "_environment"
+CoordinateSystem "worldspace"
+TransformEnd 
+ReverseOrientation 
+AttributeBegin 
+AttributeEnd 
+AttributeBegin 
+AttributeBegin 
+##ELEMENT 
+AttributeBegin 
+Attribute "identifier" "name" ["pPlanePPP_1"]
+##BIND pPlanePPP_1
+ConcatTransform [ 1 0 0 0  0 1 0 0  0 0 1 0  0.081099667 0 0.0071966504 1 ]
+
+Surface "test"
+#Attribute "displacementbound" "float sphere" [2.0]
+#PointsPolygons [4] [2 3 1 0] "P" [-2.9663489 -6.7759274e-16 3.0516064 2.9663489 -6.7759274e-16 3.0516064 -2.9663489 6.7759274e-16 -3.0516064 2.9663489 6.7759274e-16 -3.0516064] "facevarying float[2] st" [0 0 1 0 1 1 0 1] "uniform integer faceid" [0]
+SubdivisionMesh "loop" [3] [0 1 2] ["interpolateboundary"] [0 0] [] [] "P" [-3 0 -3 3 0 -3 0 2.2 0]
+AttributeEnd 
+AttributeEnd 
+AttributeEnd 
+WorldEnd 
+FrameEnd 

@@ -23,8 +23,9 @@ def doFrame(framenum):
     print "Done with frame %d (blur=%g)\n" % (framenum, blur)
 
 
-r = range(0, 300, 1)
-r = [299]
-r = [239, 240]
+r = range(0, 300, 3)
+#r = [299]
+#r = [239, 240]
+#r = [1000]
 for framenum in r:
     doFrame(framenum)

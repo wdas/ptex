@@ -199,7 +199,7 @@ void PtexSeparableFilter::applyToCorner(PtexSeparableKernel& k, int faceid,
     const FaceInfo* af = &f;
     bool prevIsSubface = af->isSubface();
 
-    const int MaxValence = 8;
+    const int MaxValence = 10;
     int cfaceId[MaxValence];
     int cedgeId[MaxValence];
     const FaceInfo* cface[MaxValence];

@@ -22,7 +22,10 @@ static PtexCache* cache = 0;
 namespace {
     PtexFilter* getFilter(PtexTexture* tx, float sharpness, bool lerp)
     {
-	return PtexFilter::getFilter(tx, PtexFilter::Options(PtexFilter::f_bicubic, sharpness, lerp));
+	PtexFilter::FilterType type;
+	type = PtexFilter::f_bicubic;
+	//	type = PtexFilter::FilterType(-1); // original Ptex filter
+	return PtexFilter::getFilter(tx, PtexFilter::Options(type, sharpness, lerp));
     }
 }
 
