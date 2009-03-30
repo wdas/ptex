@@ -1,0 +1,89 @@
+Option "limits" "eyesplits" [3]
+Option "limits" "bucketsize" [16 16]
+Option "limits" "gridsize" [256]
+Declare "enable_lerp" "uniform float"
+Option "texture" "enable lerp" [1]
+Option "texture" "enable gaussian" [1]
+Option "limits" "texturememory" [32768]
+Option "searchpath" "shader" [".:../..:@"]
+Option "searchpath" "texture" [".:@"]
+Option "limits" "othreshold" [0.99599999 0.99599999 0.99599999]
+Option "limits" "zthreshold" [1 1 1]
+Option "shadow" "bias0" [0.22499999] "bias1" [0.22499999]
+GeometricApproximation "motionfactor" 0
+Option "trace" "int maxdepth" [10]
+Option "trace" "float specularthreshold" [10]
+Hider "hidden" "jitter" [1] "depthfilter" ["min"]
+Exposure 1 1
+Format 512 512 1
+CropWindow 0.0 1.000000 0.35 0.80
+#CropWindow 0.633431 0.649071 0.585533 0.607038
+Matte 0
+ShadingRate 1
+ShadingInterpolation "smooth"
+Attribute "displacementbound" "sphere" [0.1] "coordinatesystem" ["object"]
+Attribute "dice" "binary" [1]
+Sides 2
+Attribute "sides" "backfacetolerance" [0]
+Attribute "derivatives" "centered" [1]
+Attribute "derivatives" "extrapolate" [1]
+Attribute "visibility" "int camera" [1]
+Attribute "visibility" "int trace" [0]
+Attribute "trace" "int maxdiffusedepth" [1]
+Attribute "trace" "int maxspeculardepth" [2]
+Attribute "trace" "int displacements" [0]
+Attribute "trace" "float bias" [0.0099999998]
+Attribute "trace" "int samplemotion" [0]
+Attribute "user" "string shaderSurf" ["true"]
+Attribute "user" "string shaderDisp" ["false"]
+Attribute "user" "string shaderAtm" ["false"]
+Attribute "user" "string isShadowPass" ["false"]
+Attribute "user" "uniform float passID" [0]
+PixelSamples 5 5
+Shutter 0 0
+Option "shutter" "int clampmotion" [1]
+Quantize "rgba" 255 0 255 0.5
+Option "shutter" "float offset" [1]
+Option "statistics" "endofframe" [1]
+ErrorHandler "printonce"
+FrameBegin 1
+ScreenWindow -1 1 -1 1
+Clipping 0.1 1000
+Projection "perspective" "fov" [54.432129]
+Rotate 0 0 0 1
+Scale 1 1 -1
+ConcatTransform [ 0.99994516 0.010069229 0.0028755835 0  -1.3969839e-09 0.27460289 -0.96155787 0  -0.010471788 0.96150517 0.27458787 0  0.0064360783 -0.059963346 -1.2036457 1 ]
+Attribute "user" "string xgCamera" ["false,-0.002371,-1.140909,0.388229"] "string xgCameraFOV" ["0.475010,0.330297"] "string xgCameraXform" ["0.999945,0.010069,0.002876,0.000000,-0.000000,0.274603,-0.961558,0.000000,-0.010472,0.961505,0.274588,0.000000,0.006436,-0.059963,-1.203646,1.000000"]
+Attribute "user" "uniform float raytraceOn" [0]
+WorldBegin 
+TransformBegin 
+Rotate 90 0 1 0
+CoordinateSystem "_XTOZ"
+TransformEnd 
+TransformBegin 
+Rotate -90 1 0 0
+CoordinateSystem "_YTOZ"
+TransformEnd 
+TransformBegin 
+CoordinateSystem "_world_lefthanded"
+TransformEnd 
+TransformBegin 
+CoordSysTransform "_YTOZ"
+CoordinateSystem "_environment"
+CoordinateSystem "worldspace"
+TransformEnd 
+ReverseOrientation 
+AttributeBegin 
+AttributeEnd 
+AttributeBegin 
+AttributeBegin 
+##ELEMENT 
+AttributeBegin 
+Attribute "identifier" "name" ["pPlane1Subd"]
+##BIND pPlane1Subd
+Attribute "stitch" "newgroup" [1]
+ConcatTransform [ 1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1 ]
+AttributeBegin 
+Attribute "identifier" "name" ["hc_pPlane1Tile0001_xxxxXX"]
+##BIND hc_pPlane1Tile0001_xxxxXX
+ConcatTransform [ 1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1 ]

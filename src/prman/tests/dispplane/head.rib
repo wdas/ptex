@@ -1,0 +1,4 @@
+##RenderMan RIB-Structure 1.1
+version 3.04
+PixelFilter "mitchell" 4 4
+Declare "originOffset" "constant float[2]"
