@@ -25,7 +25,7 @@ namespace {
 	PtexFilter::FilterType type;
 	type = PtexFilter::f_bicubic;
 	//	type = PtexFilter::FilterType(-1); // original Ptex filter
-	return PtexFilter::getFilter(tx, PtexFilter::Options(type, sharpness, lerp));
+	return PtexFilter::getFilter(tx, PtexFilter::Options(type, lerp, sharpness));
     }
 }
 

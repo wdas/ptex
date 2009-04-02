@@ -834,13 +834,13 @@ class PtexFilter {
     struct Options {
 	int __structSize;	///< (for internal use only)
 	FilterType filter;	///< Filter type.
-	float sharpness;	///< Filter sharpness, 0..1 (for general bi-cubic filter only).
 	bool lerp;		///< Interpolate between mipmap levels.
+	float sharpness;	///< Filter sharpness, 0..1 (for general bi-cubic filter only).
 
 	/// Constructor - sets defaults
-	Options(FilterType filter=f_box, float sharpness=0, bool lerp=0) :
+	Options(FilterType filter=f_box, bool lerp=0, float sharpness=0) :
 	    __structSize(sizeof(Options)),
-	    filter(filter), sharpness(sharpness), lerp(lerp) {}
+	    filter(filter), lerp(lerp), sharpness(sharpness) {}
     };
 
     /* Construct a filter for the given texture.

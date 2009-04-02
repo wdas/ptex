@@ -17,7 +17,7 @@
 #include "PtexUtils.h"
 
 
-//#define NOEDGEBLEND // enable for debugging
+//#define NOEDGEBLEND // uncomment to disable filtering across edges (for debugging)
 
 void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
 			       int faceid, float u, float v, float uw, float vw,
@@ -96,6 +96,13 @@ void PtexSeparableFilter::splitAndApply(PtexSeparableKernel& k, int faceid, cons
     bool splitR = (k.u+k.uw > k.res.u()), splitL = (k.u < 0);
     bool splitT = (k.v+k.vw > k.res.v()), splitB = (k.v < 0);
 
+#ifdef NOEDGEBLEND
+    // for debugging only
+    if (splitR) k.mergeR();
+    if (splitL) k.mergeL();
+    if (splitT) k.mergeT();
+    if (splitB) k.mergeB();
+#else
     if (splitR || splitL || splitT || splitB) { 
 	PtexSeparableKernel ka, kc;
 	if (splitR) {
@@ -155,6 +162,7 @@ void PtexSeparableFilter::splitAndApply(PtexSeparableKernel& k, int faceid, cons
 	    else k.mergeB();
 	}
     }
+#endif
 
     // do local face
     apply(k, faceid, f); 
