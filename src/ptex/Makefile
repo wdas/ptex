@@ -22,6 +22,8 @@ SRCS = \
 	PtexReader.cpp \
 	PtexSeparableFilter.cpp \
 	PtexSeparableKernel.cpp \
+	PtexTriangleFilter.cpp \
+	PtexTriangleKernel.cpp \
 	PtexUtils.cpp \
 	PtexWriter.cpp
 

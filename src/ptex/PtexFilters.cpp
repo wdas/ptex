@@ -13,6 +13,7 @@
 #include "PtexMitchellFilter.h"
 #include "PtexSeparableFilter.h"
 #include "PtexSeparableKernel.h"
+#include "PtexTriangleFilter.h"
 
 namespace {
 
@@ -23,7 +24,8 @@ class PtexPointFilter : public PtexFilter, public Ptex
     PtexPointFilter(PtexTexture* tx) : _tx(tx) {}
     virtual void release() { delete this; }
     virtual void eval(float* result, int firstchan, int nchannels,
-		      int faceid, float u, float v, float /*uw*/, float /*vw*/,
+		      int faceid, float u, float v,
+		      float /*uw1*/, float /*vw1*/, float /*uw2*/, float /*vw2*/,
 		      float /*width*/, float /*blur*/)
     {
 	if (!_tx || nchannels <= 0) return;
@@ -47,7 +49,8 @@ class PtexPointFilterTri : public PtexFilter, public Ptex
     PtexPointFilterTri(PtexTexture* tx) : _tx(tx) {}
     virtual void release() { delete this; }
     virtual void eval(float* result, int firstchan, int nchannels,
-		      int faceid, float u, float v, float /*uw*/, float /*vw*/,
+		      int faceid, float u, float v,
+		      float /*uw1*/, float /*vw1*/, float /*uw2*/, float /*vw2*/,
 		      float /*width*/, float /*blur*/)
     {
 	if (!_tx || nchannels <= 0) return;
@@ -405,7 +408,11 @@ PtexFilter* PtexFilter::getFilter(PtexTexture* tex, const PtexFilter::Options& o
     switch (tex->meshType()) {
     case Ptex::mt_quad:
 	switch (opts.filter) {
+	    // This is the original (deprecated) Mitchell filter.
+	    // It lacks significant features (lerping, large blur, subfaces) and
+	    // is kept for now just for regression testing.
 	case -1:	    return new PtexMitchellFilter(tex, opts.sharpness);
+
 	case f_point:       return new PtexPointFilter(tex);
 	case f_bilinear:    return new PtexBilinearFilter(tex, opts);
 	default:
@@ -419,10 +426,11 @@ PtexFilter* PtexFilter::getFilter(PtexTexture* tex, const PtexFilter::Options& o
 	break;
 
     case Ptex::mt_triangle:
-// 	switch (opts.filter) {
-// 	case f_point:       return new PtexPointFilterTri(tex);
-// 	}
-	return new PtexPointFilterTri(tex);
+ 	switch (opts.filter) {
+ 	case f_point:       return new PtexPointFilterTri(tex);
+	default:            return new PtexTriangleFilter(tex, opts);
+ 	}
+	break;
     }
     return 0;
 }

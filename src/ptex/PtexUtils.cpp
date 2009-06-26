@@ -602,6 +602,32 @@ void PtexUtils::genRfaceids(const FaceInfo* faces, int nfaces,
     }
 }
 
+namespace {
+    // apply to 1..4 channels, unrolled
+    template<class T, int nChan>
+    void ApplyConst(double weight, double* dst, void* data, int /*nChan*/)
+    {
+	// dst[i] += data[i] * weight for i in {0..n-1}
+	PtexUtils::VecAccum<T,nChan>()(dst, (T*) data, weight);
+    }
+
+    // apply to N channels (general case)
+    template<class T>
+    void ApplyConstN(double weight, double* dst, void* data, int nChan)
+    {
+	// dst[i] += data[i] * weight for i in {0..n-1}
+	PtexUtils::VecAccumN<T>()(dst, (T*) data, nChan, weight);
+    }
+}
+
+PtexUtils::ApplyConstFn
+PtexUtils::applyConstFunctions[20] = {
+    ApplyConstN<uint8_t>,  ApplyConstN<uint16_t>,  ApplyConstN<PtexHalf>,  ApplyConstN<float>,
+    ApplyConst<uint8_t,1>, ApplyConst<uint16_t,1>, ApplyConst<PtexHalf,1>, ApplyConst<float,1>,
+    ApplyConst<uint8_t,2>, ApplyConst<uint16_t,2>, ApplyConst<PtexHalf,2>, ApplyConst<float,2>,
+    ApplyConst<uint8_t,3>, ApplyConst<uint16_t,3>, ApplyConst<PtexHalf,3>, ApplyConst<float,3>,
+    ApplyConst<uint8_t,4>, ApplyConst<uint16_t,4>, ApplyConst<PtexHalf,4>, ApplyConst<float,4>,
+};
 	
 #ifndef PTEX_USE_STDSTRING
 Ptex::String::~String()
@@ -623,5 +649,4 @@ std::ostream& operator << (std::ostream& stream, const Ptex::String& str)
     return stream;
 }
 #endif
-
 

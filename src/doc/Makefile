@@ -7,8 +7,10 @@ INSTALLDIR = ../../install/doc/html
 
 INSTALL = \
 	PtexFile.html \
+	FilterFootprint.html \
 	ptex-teaser.png \
-	adjdata1.jpg
+	adjdata1.jpg \
+	uvellipse.png
 
 $(INSTALLDIR)/% : %
 	@ mkdir -p $(@D)

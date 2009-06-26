@@ -20,7 +20,8 @@
 //#define NOEDGEBLEND // uncomment to disable filtering across edges (for debugging)
 
 void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
-			       int faceid, float u, float v, float uw, float vw,
+			       int faceid, float u, float v, 
+			       float uw1, float vw1, float uw2, float vw2,
 			       float width, float blur)
 {
     // init
@@ -30,10 +31,6 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     _dt = _tx->dataType();
     _firstChanOffset = firstChan*DataSize(_dt);
     _nchan = PtexUtils::min(nChannels, _ntxchan-firstChan);
-
-    // clamp u and v
-    u = PtexUtils::clamp(u, 0.0f, 1.0f);
-    v = PtexUtils::clamp(v, 0.0f, 1.0f);
 
     // get face info
     const FaceInfo& f = _tx->getFaceInfo(faceid);
@@ -47,6 +44,13 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
 	}
 	return;
     }
+
+    // find filter width as bounding box of vectors w1 and w2
+    float uw = fabs(uw1) + fabs(uw2), vw = fabs(vw1) + fabs(vw2);
+
+    // clamp u and v
+    u = PtexUtils::clamp(u, 0.0f, 1.0f);
+    v = PtexUtils::clamp(v, 0.0f, 1.0f);
 
     // build kernel
     PtexSeparableKernel k;

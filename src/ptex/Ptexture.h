@@ -852,8 +852,11 @@ class PtexFilter {
 
     /** Apply filter to a ptex data file.
 
-        The filter rectangle is centered at the given (u,v) coordinate
-        and extends over the range [u +/- uw/2, v +/- vw/2].
+        The filter region is a parallelogram centered at the given
+        (u,v) coordinate with sides defined by two vectors [uw1, vw1]
+        and [uw2, vw2].  For an axis-aligned rectangle, the vectors
+        are [uw, 0] and [0, vw].  See \link filterfootprint Filter
+        Footprint \endlink for details.
 
         @param result Buffer to hold filter result.  Must be large enough to hold nchannels worth of data.
 	@param firstchan First channel to evaluate [0..tx->numChannels()-1]
@@ -861,13 +864,15 @@ class PtexFilter {
 	@param faceid Face index [0..tx->numFaces()-1]
 	@param u U coordinate, normalized [0..1]
 	@param v V coordinate, normalized [0..1]
-	@param uw U filter width, normalized [0..1]
-	@param vw V filter width, normalized [0..1]
+	@param uw1 U filter width 1, normalized [0..1]
+	@param vw1 V filter width 1, normalized [0..1]
+	@param uw2 U filter width 2, normalized [0..1]
+	@param vw2 V filter width 2, normalized [0..1]
 	@param width scale factor for filter width
 	@param blur amount to add to filter width [0..1]
     */
     virtual void eval(float* result, int firstchan, int nchannels,
-		      int faceid, float u, float v, float uw, float vw,
+		      int faceid, float u, float v, float uw1, float vw1, float uw2, float vw2,
 		      float width=1, float blur=0) = 0;
 
  protected:

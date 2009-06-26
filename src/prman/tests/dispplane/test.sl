@@ -7,8 +7,11 @@ surface test(string mapname="";
 	     uniform float sharpness=1.0;
 	     uniform float lerp=1;
 	     uniform float dispScale=.01;
-	     uniform float faceid=0;)
+	     uniform float faceid=0;
+	     varying float weights[]={})
 {
+    float i;
+    print(weights[0], weights[1]);
     if (mapname != "") {
 	float sharp = 0; // sharpness;
 	color Ctex = ptexture(mapname, 0, faceid, u, 1-v, du, dv, width, blur, sharp, lerp);

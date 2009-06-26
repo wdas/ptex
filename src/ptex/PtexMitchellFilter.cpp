@@ -42,7 +42,8 @@ void PtexMitchellFilter::setSharpness(float sharpness)
 
 
 void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
-			      int faceid, float u, float v, float uw, float vw,
+			      int faceid, float u, float v,
+			      float uw1, float vw1, float uw2, float vw2,
 			      float width, float blur)
 {
 #if 0
@@ -80,6 +81,9 @@ void PtexMitchellFilter::eval(float* result, int firstchan, int nchannels,
       v blend region = 2 pixels given [uface vres at edge .. local vres mid-face]
       - smoothstep between edge/mid-face resolutions (mid-face = u or v == 0.5)
     */
+
+    // find filter width as bounding box of vectors w1 and w2
+    float uw = fabs(uw1) + fabs(uw2), vw = fabs(vw1) + fabs(vw2);
 
     if (!_ctx.prepare(result, firstchan, nchannels, _tx, faceid, u, v, uw, vw))
 	return;

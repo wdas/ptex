@@ -376,9 +376,7 @@ class PtexSeparableKernel : public Ptex {
 
     void applyConst(double* dst, void* data, DataType dt, int nChan)
     {
-	// dispatch specialized apply function
-	ApplyConstFn fn = applyConstFunctions[((unsigned)nChan<=4)*nChan*4 + dt];
-	fn(weight(), dst, data, nChan);
+	PtexUtils::applyConst(weight(), dst, data, dt, nChan);
     }
 
  private:

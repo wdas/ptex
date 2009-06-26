@@ -1,5 +1,5 @@
-#ifndef PtexSeparableFilter_h
-#define PtexSeparableFilter_h
+#ifndef PtexTriangleFilter_h
+#define PtexTriangleFilter_h
 
 /* 
    CONFIDENTIAL INFORMATION: This software is the confidential and
@@ -12,34 +12,31 @@
 */
 
 #include "Ptexture.h"
+class PtexTriangleKernel;
 
-class PtexSeparableKernel;
-
-class PtexSeparableFilter : public PtexFilter, public Ptex
+class PtexTriangleFilter : public PtexFilter, public Ptex
 {
  public:
-    virtual void release() { delete this; }
-    virtual void eval(float* result, int firstchan, int nchannels,
-		      int faceid, float u, float v,
-		      float uw1, float vw1, float uw2, float vw2,
-		      float width, float blur);
-
- protected:
-    PtexSeparableFilter(PtexTexture* tx, const PtexFilter::Options& opts ) :
+    PtexTriangleFilter(PtexTexture* tx, const PtexFilter::Options& opts ) :
 	_tx(tx), _options(opts), _result(0), _weight(0), 
 	_firstChanOffset(0), _nchan(0), _ntxchan(0),
 	_dt((DataType)0) {}
-    virtual ~PtexSeparableFilter() {}
+    virtual void release() { delete this; }
+    virtual void eval(float* result, int firstchan, int nchannels,
+		      int faceid, float u, float v,
+		      float uw1, float vw1, float uw2, float vw2, 
+		      float width, float blur);
 
-    virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
-			     Res faceRes) = 0;
-    
-    void splitAndApply(PtexSeparableKernel& k, int faceid, const Ptex::FaceInfo& f);
-    void applyAcrossEdge(PtexSeparableKernel& k, int faceid, const Ptex::FaceInfo& f, int eid);
-    void applyToCorner(PtexSeparableKernel& k, int faceid, const Ptex::FaceInfo& f, int eid);
-    void applyToCornerFace(PtexSeparableKernel& k, const Ptex::FaceInfo& f, int eid,
-			   int cfaceid, const Ptex::FaceInfo& cf, int ceid);
-    void apply(PtexSeparableKernel& k, int faceid, const Ptex::FaceInfo& f);
+ protected:
+    void buildKernel(PtexTriangleKernel& k, float u, float v, 
+		     float uw1, float vw1, float uw2, float vw2,
+		     float width, float blur, Res faceRes);
+
+    void splitAndApply(PtexTriangleKernel& k, int faceid, const FaceInfo& f);
+    void applyAcrossEdge(PtexTriangleKernel& k, const Ptex::FaceInfo& f, int eid);
+    void apply(PtexTriangleKernel& k, int faceid, const Ptex::FaceInfo& f);
+
+    virtual ~PtexTriangleFilter() {}
 
     PtexTexture* _tx;		// texture being evaluated
     Options _options;		// options
