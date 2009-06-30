@@ -1,13 +1,19 @@
 #include <iostream>
 #include <stdlib.h>
 #include "Ptexture.h"
+#include <stdio.h>
+
+float randf()
+{
+    return random() * (1.0/(unsigned)(2<<31-1));
+}
 
 int main()
 {
     int nchan = 3;
     std::string error;
     Ptex::DataType dt = Ptex::dt_float;
-    int nfaces = 60;
+    int nfaces = 2;
     int alpha = -1;
     PtexPtr<PtexWriter> tx(PtexWriter::open("tri.ptx", Ptex::mt_triangle, dt, nchan,
 					    alpha, nfaces, error));
@@ -30,9 +36,9 @@ int main()
 		u = 1 - v;
 		v = 1 - utmp;
 	    }
-	    pixel[0] = u;
-	    pixel[1] = v;
-	    pixel[2] = 1-u-v;
+	    pixel[0] = randf();
+	    pixel[1] = randf();
+	    pixel[2] = ui == 6 && vi == 7;
 	    pixel += 3;
 	}
     }

@@ -22,9 +22,9 @@ static PtexCache* cache = 0;
 namespace {
     PtexFilter* getFilter(PtexTexture* tx, float sharpness, bool lerp)
     {
-	PtexFilter::FilterType type;
-	type = PtexFilter::f_bicubic;
-	//	type = PtexFilter::FilterType(-1); // original Ptex filter
+	PtexFilter::FilterType type = PtexFilter::f_gaussian;
+	//	type = PtexFilter::f_point;
+	//type = PtexFilter::FilterType(-1); // original Ptex filter
 	return PtexFilter::getFilter(tx, PtexFilter::Options(type, lerp, sharpness));
     }
 }
@@ -92,12 +92,14 @@ static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
     RslFloatIter faceid(argv[3]);
     RslFloatIter u(argv[4]);
     RslFloatIter v(argv[5]);
-    RslFloatIter uw(argv[6]);
-    RslFloatIter vw(argv[7]);
-    RslFloatIter width(argv[8]);
-    RslFloatIter blur(argv[9]);
-    RslFloatIter sharpness(argv[10]);
-    RslFloatIter lerp(argv[11]);
+    RslFloatIter uw1(argv[6]);
+    RslFloatIter vw1(argv[7]);
+    RslFloatIter uw2(argv[8]);
+    RslFloatIter vw2(argv[9]);
+    RslFloatIter width(argv[10]);
+    RslFloatIter blur(argv[11]);
+    RslFloatIter sharpness(argv[12]);
+    RslFloatIter lerp(argv[13]);
 
     Ptex::String error;
     PtexPtr<PtexTexture> tx ( cache->get(*mapname, error) );
@@ -111,7 +113,7 @@ static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
 		stop = 1;
 	    }
 	    float* resultval = *result;
-	    filter->eval(resultval, chan, 3, int(*faceid), *u, *v, *uw, *vw, *width, *blur);
+	    filter->eval(resultval, chan, 3, int(*faceid), *u, *v, *uw1, *vw1, *uw2, *vw2, *width, *blur);
 
 	    // copy first channel into missing channels (e.g. promote 1-chan to gray)
 	    int nChanAvailable = tx->numChannels() - chan;
@@ -119,7 +121,7 @@ static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
 		for (int i = nChanAvailable; i < 3; i++)
 		    resultval[i] = resultval[0];
 
-	    ++result; ++faceid; ++u; ++v; ++uw; ++vw; ++width, ++blur;
+	    ++result; ++faceid; ++u; ++v; ++uw1; ++vw1; ++uw2; ++vw2; ++width, ++blur;
 	}
     }
     else {
@@ -267,7 +269,7 @@ static int ptexenvColor(RslContext*, int argc, const RslArg* argv[] )
 		    du = dv = 1;
 		}
 	    }
-	    filter->eval(resultval, chan, 3, faceid, (1+u)/2, (1+v)/2, 
+	    filter->eval(resultval, chan, 3, faceid, (1+u)/2, 0, 0, (1+v)/2, 
 			 du/2 + *blur, dv/2 + *blur);
 
 	    // copy first channel into missing channels (e.g. promote 1-chan to gray)
@@ -301,18 +303,18 @@ static int ptexenvColor(RslContext*, int argc, const RslArg* argv[] )
 */
 static RslFunction ptexFunctions[] =
 {
-    // color = ptexture(mapname, chan, faceid, u, v, uw, vw, width, blur, sharpness, lerp)
-    { "color ptexture(string, float, float, float, float, float, float, float, float, float, float)",
-      ptextureColor, 0, 0 },
+    // color = ptexture(mapname, chan, faceid, u, v, uw1, vw1, uw2, vw2, width, blur, sharpness, lerp)
+    { "color Ptexture(string, float, float, float, float, float, float, float, float, float, float, float, float)",
+      ptextureColor, 0, 0, 0, 0 },
 
-    // float = ptexture(mapname, chan, faceid, u, v, uw, vw, width, blur, sharpness, lerp)
-    { "float ptexture(string, float, float, float, float, float, float, float, float float, float)",
-      ptextureFloat, 0, 0 },
+    // float = ptexture(mapname, chan, faceid, u, v, uw1, vw1, uw2, vw2, width, blur, sharpness, lerp)
+    { "float Ptexture(string, float, float, float, float, float, float, float, float, float, float float, float)",
+      ptextureFloat, 0, 0, 0, 0 },
 
     // color = ptexenv(mapname, R0, R1, R2, R3, blur)
-    { "color ptexenv(string, uniform float, vector, vector, vector, vector, float)",
-      ptexenvColor, 0, 0 },
-    {0, 0, 0, 0}
+    { "color Ptexenv(string, uniform float, vector, vector, vector, vector, float)",
+      ptexenvColor, 0, 0, 0, 0 },
+    {0, 0, 0, 0, 0, 0}
 };
 
 

@@ -20,12 +20,14 @@ class test(varying float faceid=0)
 
     public void surface(output color Ci, Oi)
     {
-#if 0
-	float s = u, t = 1-v;
-	Ci = texture("uv.tx", s, t);//s+fw, t+fw, s+fw, t-fw, s-fw, t+fw, s-fw, t-fw);
-	return;
-#endif
-
+#if 1
+	float s = u, t = v;
+	//Ci = texture("uv.tx", s, t);//s+fw, t+fw, s+fw, t-fw, s-fw, t+fw, s-fw, t-fw);
+	float fw = .1;
+	uniform float uw1 = 0, vw1 = 0, uw2 = 0, vw2 = 0;
+	uniform float width = 1, blur = 0, sharpness = 0, lerp = 0;
+	Ci = Ptexture("tri.ptx", 0, faceid, s, t, uw1, vw1, uw2, vw2, width, blur, sharpness, lerp);
+#else
 
 	point sp = transform( "raster", P );
 	float a = Du(xcomp(sp));
@@ -51,6 +53,7 @@ class test(varying float faceid=0)
 /* 	Ci += color(ur*ur < abs(R/wu) ? 1 : 0, */
 /* 		    vr*vr < abs(R/wv) ? 1 : 0, */
 /* 		    wr*wr < abs(R/ww) ? 1 : 0)/2; */
+#endif
 	Oi = 1;
     }
 }

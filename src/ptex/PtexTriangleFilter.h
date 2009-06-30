@@ -13,6 +13,7 @@
 
 #include "Ptexture.h"
 class PtexTriangleKernel;
+class PtexTriangleKernelIter;
 
 class PtexTriangleFilter : public PtexFilter, public Ptex
 {
@@ -35,9 +36,10 @@ class PtexTriangleFilter : public PtexFilter, public Ptex
     void splitAndApply(PtexTriangleKernel& k, int faceid, const FaceInfo& f);
     void applyAcrossEdge(PtexTriangleKernel& k, const Ptex::FaceInfo& f, int eid);
     void apply(PtexTriangleKernel& k, int faceid, const Ptex::FaceInfo& f);
-
+    void applyIter(PtexTriangleKernelIter& k, PtexFaceData* dh);
+    
     virtual ~PtexTriangleFilter() {}
-
+    
     PtexTexture* _tx;		// texture being evaluated
     Options _options;		// options
     double* _result;		// temp result
