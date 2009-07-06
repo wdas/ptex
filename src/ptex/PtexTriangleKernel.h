@@ -17,14 +17,18 @@
 #include "Ptexture.h"
 #include "PtexUtils.h"
 
+// kernel width as a multiple of filter width
+static const float PtexTriangleKernelWidth = 3.0;
 
+
+/// Triangle filter kernel iterator (in texel coords)
 class PtexTriangleKernelIter : public Ptex {
  public:
     int rowlen;			// row length (in u)
     double u, v;		// u,v center in texels
     int u1, v1, w1;		// uvw lower bounds
     int u2, v2, w2;		// uvw upper bounds
-    double A,B,C;		// ellipse coefficients
+    double A,B,C;		// ellipse coefficients (F = 1)
     bool valid;			// footprint is valid (non-empty)
     double weight;		// accumulated weight
 
@@ -44,14 +48,14 @@ class PtexTriangleKernelIter : public Ptex {
 };
 
 
-// Triangle filter kernel (in normalized triangle coords)
+/// Triangle filter kernel (in normalized triangle coords)
 class PtexTriangleKernel : public Ptex {
  public:
     Res res;			// desired resolution
     double u, v;		// u, v, w filter center
     double u1, v1, w1;		// uvw lower bounds
     double u2, v2, w2;		// uvw upper bounds
-    double A,B,C;		// ellipse coefficients
+    double A,B,C;		// ellipse coefficients (F = A*C-B*B/4)
 
     void set(Res resVal, double uVal, double vVal,
 	     double u1Val, double v1Val, double w1Val,
@@ -65,35 +69,58 @@ class PtexTriangleKernel : public Ptex {
 	A = AVal; B = BVal; C = CVal;
     }
 
+    void splitU(PtexTriangleKernel& ka)
+    {
+	ka = *this;
+	u1 = 0;
+	ka.u2 = 1;
+    }
+
+    void splitV(PtexTriangleKernel& ka)
+    {
+	ka = *this;
+	v1 = 0;
+	ka.v2 = 1;
+    }
+
+    void splitW(PtexTriangleKernel& ka)
+    {
+	ka = *this;
+	w1 = 0;
+	ka.w2 = 1;
+    }
+
+    void reorient(int /*eid*/, int /*aeid*/, Res /*ares*/)
+    {
+	// TODO
+    }
+    
     void clampRes(Res fres)
     {
-	if (res.ulog2 > fres.ulog2) {
-	    res.ulog2 = res.vlog2 = fres.ulog2; 
-	}
+	res.ulog2 = PtexUtils::min(res.ulog2, fres.ulog2);
+	res.vlog2 = res.ulog2;
     }
 
-
-    void splitU(PtexTriangleKernel& /*k*/)
+    void clampExtent()
     {
-	u1 = 0;
+	u1 = PtexUtils::max(u1, 0.0);
+	v1 = PtexUtils::max(v1, 0.0);
+	w1 = PtexUtils::max(w1, 0.0);
+	u2 = PtexUtils::min(u2, 1-(v1+w1));
+	v2 = PtexUtils::min(v2, 1-(w1+u1));
+	w2 = PtexUtils::min(w2, 1-(u1+v1));
     }
 
-    void splitV(PtexTriangleKernel& /*k*/)
-    {
-	v1 = 0;
-    }
-
-    void splitW(PtexTriangleKernel& /*k*/)
-    {
-	w1 = 0;
-    }
-
-    void reorient(int /*eid*/, int /*aeid*/, Res /*ares*/) {}
-    
     void getIterators(PtexTriangleKernelIter& ke, PtexTriangleKernelIter& ko)
     {
+	int resu = res.u();
+
+	// normalize coefficients for texel units
+	double Finv = 1.0/(resu*resu*(A*C - 0.25 * B * B));
+	double Ak = A*Finv, Bk = B*Finv, Ck = C*Finv;
+
 	// build even iterator
-	ke.rowlen = res.u();
+	ke.rowlen = resu;
 	double scale = ke.rowlen;
 	ke.u = u * scale - 1/3.0;
 	ke.v = v * scale - 1/3.0;
@@ -103,12 +130,12 @@ class PtexTriangleKernel : public Ptex {
 	ke.u2 = int(ceil(u2 * scale - 1/3.0));
 	ke.v2 = int(ceil(v2 * scale - 1/3.0));
 	ke.w2 = int(ceil(w2 * scale - 1/3.0));
-	ke.A = A; ke.B = B; ke.C = C;
+	ke.A = Ak; ke.B = Bk; ke.C = Ck;
 	ke.valid = (ke.u2 > ke.u1 && ke.v2 > ke.v1 && ke.w2 > ke.w1);
 	ke.weight = 0;
 
 	// build odd iterator: flip kernel across diagonal (u = 1-v, v = 1-u, w = -w)
-	ko.rowlen = ke.rowlen;
+	ko.rowlen = resu;
 	ko.u = (1-v) * scale - 1/3.0;
 	ko.v = (1-u) * scale - 1/3.0;
 	ko.u1 = int(ceil((1-v2) * scale - 1/3.0));
@@ -117,7 +144,7 @@ class PtexTriangleKernel : public Ptex {
 	ko.u2 = int(ceil((1-v1) * scale - 1/3.0));
 	ko.v2 = int(ceil((1-u1) * scale - 1/3.0));
 	ko.w2 = int(ceil(( -w1) * scale - 1/3.0));
-	ko.A = C; ko.B = B; ko.C = A;
+	ko.A = Ck; ko.B = Bk; ko.C = Ak;
 	ko.valid = (ko.u2 > ko.u1 && ko.v2 > ko.v1 && ko.w2 > ko.w1);
 	ko.weight = 0;
     }

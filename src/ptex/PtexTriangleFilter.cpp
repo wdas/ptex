@@ -76,33 +76,38 @@ void PtexTriangleFilter::eval(float* result, int firstChan, int nChannels,
 
 
 void PtexTriangleFilter::buildKernel(PtexTriangleKernel& k, float u, float v, 
-					float uw1, float vw1, float uw2, float vw2,
-					float width, float blur, Res faceRes)
+				     float uw1, float vw1, float uw2, float vw2,
+				     float width, float blur, Res faceRes)
 {
+    const double sqrt3 = 1.7320508075688772;
+
     // compute ellipse coefficients, A*u^2 + B*u*v + C*v^2 == AC - B^2/4
-    double scale = width*width;
-    double A = (vw1*vw1 + vw2*vw2) * scale * 0.25;
-    double B = -(uw1*vw1 + uw2*vw2) * scale * 0.5;
-    double C = (uw1*vw2 - vw1*uw2) * scale * 0.25;
+    double scaleAC = 0.25 * width*width;
+    double scaleB = -2 * scaleAC;
+    double A = (vw1*vw1 + vw2*vw2) * scaleAC;
+    double B = (uw1*vw1 + uw2*vw2) * scaleB;
+    double C = (uw1*vw2 + vw1*uw2) * scaleAC;
 
     // convert to cartesian domain
     double Ac = 0.75 * A;
-    double Bc = 0.8660254037844386 * (B-A); // 0.866 = sqrt(3/4.)
+    double Bc = (sqrt3/2) * (B-A);
     double Cc = 0.25 * A - 0.5 * B + C;
 
-#if 0
-    if (Ac*Cc - Bc*Bc*.25 <= 0) {
-	// degenerate ellipse, 
-	
+    // clamp eccentricity
+    double X, b_e;
+    if (Ac*Cc - 0.25*Bc*Bc <= 1e-10) {
+	// degenerate case
+	Ac = Bc = Cc = X = b_e = 0;
+	X = 0;
     }
-#endif
-
-    // compute min blur for eccentricity clamping
-    // TODO - tune maxEcc setting
-    const double maxEcc = 10; // max eccentricity
-    const double eccRatio = (maxEcc*maxEcc + 1) / (maxEcc*maxEcc - 1);
-    double X = sqrt(squared(Ac - Cc) + squared(Bc));
-    double b_e = 0.5 * (eccRatio * X - (Ac + Cc));
+    else {
+	// compute min blur for eccentricity clamping
+	// TODO - tune maxEcc setting
+	const double maxEcc = 10; // max eccentricity
+	const double eccRatio = (maxEcc*maxEcc + 1) / (maxEcc*maxEcc - 1);
+	X = sqrt(squared(Ac - Cc) + squared(Bc));
+	b_e = 0.5 * (eccRatio * X - (Ac + Cc));
+    }
 
     // compute min blur for texel clamping
     // (ensure that ellipse is no smaller than a texel)
@@ -121,17 +126,18 @@ void PtexTriangleFilter::buildKernel(PtexTriangleKernel& k, float u, float v,
     int reslog2 = PtexUtils::min(int(ceil(log2(0.5/m))),
 				 int(faceRes.ulog2));
 
-    // scale
-    Ac *= 2.5;
-    Cc *= 2.5;
-
     // convert back to triangular domain
     A = (4/3.0) * Ac;
-    B = 1.1547005383792515 * Bc + A; // 1.15 = sqrt(4/3.)
+    B = (2/sqrt3) * Bc + A;
     C = -0.25 * A + 0.5 * B + Cc;
 
+    // scale by kernel width
+    double scale = PtexTriangleKernelWidth * PtexTriangleKernelWidth;
+    A *= scale;
+    B *= scale;
+    C *= scale;
+
     // find u,v,w extents
-    // TODO - determine best kernel scale factor
     double uw = sqrt(C);
     double vw = sqrt(A);
     double ww = sqrt(A-B+C);
@@ -181,8 +187,9 @@ void PtexTriangleFilter::applyAcrossEdge(PtexTriangleKernel& k,
 
 void PtexTriangleFilter::apply(PtexTriangleKernel& k, int faceid, const Ptex::FaceInfo& f)
 {
-    // clamp kernel res to face res
+    // clamp kernel face (resolution and extend)
     k.clampRes(f.res);
+    k.clampExtent();
 
     // build kernel iterators
     PtexTriangleKernelIter keven, kodd;
@@ -194,7 +201,7 @@ void PtexTriangleFilter::apply(PtexTriangleKernel& k, int faceid, const Ptex::Fa
     if (!dh) return;
 
     if (keven.valid) applyIter(keven, dh);
-        if (kodd.valid) applyIter(kodd, dh);
+    if (kodd.valid) applyIter(kodd, dh);
 }
 
 
