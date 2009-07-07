@@ -17,15 +17,17 @@
 #include "Ptexture.h"
 #include "PtexUtils.h"
 
-// kernel width as a multiple of filter width
-static const float PtexTriangleKernelWidth = 3.0;
+// kernel width as a multiple of filter width (should be between 3 and 4)
+// for values below 3, the gaussian is not close to zero and a contour will be formed
+// larger values are more expensive (proportional to width-squared)
+static const float PtexTriangleKernelWidth = 3.5;
 
 
 /// Triangle filter kernel iterator (in texel coords)
 class PtexTriangleKernelIter : public Ptex {
  public:
     int rowlen;			// row length (in u)
-    double u, v;		// u,v center in texels
+    double u, v;		// uv center in texels
     int u1, v1, w1;		// uvw lower bounds
     int u2, v2, w2;		// uvw upper bounds
     double A,B,C;		// ellipse coefficients (F = 1)
@@ -52,7 +54,7 @@ class PtexTriangleKernelIter : public Ptex {
 class PtexTriangleKernel : public Ptex {
  public:
     Res res;			// desired resolution
-    double u, v;		// u, v, w filter center
+    double u, v;		// uv filter center
     double u1, v1, w1;		// uvw lower bounds
     double u2, v2, w2;		// uvw upper bounds
     double A,B,C;		// ellipse coefficients (F = A*C-B*B/4)

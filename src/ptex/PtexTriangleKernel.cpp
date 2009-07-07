@@ -130,7 +130,7 @@ void PtexTriangleKernelIter::applyConst(double* dst, void* data, DataType dt, in
 	double V = vi - v;
 	double DQ = A*(2*U+1)+B*V;
 	double Q = A*U*U + (B*U + C*V)*V;
-	for (int x = x1; x != x2; x++) {
+	for (int x = x1; x < x2; x++) {
 	    if (Q < 1) {
 		weight += gaussian(Q);
 	    }

@@ -187,7 +187,7 @@ void PtexTriangleFilter::applyAcrossEdge(PtexTriangleKernel& k,
 
 void PtexTriangleFilter::apply(PtexTriangleKernel& k, int faceid, const Ptex::FaceInfo& f)
 {
-    // clamp kernel face (resolution and extend)
+    // clamp kernel face (resolution and extent)
     k.clampRes(f.res);
     k.clampExtent();
 
@@ -212,34 +212,37 @@ void PtexTriangleFilter::applyIter(PtexTriangleKernelIter& k, PtexFaceData* dh)
 	_weight += k.weight;
     }
     else if (dh->isTiled()) {
-#if 0
-	// TODO implement tile iterator for triangle kernel
 	Ptex::Res tileres = dh->tileRes();
-	PtexTriangleKernel kt;
-	kt.res = tileres;
+	PtexTriangleKernelIter kt = k;
 	int tileresu = tileres.u();
 	int tileresv = tileres.v();
-	int ntilesu = k.res.u() / tileresu;
-	for (int v = k.v, vw = k.vw; vw > 0; vw -= kt.vw, v += kt.vw) {
-	    int tilev = v / tileresv;
-	    kt.v = v % tileresv;
-	    kt.vw = PtexUtils::min(vw, tileresv - kt.v);
-	    kt.kv = k.kv + v - k.v;
-	    for (int u = k.u, uw = k.uw; uw > 0; uw -= kt.uw, u += kt.uw) {
-		int tileu = u / tileresu;
-		kt.u = u % tileresu;
-		kt.uw = PtexUtils::min(uw, tileresu - kt.u);
-		kt.ku = k.ku + u - k.u;
+	kt.rowlen = tileresu;
+	int ntilesu = k.rowlen / kt.rowlen;
+	int wOffsetBase = k.rowlen - tileresu;
+	for (int tilev = k.v1 / tileresv, tilevEnd = (k.v2-1) / tileresv; tilev <= tilevEnd; tilev++) {
+	    int vOffset = tilev * tileresv;
+	    kt.v = k.v - vOffset;
+	    kt.v1 = PtexUtils::max(0, k.v1 - vOffset);
+	    kt.v2 = PtexUtils::min(k.v2 - vOffset, tileresv);
+	    for (int tileu = k.u1 / tileresu, tileuEnd = (k.u2-1) / tileresu; tileu <= tileuEnd; tileu++) {
+		int uOffset = tileu * tileresu;
+		int wOffset = wOffsetBase - uOffset - vOffset;
+		kt.u = k.u - uOffset;
+		kt.u1 = PtexUtils::max(0, k.u1 - uOffset);
+		kt.u2 = PtexUtils::min(k.u2 - uOffset, tileresu);
+		kt.w1 = k.w1 - wOffset;
+		kt.w2 = k.w2 - wOffset;
 		PtexPtr<PtexFaceData> th ( dh->getTile(tilev * ntilesu + tileu) );
 		if (th) {
+		    kt.weight = 0;
 		    if (th->isConstant())
 			kt.applyConst(_result, (char*)th->getData()+_firstChanOffset, _dt, _nchan);
 		    else
 			kt.apply(_result, (char*)th->getData()+_firstChanOffset, _dt, _nchan, _ntxchan);
+		    _weight += kt.weight;
 		}
 	    }
 	}
-#endif
     }
     else {
 	k.apply(_result, (char*)dh->getData()+_firstChanOffset, _dt, _nchan, _ntxchan);
