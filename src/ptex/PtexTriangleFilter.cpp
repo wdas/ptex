@@ -86,28 +86,18 @@ void PtexTriangleFilter::buildKernel(PtexTriangleKernel& k, float u, float v,
     double scaleB = -2 * scaleAC;
     double A = (vw1*vw1 + vw2*vw2) * scaleAC;
     double B = (uw1*vw1 + uw2*vw2) * scaleB;
-    double C = (uw1*vw2 + vw1*uw2) * scaleAC;
+    double C = (uw1*uw1 + uw2*uw2) * scaleAC;
 
     // convert to cartesian domain
     double Ac = 0.75 * A;
     double Bc = (sqrt3/2) * (B-A);
     double Cc = 0.25 * A - 0.5 * B + C;
 
-    // clamp eccentricity
-    double X, b_e;
-    if (Ac*Cc - 0.25*Bc*Bc <= 1e-10) {
-	// degenerate case
-	Ac = Bc = Cc = X = b_e = 0;
-	X = 0;
-    }
-    else {
-	// compute min blur for eccentricity clamping
-	// TODO - tune maxEcc setting
-	const double maxEcc = 10; // max eccentricity
-	const double eccRatio = (maxEcc*maxEcc + 1) / (maxEcc*maxEcc - 1);
-	X = sqrt(squared(Ac - Cc) + squared(Bc));
-	b_e = 0.5 * (eccRatio * X - (Ac + Cc));
-    }
+    // compute min blur for eccentricity clamping
+    const double maxEcc = 15; // max eccentricity
+    const double eccRatio = (maxEcc*maxEcc + 1) / (maxEcc*maxEcc - 1);
+    double X = sqrt(squared(Ac - Cc) + squared(Bc));
+    double b_e = 0.5 * (eccRatio * X - (Ac + Cc));
 
     // compute min blur for texel clamping
     // (ensure that ellipse is no smaller than a texel)
@@ -122,9 +112,8 @@ void PtexTriangleFilter::buildKernel(PtexTriangleKernel& k, float u, float v,
     // compute minor radius
     double m = sqrt(2*(Ac*Cc - 0.25*Bc*Bc) / (Ac + Cc + X));
     
-    // choose resolution, clamp against face resolution
-    int reslog2 = PtexUtils::min(int(ceil(log2(0.5/m))),
-				 int(faceRes.ulog2));
+    // choose desired resolution
+    int reslog2 = int(ceil(log2(0.5/m)));
 
     // convert back to triangular domain
     A = (4/3.0) * Ac;
@@ -151,17 +140,17 @@ void PtexTriangleFilter::buildKernel(PtexTriangleKernel& k, float u, float v,
 void PtexTriangleFilter::splitAndApply(PtexTriangleKernel& k, int faceid, const Ptex::FaceInfo& f)
 {
     // do we need to split? if so, split kernel and apply across edge(s)
-    if (k.u1 < 0 && f.adjface(2)) {
+    if (k.u1 < 0 && f.adjface(2) >= 0) {
 	PtexTriangleKernel ka;
 	k.splitU(ka);
 	applyAcrossEdge(ka, f, 2);
     }
-    if (k.v1 < 0 && f.adjface(0)) {
+    if (k.v1 < 0 && f.adjface(0) >= 0) {
 	PtexTriangleKernel ka;
 	k.splitV(ka);
 	applyAcrossEdge(ka, f, 0);
     }
-    if (k.w1 < 0 && f.adjface(1)) {
+    if (k.w1 < 0 && f.adjface(1) >= 0) {
 	PtexTriangleKernel ka;
 	k.splitW(ka);
 	applyAcrossEdge(ka, f, 1);
@@ -175,13 +164,10 @@ void PtexTriangleFilter::splitAndApply(PtexTriangleKernel& k, int faceid, const 
 void PtexTriangleFilter::applyAcrossEdge(PtexTriangleKernel& k, 
 					 const Ptex::FaceInfo& f, int eid)
 {
-    // TODO - finish this once splitting is working - implement reorient
-    return;
-
     int afid = f.adjface(eid), aeid = f.adjedge(eid);
     const Ptex::FaceInfo& af = _tx->getFaceInfo(afid);
-    k.reorient(eid, aeid, af.res);
-    apply(k, afid, af);
+    k.reorient(eid, aeid);
+    splitAndApply(k, afid, af);
 }
 
 

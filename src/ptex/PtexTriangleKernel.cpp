@@ -1,3 +1,13 @@
+/* 
+   CONFIDENTIAL INFORMATION: This software is the confidential and
+   proprietary information of Walt Disney Animation Studios ("Disney").
+   This software is owned by Disney and may not be used, disclosed,
+   reproduced or distributed for any purpose without prior written
+   authorization and license from Disney. Reproduction of any section of
+   this software must include this legend and all copyright notices.
+   (c) Disney. All rights reserved.
+*/
+
 #include "PtexPlatform.h"
 #include "PtexUtils.h"
 #include "PtexHalf.h"
@@ -34,7 +44,7 @@ namespace {
 	    T* pEnd = p + (x2-x1)*nTxChan;
 	    for (; p < pEnd; p += nTxChan) {
 		if (Q < 1) {
-		    double weight = gaussian(Q);
+		    double weight = gaussian(Q)*k.wscale;
 		    k.weight += weight;
 		    PtexUtils::VecAccum<T,nChan>()(result, p, weight);
 		}
@@ -61,7 +71,7 @@ namespace {
 	    T* pEnd = p + (x2-x1)*nTxChan;
 	    for (; p < pEnd; p += nTxChan) {
 		if (Q < 1) {
-		    double weight = gaussian(Q);
+		    double weight = gaussian(Q)*k.wscale;
 		    k.weight += weight;
 		    PtexUtils::VecAccum<T,nChan>()(result, p, weight);
 		}
@@ -88,7 +98,7 @@ namespace {
 	    T* pEnd = p + (x2-x1)*nTxChan;
 	    for (; p < pEnd; p += nTxChan) {
 		if (Q < 1) {
-		    double weight = gaussian(Q);
+		    double weight = gaussian(Q)*k.wscale;
 		    k.weight += weight;
 		    PtexUtils::VecAccumN<T>()(result, p, nChan, weight);
 		}
@@ -132,7 +142,7 @@ void PtexTriangleKernelIter::applyConst(double* dst, void* data, DataType dt, in
 	double Q = A*U*U + (B*U + C*V)*V;
 	for (int x = x1; x < x2; x++) {
 	    if (Q < 1) {
-		weight += gaussian(Q);
+		weight += gaussian(Q)*wscale;
 	    }
 	    Q += DQ;
 	    DQ += DDQ;

@@ -569,8 +569,6 @@ void PtexReader::TiledFace::readTile(int tile, FaceData*& data)
 	_cache->cachelock.unlock();
     }
     
-    // TODO - bundle tile reads (see readFace)
-
     // go ahead and read the face data
     _reader->readFaceData(_offsets[tile], _fdh[tile], _tileres, _levelid, data);
     _cache->cachelock.lock();
