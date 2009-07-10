@@ -2,25 +2,28 @@
 \page todo To-do list
 
 In work:
-- API rework to support PRMan integration
 - individually stored large meta-data
 - clamp/black/periodic modes
-- triangle mesh support (w/ triangular textures)
+- PtexWriter API convenience changes
 
 Planned:
-- user mipmaps
+- user-supplied mipmaps
 - lerp for bilinear and box
+- lerp for triangular textures
+- other kernels for triangular textures (bspline, box, etc.)
 
 Considering:
 - large (> 1.0) filter width using face blending
+- elliptical filtering for rectangular textures
 - multi-level cache
-- big-endian?
+- big-endian
 
 Recently done:
+- triangle filter support (w/ triangular textures)
 - large filter (0.25 to 1.0)
 - improved blur quality near EVs
 - multi-split on subfaces (for kernel width > 0.5)
-- lerp (all except bilinear and box)
+- lerp (except for bilinear and box)
 - gaussian filter
 - bilinear filter
 - support non-quads via quad subfaces

@@ -123,6 +123,9 @@ SubdivisionMesh "loop" [3] [0 1 2]
 -.5 -.5 0
 ]
 Else
+# last face is a pentagon formed from 3 of the triangles
+#SubdivisionMesh "loop" [3 3 3 3 3 3 5] [0 1 2 2 1 3 1 4 3 3 4 5 4 6 5 2 3 7 8 9 7 3 5]
+
 SubdivisionMesh "loop" [3 3 3 3 3 3 3 3 3] [0 1 2 2 1 3 1 4 3 3 4 5 4 6 5 2 3 7 7 3 8 3 5 8 7 8 9]
  ["interpolateboundary"] [1 0] [1] [] 
 "P" [

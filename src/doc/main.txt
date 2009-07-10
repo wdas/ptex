@@ -15,8 +15,8 @@
 - \subpage apiintro
 - \subpage adjdata
 - \subpage filterfootprint
-- \subpage fileformat
 - \subpage tritex
+- \subpage fileformat
 - \subpage metadata
 - \subpage todo
 */
