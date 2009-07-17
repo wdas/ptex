@@ -217,6 +217,38 @@ bool PtexWriterBase::close(Ptex::String& error)
 }
 
 
+bool PtexWriterBase::storeFaceInfo(int faceid, FaceInfo& f, const FaceInfo& src, int flags)
+{
+    if (faceid < 0 || size_t(faceid) >= _header.nfaces) {
+	setError("PtexWriter error: faceid out of range");
+	return 0;
+    }
+
+    if (_header.meshtype == mt_triangle && (f.res.ulog2 != f.res.vlog2)) {
+	setError("PtexWriter error: asymmetric face res not supported for triangle textures");
+	return 0;
+    }
+
+    // copy all values
+    f = src;
+
+    // and clear extraneous ones
+    if (_header.meshtype == mt_triangle) {
+	f.flags = 0; // no user-settable flags on triangles
+	f.adjfaces[3] = -1;
+	f.adjedges &= 0x3f; // clear all but bottom six bits
+    }
+    else {
+	// clear non-user-settable flags
+	f.flags &= FaceInfo::flag_subface;
+    }
+
+    // set new flags
+    f.flags |= flags;
+    return 1;
+}
+
+
 void PtexWriterBase::writeMeta(const char* key, const char* value)
 {
     addMetaData(key, mdt_string, value, int(strlen(value)+1));
@@ -672,26 +704,18 @@ bool PtexMainWriter::close(Ptex::String& error)
 bool PtexMainWriter::writeFace(int faceid, const FaceInfo& f, const void* data, int stride)
 {
     if (!_ok) return 0;
-    if (faceid < 0 || size_t(faceid) >= _faceinfo.size()) {
-	setError("PtexWriter error: faceid out of range");
-	return 0;
-    }
-    if (_header.meshtype == mt_triangle && (f.res.ulog2 != f.res.vlog2)) {
-	setError("PtexWriter error: asymmetric face res not supported for triangle textures");
-	return 0;
-    }
 
+    // auto-compute stride
     if (stride == 0) stride = f.res.u()*_pixelSize;
 
     // handle constant case
     if (PtexUtils::isConstant(data, stride, f.res.u(), f.res.v(), _pixelSize))
 	return writeConstantFace(faceid, f, data);
 
-    // non-constant case
-    _faceinfo[faceid] = f;
+    // non-constant case, ...
 
-    // clear non-user-settable flags
-    _faceinfo[faceid].flags &= FaceInfo::flag_subface;
+    // check and store face info
+    if (!storeFaceInfo(faceid, _faceinfo[faceid], f)) return 0;
 
     // record position of current face
     _levels.front().pos[faceid] = ftello(_tmpfp);
@@ -737,20 +761,11 @@ bool PtexMainWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
 bool PtexMainWriter::writeConstantFace(int faceid, const FaceInfo& f, const void* data)
 {
     if (!_ok) return 0;
-    if (faceid < 0 || size_t(faceid) >= _faceinfo.size()) {
-	setError("PtexWriter error: faceid out of range");
-	return 0;
-    }
+
+    // check and store face info
+    if (!storeFaceInfo(faceid, _faceinfo[faceid], f, FaceInfo::flag_constant)) return 0;
 
     // store face value in constant block
-    if (size_t(faceid) >= _faceinfo.size()) return 0;
-    _faceinfo[faceid] = f;
-
-    // clear non-user-settable flags
-    _faceinfo[faceid].flags &= FaceInfo::flag_subface;
-
-    // set constant flag
-    _faceinfo[faceid].flags |= FaceInfo::flag_constant;
     memcpy(&_constdata[faceid*_pixelSize], data, _pixelSize);
     _hasNewData = true;
     return 1;
@@ -879,7 +894,9 @@ void PtexMainWriter::flagConstantNeighorhoods()
 
 	// check to see if neighborhood is constant
 	bool isConst = true;
-	for (int eid = 0; eid < 4; eid++) {
+	bool isTriangle = _header.meshtype == mt_triangle;
+	int nedges = isTriangle ? 3 : 4;
+	for (int eid = 0; eid < nedges; eid++) {
 	    bool prevWasSubface = f.isSubface();
 	    int prevFid = faceid;
 	    // traverse across edge
@@ -904,7 +921,7 @@ void PtexMainWriter::flagConstantNeighorhoods()
 		// traverse around vertex in CW direction
 		// handle T junction between subfaces and main face
 		bool isSubface = af.isSubface();
-		bool isT = prevWasSubface && !isSubface && af.adjface(aeid) == prevFid;
+		bool isT = !isTriangle && prevWasSubface && !isSubface && af.adjface(aeid) == prevFid;
 		std::swap(prevFid, afid);
 		prevWasSubface = isSubface;
 
@@ -919,7 +936,7 @@ void PtexMainWriter::flagConstantNeighorhoods()
 		}
 		else {
 		    // traverse around vertex
-		    aeid = (aeid + 1) % 4;
+		    aeid = (aeid + 1) % nedges;
 		    afid = af.adjface(aeid);
 		    aeid = af.adjedge(aeid);
 		}
@@ -1048,7 +1065,6 @@ PtexIncrWriter::~PtexIncrWriter()
 
 bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, const void* data, int stride)
 {
-    if (faceid < 0 || size_t(faceid) >= _header.nfaces) return 0;
     if (stride == 0) stride = f.res.u()*_pixelSize;
 
     // handle constant case
@@ -1060,8 +1076,10 @@ bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
     uint32_t editsize;
     EditFaceDataHeader efdh;
     efdh.faceid = faceid;
-    efdh.faceinfo = f;
-    efdh.faceinfo.flags = 0;
+
+    // check and store face info
+    if (!storeFaceInfo(faceid, efdh.faceinfo, f))
+	return 0;
 
     // record position and skip headers
     FilePos pos = ftello(_fp);
@@ -1115,17 +1133,17 @@ bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
 
 bool PtexIncrWriter::writeConstantFace(int faceid, const FaceInfo& f, const void* data)
 {
-    if (faceid < 0 || size_t(faceid) >= _header.nfaces) return 0;
-
     // init headers
     uint8_t edittype = et_editfacedata;
     uint32_t editsize;
     EditFaceDataHeader efdh;
     efdh.faceid = faceid;
-    efdh.faceinfo = f;
-    efdh.faceinfo.flags = FaceInfo::flag_constant;
     efdh.fdh.set(0, enc_constant);
     editsize = sizeof(efdh) + _pixelSize;
+
+    // check and store face info
+    if (!storeFaceInfo(faceid, efdh.faceinfo, f, FaceInfo::flag_constant))
+	return 0;
 
     // write headers
     writeBlock(_fp, &edittype, sizeof(edittype));

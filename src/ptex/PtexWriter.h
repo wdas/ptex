@@ -64,6 +64,7 @@ protected:
     void writeReduction(FILE* fp, const void* data, int stride, Res res);
     void writeMetaData(FILE* fp, uint32_t& memsize, uint32_t& zipsize);
     void setError(const std::string& error) { _error = error; _ok = false; }
+    bool storeFaceInfo(int faceid, FaceInfo& dest, const FaceInfo& src, int flags=0);
 
     bool _ok;			// true if no error has occurred
     std::string _error;		// the error text (if any)
