@@ -10,6 +10,7 @@
 #include <iostream>
 #include <ri.h>
 #include "mesh.h"
+#include <vector>
 
 
 
@@ -33,14 +34,22 @@ int main(int argc, char** argv)
     int nargs[] = { 1, 0, 1, 0 };
     int intargs[] = { 2, 0 };
     float floatargs[] = {0}; // dummy arg
-    int __faceindex = 0;
+    std::vector<float> __faceindex;
+
+    bool isTri = 1;
+    int nfaces = mesh.nfaces();
+    int* nvertsPerFace = mesh.nvertsPerFace();
+    for (int i = 0; i < nfaces; i++) {
+	__faceindex.push_back(i);
+	if (nvertsPerFace[i] != 3) isTri = 0;
+    }
 
     RiBegin((RtToken)outrib);
     RiArchiveRecord("structure", "RenderMan RIB-Structure 1.1");
-    RiSubdivisionMesh("catmull-clark", mesh.nfaces(), mesh.nvertsPerFace(),
+    RiSubdivisionMesh((char*) (isTri ? "loop" : "catmull-clark"), mesh.nfaces(), mesh.nvertsPerFace(),
 		      mesh.faceverts(), ntags, tags, nargs, intargs, floatargs,
 		      "P", mesh.verts(),
-		      "constant integer __faceindex", &__faceindex, RI_NULL);
+		      "uniform float __faceindex", &__faceindex[0], RI_NULL);
     RiEnd();
 
     return 0;
