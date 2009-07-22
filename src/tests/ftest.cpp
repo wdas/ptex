@@ -22,7 +22,7 @@ int main(int argc, char** argv)
     float u=0, v=0, uw=1, vw=1;
     for (v = 0; v <= 1; v += .125) {
 	for (u = 0; u <= 1; u += .125) {
-	    f->eval(result, 0, 1, faceid, u, v, uw, vw);
+	    f->eval(result, 0, 1, faceid, u, v, uw, 0, 0, vw);
 	    printf("%8f %8f -> %8f\n", u, v, result[0]);
 	}
     }
