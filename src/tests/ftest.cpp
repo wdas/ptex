@@ -15,11 +15,11 @@ int main(int argc, char** argv)
 	return 1;
     }
 
-    PtexFilter::Options opts(PtexFilter::f_bicubic, 1.0);
+    PtexFilter::Options opts(PtexFilter::f_bicubic, 0, 1.0);
     PtexPtr<PtexFilter> f ( PtexFilter::getFilter(r, opts) );
     float result[4];
     int faceid = 0;
-    float u=0, v=0, uw=1, vw=1;
+    float u=0, v=0, uw=.125, vw=.125;
     for (v = 0; v <= 1; v += .125) {
 	for (u = 0; u <= 1; u += .125) {
 	    f->eval(result, 0, 1, faceid, u, v, uw, 0, 0, vw);
