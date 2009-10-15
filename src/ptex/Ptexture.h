@@ -699,18 +699,6 @@ class PtexCache {
 
 class PtexWriter {
  public:
-#if NEW_API
-    enum OpenMode { m_create, m_edit, m_createOrEdit };
-    enum WriteMode { m_full, m_full_nomipmaps, m_incremental };
-
-    PTEXAPI
-    static PtexWriter* open(const char* path,
-			    Ptex::MeshType mt, Ptex::DataType dt,
-			    int nchannels, int alphachan, int nfaces,
-			    Ptex::String& error,
-			    OpenMode omode = m_create,
-			    WriteMode wmode = m_full);
-#else
     /** Open a new texture file for writing.
 	@param path Path to file.
 	@param mt Type of mesh for which the textures are defined.
@@ -746,7 +734,6 @@ class PtexWriter {
 			    Ptex::MeshType mt, Ptex::DataType dt,
 			    int nchannels, int alphachan, int nfaces,
 			    Ptex::String& error, bool genmipmaps=true);
-#endif
 
     /** Release resources held by this pointer (pointer becomes invalid). */
     virtual void release() = 0;

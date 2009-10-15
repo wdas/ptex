@@ -225,7 +225,7 @@ class PtexSeparableKernel : public Ptex {
 	}
     }
 
-    void adjustMainToSubface(int eid)
+    bool adjustMainToSubface(int eid)
     {
 	// to adjust the kernel for the subface, we must adjust the res down and offset the uv coords
 	// however, if the res is already zero, we must upres the kernel first
@@ -234,12 +234,31 @@ class PtexSeparableKernel : public Ptex {
 
 	if (res.ulog2 > 0) res.ulog2--;
 	if (res.vlog2 > 0) res.vlog2--;
+
+	// offset uv coords and determine whether target subface is the primary one
+	bool primary = 0;
+	int resu = res.u(), resv = res.v();
 	switch (eid&3) {
-	case e_bottom: v -= res.v(); break;
-	case e_right:  break;
-	case e_top:    u -= res.u(); break;
-	case e_left:   u -= res.u(); v -= res.v(); break;
+	case e_bottom:
+	    primary = (u < resu);
+	    v -= resv;
+	    if (!primary) u -= resu;
+	    break;
+	case e_right:
+	    primary = (v < resv);
+	    if (!primary) v -= resv;
+	    break;
+	case e_top:
+	    primary = (u >= resu);
+	    if (primary) u -= resu;
+	    break;
+	case e_left:
+	    primary = (v >= resv);
+	    u -= resu;
+	    if (primary) v -= resv;
+	    break;
 	}
+	return primary;
     }
 
     void adjustSubfaceToMain(int eid)

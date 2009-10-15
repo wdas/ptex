@@ -177,29 +177,41 @@ void PtexSeparableFilter::applyAcrossEdge(PtexSeparableKernel& k,
 					  int faceid, const Ptex::FaceInfo& f, int eid)
 {
     int afid = f.adjface(eid), aeid = f.adjedge(eid);
-    const Ptex::FaceInfo& af = _tx->getFaceInfo(afid);
+    const Ptex::FaceInfo* af = &_tx->getFaceInfo(afid);
+    int rot = eid - aeid + 2;
 
     // adjust uv coord and res for face/subface boundary
-    bool fIsSubface = f.isSubface(), afIsSubface = af.isSubface();
-    if (fIsSubface != afIsSubface) { // main face to subface boundary
+    bool fIsSubface = f.isSubface(), afIsSubface = af->isSubface();
+    if (fIsSubface != afIsSubface) {
 	if (afIsSubface) {
-	    k.adjustMainToSubface(eid);
+	    // main face to subface transition
+	    // adjust res and offset uv coord for primary subface
+	    bool primary = k.adjustMainToSubface(eid);
+	    if (!primary) {
+		// advance ajacent face and edge id to secondary subface
+		int neid = (aeid + 3) % 4;
+		afid = af->adjface(neid);
+		aeid = af->adjedge(neid);
+		af = &_tx->getFaceInfo(afid);
+		rot += neid - aeid + 2;
+	    }
 	}
-	else {  // subface to main face transition
+	else {
+	    // subface to main face transition
 	    // Note: the transform depends on which subface the kernel is
 	    // coming from.  The "primary" subface is the one the main
 	    // face is pointing at.  The secondary subface adjustment
 	    // happens to be the same as for the primary subface for the
 	    // next edge, so the cases can be combined.
-	    bool primary = (af.adjface(aeid) == faceid);
+	    bool primary = (af->adjface(aeid) == faceid);
 	    k.adjustSubfaceToMain(eid - primary);
 	}
     }
 
     // rotate and apply (resplit if going to a subface)
-    k.rotate(eid - aeid + 2);
-    if (afIsSubface) splitAndApply(k, afid, af);
-    else apply(k, afid, af);
+    k.rotate(rot);
+    if (afIsSubface) splitAndApply(k, afid, *af);
+    else apply(k, afid, *af);
 }
 
 

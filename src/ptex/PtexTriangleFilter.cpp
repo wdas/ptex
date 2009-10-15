@@ -113,7 +113,7 @@ void PtexTriangleFilter::buildKernel(PtexTriangleKernel& k, float u, float v,
     double m = sqrt(2*(Ac*Cc - 0.25*Bc*Bc) / (Ac + Cc + X));
     
     // choose desired resolution
-    int reslog2 = int(ceil(log2(0.5/m)));
+    int reslog2 = PtexUtils::max(0, int(ceil(log2(0.5/m))));
 
     // convert back to triangular domain
     A = (4/3.0) * Ac;
@@ -127,9 +127,9 @@ void PtexTriangleFilter::buildKernel(PtexTriangleKernel& k, float u, float v,
     C *= scale;
 
     // find u,v,w extents
-    double uw = sqrt(C);
-    double vw = sqrt(A);
-    double ww = sqrt(A-B+C);
+    double uw = PtexUtils::min(sqrt(C), 1.0);
+    double vw = PtexUtils::min(sqrt(A), 1.0);
+    double ww = PtexUtils::min(sqrt(A-B+C), 1.0);
 
     // init kernel
     double w = 1 - u - v;
@@ -155,7 +155,6 @@ void PtexTriangleFilter::splitAndApply(PtexTriangleKernel& k, int faceid, const 
 	k.splitW(ka);
 	applyAcrossEdge(ka, f, 1);
     }
-
     // apply to local face
     apply(k, faceid, f); 
 }
