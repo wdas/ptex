@@ -60,6 +60,7 @@ public:
     virtual int numChannels() { return _header.nchannels; }
     virtual int numFaces() { return _header.nfaces; }
     virtual bool hasEdits() { return _hasEdits; }
+    virtual bool hasMipMaps() { return _header.nlevels > 1; }
 
     virtual PtexMetaData* getMetaData();
     virtual const Ptex::FaceInfo& getFaceInfo(int faceid);

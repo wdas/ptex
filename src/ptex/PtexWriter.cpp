@@ -98,8 +98,7 @@ PtexWriter* PtexWriter::open(const char* path,
     if (!checkFormat(mt, dt, nchannels, alphachan, error))
 	return 0;
 
-    bool newfile = true;
-    PtexMainWriter* w = new PtexMainWriter(path, newfile,
+    PtexMainWriter* w = new PtexMainWriter(path, 0,
 					   mt, dt, nchannels, alphachan, nfaces, 
 					   genmipmaps);
     std::string errstr;
@@ -132,13 +131,30 @@ PtexWriter* PtexWriter::edit(const char* path, bool incremental,
     }
     // otherwise use main writer
     else {
-	bool newfile = true;
+	PtexTexture* tex = 0;
 	if (fp) {
-	    // main writer will use PtexReader to read file
-	    newfile = false;
+	    // got an existing file, close and reopen with PtexReader
 	    fclose(fp);
+
+	    // open reader for existing file
+	    tex = PtexTexture::open(path, error);
+	    if (!tex) return 0;
+
+	    // make sure header matches
+	    bool headerMatch = (mt == tex->meshType() &&
+				dt == tex->dataType() &&
+				nchannels == tex->numChannels() &&
+				alphachan == tex->alphaChannel() &&
+				nfaces == tex->numFaces());
+	    if (!headerMatch) {
+		std::stringstream str;
+		str << "PtexWriter::edit error: header doesn't match existing file, "
+		    << "conversions not currently supported";
+		error = str.str();
+		return 0;
+	    }
 	}
-	w = new PtexMainWriter(path, newfile, mt, dt, nchannels, alphachan,
+	w = new PtexMainWriter(path, tex, mt, dt, nchannels, alphachan,
 			       nfaces, genmipmaps);
     }
 
@@ -149,6 +165,25 @@ PtexWriter* PtexWriter::edit(const char* path, bool incremental,
     return w;
 }
 
+
+bool PtexWriter::applyEdits(const char* path, Ptex::String& error)
+{
+    // open reader for existing file
+    PtexTexture* tex = PtexTexture::open(path, error);
+    if (!tex) return 0;
+
+    // see if we have any edits to apply
+    if (tex->hasEdits()) {
+	// create non-incremental writer
+	PtexWriter* w = new PtexMainWriter(path, tex, tex->meshType(), tex->dataType(),
+					   tex->numChannels(), tex->alphaChannel(), tex->numFaces(),
+					   tex->hasMipMaps());
+	// close to rebuild file
+	if (!w->close(error)) return 0;
+	w->release();
+    }
+    return 1;
+}
 
 
 PtexWriterBase::PtexWriterBase(const char* path,
@@ -601,7 +636,7 @@ void PtexWriterBase::writeMetaData(FILE* fp, uint32_t& memsize, uint32_t& zipsiz
 
 
 
-PtexMainWriter::PtexMainWriter(const char* path, bool newfile,
+PtexMainWriter::PtexMainWriter(const char* path, PtexTexture* tex,
 			       Ptex::MeshType mt, Ptex::DataType dt,
 			       int nchannels, int alphachan, int nfaces, bool genmipmaps)
     : PtexWriterBase(path, mt, dt, nchannels, alphachan, nfaces,
@@ -632,33 +667,12 @@ PtexMainWriter::PtexMainWriter(const char* path, bool newfile,
     _rpos.resize(nfaces);
     _constdata.resize(nfaces*_pixelSize);
 
-    if (!newfile) {
-	// open reader for existing file
-	Ptex::String error;
-	PtexTexture* tex = PtexTexture::open(path, error);
-	if (!tex) { 
-	    _ok = 0;
-	    _error = error.c_str();
-	    return;
-	}
+    if (tex) {
+	// access reader implementation
 	_reader = dynamic_cast<PtexReader*>(tex);
 	if (!_reader) {
 	    setError("Internal error: dynamic_cast<PtexReader*> failed");
 	    tex->release();
-	    return;
-	}
-
-	// make sure header matches
-	bool headerMatch = (mt == _reader->meshType() &&
-			    dt == _reader->dataType() &&
-			    nchannels == _reader->numChannels() &&
-			    alphachan == _reader->alphaChannel() &&
-			    nfaces == _reader->numFaces());
-	if (!headerMatch) {
-	    std::stringstream str;
-	    str << "PtexWriter::edit error: header doesn't match existing file, "
-		<< "conversions not currently supported";
-	    setError(str.str());
 	    return;
 	}
 

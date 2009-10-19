@@ -95,7 +95,7 @@ protected:
 
 class PtexMainWriter : public PtexWriterBase {
 public:
-    PtexMainWriter(const char* path, bool newfile,
+    PtexMainWriter(const char* path, PtexTexture* tex,
 		   Ptex::MeshType mt, Ptex::DataType dt,
 		   int nchannels, int alphachan, int nfaces, bool genmipmaps);
 

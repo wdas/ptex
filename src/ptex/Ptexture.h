@@ -454,6 +454,9 @@ class PtexTexture {
     /** True if the file has edit blocks.  See PtexWriter for more details. */
     virtual bool hasEdits() = 0;
 
+    /** True if the file has mipmaps.  See PtexWriter for more details. */
+    virtual bool hasMipMaps() = 0;
+
     /** Access meta data. */
     virtual PtexMetaData* getMetaData() = 0;
 
@@ -723,17 +726,31 @@ class PtexWriter {
 	edit blocks are slower to read back, and they have no mipmaps so
 	filtering can be inefficient.
 
-	If incremental is false, then the edits are applied to the file
-	and the entire file is regenerated as if it were written all
-	at once with the open method.
+	If incremental is false, then the edits are applied to the
+	file and the entire file is regenerated on close as if it were
+	written all at once with open().
 
-	See open() for the meaning of the remaining params.
+	If the file doesn't exist it will be created and written as if
+	open() were used.  If the file exists, the mesh type, data
+	type, number of channels, alpha channel, and number of faces
+	must agree with those stored in the file.
      */
     PTEXAPI
     static PtexWriter* edit(const char* path, bool incremental,
 			    Ptex::MeshType mt, Ptex::DataType dt,
 			    int nchannels, int alphachan, int nfaces,
 			    Ptex::String& error, bool genmipmaps=true);
+
+    /** Apply edits to a file.
+
+        If a file has pending edits, the edits will be applied and the
+        file will be regenerated with no edits.  This is equivalent to
+        calling edit() with incremental set to false.  The advantage
+        is that the file attributes such as mesh type, data type,
+        etc., don't need to be known in advance.
+     */
+    PTEXAPI
+    static bool applyEdits(const char* path, Ptex::String& error);
 
     /** Release resources held by this pointer (pointer becomes invalid). */
     virtual void release() = 0;
