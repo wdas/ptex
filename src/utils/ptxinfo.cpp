@@ -167,6 +167,7 @@ void DumpInternal(PtexTexture* tx)
     }
 
     const PtexIO::Header& h = r->header();
+    const PtexIO::ExtHeader& eh = r->extheader();
     std::cout << "Header:\n"
 	      << "  magic: ";
 
@@ -188,7 +189,12 @@ void DumpInternal(PtexTexture* tx)
 	      << "  levelinfosize: " << h.levelinfosize << std::endl
 	      << "  leveldatasize: " << h.leveldatasize << std::endl
 	      << "  metadatazipsize: " << h.metadatazipsize << std::endl
-	      << "  metadatamemsize: " << h.metadatamemsize << std::endl;
+	      << "  metadatamemsize: " << h.metadatamemsize << std::endl
+	      << "  ubordermode: " << eh.ubordermode << std::endl
+	      << "  vbordermode: " << eh.vbordermode << std::endl
+	      << "  lmdheaderzipsize: " << eh.lmdheaderzipsize << std::endl
+	      << "  lmdheadermemsize: " << eh.lmdheadermemsize << std::endl
+	      << "  largemetadatasize: " << eh.largemetadatasize << std::endl;
 
     std::cout << "Level info:\n";
     for (int i = 0; i < h.nlevels; i++) {
@@ -256,12 +262,14 @@ int main(int argc, char** argv)
     std::cout << "alphaChannel: ";
     if (r->alphaChannel() == -1) std::cout << "(none)" << std::endl;
     else std::cout << r->alphaChannel() << std::endl;
+    std::cout << "uBorderMode: " << Ptex::BorderModeName(r->uBorderMode()) << std::endl;
+    std::cout << "vBorderMode: " << Ptex::BorderModeName(r->vBorderMode()) << std::endl;
     std::cout << "numFaces: " << r->numFaces() << std::endl;
 
     int hasEdits = 0;
     for (int i = 0, nfaces=r->numFaces(); i < nfaces; i++) 
 	if (r->getFaceInfo(i).hasEdits()) hasEdits++;
-    std::cout << "  hasFaceEdits: " << (hasEdits? "yes" : "no");
+    std::cout << "hasFaceEdits: " << (hasEdits? "yes" : "no");
     if (hasEdits) std::cout << " (" << hasEdits << " faces)";
     std::cout << std::endl;
 

@@ -738,6 +738,9 @@ class PtexWriter {
     /** Release resources held by this pointer (pointer becomes invalid). */
     virtual void release() = 0;
     
+    /** Set border modes */
+    virtual void setBorderModes(Ptex::BorderMode uBorderMode, Ptex::BorderMode vBorderMode) = 0;
+
     /** Write a string as meta data.  Both the key and string params must be null-terminated strings. */
     virtual void writeMeta(const char* key, const char* string) = 0;
 

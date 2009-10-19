@@ -7,7 +7,7 @@
    this software must include this legend and all copyright notices.
    (c) Disney. All rights reserved.
 */
-/* ptexture prman shadeop - Brent Burley, Oct 2006
+/* prman sample shadeop - Brent Burley, Oct 2006
  */
 
 
@@ -22,8 +22,10 @@ static PtexCache* cache = 0;
 namespace {
     PtexFilter* getFilter(PtexTexture* tx, float sharpness, bool lerp)
     {
-	PtexFilter::FilterType type = PtexFilter::f_gaussian;
-	//	type = PtexFilter::f_point;
+	PtexFilter::FilterType type = PtexFilter::f_bicubic;
+	//sharpness = 1;
+	//type = PtexFilter::f_gaussian;
+	//type = PtexFilter::f_point;
 	//type = PtexFilter::FilterType(-1); // original Ptex filter
 	return PtexFilter::getFilter(tx, PtexFilter::Options(type, lerp, sharpness));
     }
@@ -146,12 +148,14 @@ static int ptextureFloat(RslContext*, int argc, const RslArg* argv[] )
     RslFloatIter faceid(argv[3]);
     RslFloatIter u(argv[4]);
     RslFloatIter v(argv[5]);
-    RslFloatIter uw(argv[6]);
-    RslFloatIter vw(argv[7]);
-    RslFloatIter width(argv[8]);
-    RslFloatIter blur(argv[9]);
-    RslFloatIter sharpness(argv[10]);
-    RslFloatIter lerp(argv[11]);
+    RslFloatIter uw1(argv[6]);
+    RslFloatIter vw1(argv[7]);
+    RslFloatIter uw2(argv[8]);
+    RslFloatIter vw2(argv[9]);
+    RslFloatIter width(argv[10]);
+    RslFloatIter blur(argv[11]);
+    RslFloatIter sharpness(argv[12]);
+    RslFloatIter lerp(argv[13]);
 
     Ptex::String error;
     PtexPtr<PtexTexture> tx( cache->get(*mapname, error) );
@@ -160,8 +164,8 @@ static int ptextureFloat(RslContext*, int argc, const RslArg* argv[] )
 	PtexPtr<PtexFilter> filter ( getFilter(tx, *sharpness, *lerp) );
 	int numVals = RslArg::NumValues(argc, argv);
 	for (int i = 0; i < numVals; ++i) {
-	    filter->eval(*result, chan, 1, int(*faceid), *u, *v, *uw, *vw, *width, *blur);
-	    ++result; ++faceid; ++u; ++v; ++uw; ++vw; ++width, ++blur;
+	    filter->eval(*result, chan, 1, int(*faceid), *u, *v, *uw1, *vw1, *uw2, *vw2, *width, *blur);
+	    ++result; ++faceid; ++u; ++v; ++uw1; ++vw1; ++uw2; ++vw2; ++width, ++blur;
 	}
     }
     else {
@@ -308,7 +312,7 @@ static RslFunction ptexFunctions[] =
       ptextureColor, 0, 0, 0, 0 },
 
     // float = ptexture(mapname, chan, faceid, u, v, uw1, vw1, uw2, vw2, width, blur, sharpness, lerp)
-    { "float Ptexture(string, float, float, float, float, float, float, float, float, float, float float, float)",
+    { "float Ptexture(string, float, float, float, float, float, float, float, float, float, float, float, float)",
       ptextureFloat, 0, 0, 0, 0 },
 
     // color = ptexenv(mapname, R0, R1, R2, R3, blur)

@@ -74,37 +74,41 @@ class PtexSeparableKernel : public Ptex {
 	return accumulate(ku, uw) * accumulate(kv, vw);
     }
 
-    void mergeL()
+    void mergeL(BorderMode mode)
     {
 	int w = -u;
-	ku[w] += accumulate(ku, w);
+	if (mode != m_black)
+	    ku[w] += accumulate(ku, w);
 	ku += w;
 	uw -= w;
 	u = 0;
     }
 
-    void mergeR()
+    void mergeR(BorderMode mode)
     {
 	int w = uw + u - res.u();
 	double* kp = ku + uw - w;
-	kp[-1] += accumulate(kp, w);
+	if (mode != m_black)
+	    kp[-1] += accumulate(kp, w);
 	uw -= w;
     }
 
-    void mergeB()
+    void mergeB(BorderMode mode)
     {
 	int w = -v;
-	kv[w] += accumulate(kv, w);
+	if (mode != m_black)
+	    kv[w] += accumulate(kv, w);
 	kv += w;
 	vw -= w;
 	v = 0;
     }
 
-    void mergeT()
+    void mergeT(BorderMode mode)
     {
 	int w = vw + v - res.v();
 	double* kp = kv + vw - w;
-	kp[-1] += accumulate(kp, w);
+	if (mode != m_black)
+	    kp[-1] += accumulate(kp, w);
 	vw -= w;
     }
 

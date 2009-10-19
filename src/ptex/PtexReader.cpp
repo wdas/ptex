@@ -90,6 +90,7 @@ bool PtexReader::open(const char* path, Ptex::String& error)
     _editdatapos = pos;
     
     // read basic file info
+    readBlock(&_extheader, PtexUtils::min(uint32_t(ExtHeaderSize), _header.extheadersize));
     readFaceInfo();
     readConstData();
     readLevelInfo();

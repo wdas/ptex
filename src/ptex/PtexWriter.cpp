@@ -168,7 +168,10 @@ PtexWriterBase::PtexWriterBase(const char* path,
     _header.nchannels = nchannels;
     _header.nfaces = nfaces;
     _header.nlevels = 0;
+    _header.extheadersize = sizeof(_extheader);
     _pixelSize = _header.pixelSize();
+
+    memset(&_extheader, 0, sizeof(_extheader));
 
     if (mt == mt_triangle) 
 	_reduceFn = &PtexUtils::reduceTri;
@@ -659,6 +662,9 @@ PtexMainWriter::PtexMainWriter(const char* path, bool newfile,
 	    return;
 	}
 
+	// copy border modes
+	setBorderModes(tex->uBorderMode(), tex->vBorderMode());
+
 	// copy meta data from existing file
 	PtexPtr<PtexMetaData> meta ( _reader->getMetaData() );
 	writeMeta(meta);
@@ -839,6 +845,7 @@ void PtexMainWriter::finish()
 
     // write blank header (to fill in later)
     writeBlank(newfp, HeaderSize);
+    writeBlank(newfp, ExtHeaderSize);
 
     // write compressed face info block
     _header.faceinfosize = writeZipBlock(newfp, &_faceinfo[0], 
@@ -880,6 +887,7 @@ void PtexMainWriter::finish()
     // rewrite header
     fseeko(newfp, 0, SEEK_SET);
     writeBlock(newfp, &_header, HeaderSize);
+    writeBlock(newfp, &_extheader, ExtHeaderSize);
     fclose(newfp);
 }
 

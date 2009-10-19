@@ -48,9 +48,18 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     // find filter width as bounding box of vectors w1 and w2
     float uw = fabs(uw1) + fabs(uw2), vw = fabs(vw1) + fabs(vw2);
 
-    // clamp u and v
-    u = PtexUtils::clamp(u, 0.0f, 1.0f);
-    v = PtexUtils::clamp(v, 0.0f, 1.0f);
+    // handle border modes
+    switch (_uMode) {
+    case m_clamp: u = PtexUtils::clamp(u, 0.0f, 1.0f); break;
+    case m_periodic: u = u-floor(u); break;
+    case m_black: break; // do nothing
+    }
+
+    switch (_vMode) {
+    case m_clamp: v = PtexUtils::clamp(v, 0.0f, 1.0f); break;
+    case m_periodic: v = v-floor(v);
+    case m_black: break; // do nothing
+    }
 
     // build kernel
     PtexSeparableKernel k;
@@ -73,8 +82,6 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     // check kernel (debug only)
     assert(k.uw > 0 && k.vw > 0);
     assert(k.uw <= PtexSeparableKernel::kmax && k.vw <= PtexSeparableKernel::kmax);
-    assert(k.u + k.uw - 1 >= 0 && k.u < k.res.u());
-    assert(k.v + k.vw - 1 >= 0 && k.v < k.res.v());
     _weight = k.weight();
 
     // allocate temporary double-precision result
@@ -102,10 +109,10 @@ void PtexSeparableFilter::splitAndApply(PtexSeparableKernel& k, int faceid, cons
 
 #ifdef NOEDGEBLEND
     // for debugging only
-    if (splitR) k.mergeR();
-    if (splitL) k.mergeL();
-    if (splitT) k.mergeT();
-    if (splitB) k.mergeB();
+    if (splitR) k.mergeR(_uMode);
+    if (splitL) k.mergeL(_uMode);
+    if (splitT) k.mergeT(_vMode);
+    if (splitB) k.mergeB(_vMode);
 #else
     if (splitR || splitL || splitT || splitB) { 
 	PtexSeparableKernel ka, kc;
@@ -117,18 +124,18 @@ void PtexSeparableFilter::splitAndApply(PtexSeparableKernel& k, int faceid, cons
 			ka.splitT(kc);
 			applyToCorner(kc, faceid, f, e_top);
 		    }
-		    else ka.mergeT();
+		    else ka.mergeT(_vMode);
 		}
 		if (splitB) {
 		    if (f.adjface(e_bottom) >= 0) {
 			ka.splitB(kc);
 			applyToCorner(kc, faceid, f, e_right);
 		    }
-		    else ka.mergeB();
+		    else ka.mergeB(_vMode);
 		}
 		applyAcrossEdge(ka, faceid, f, e_right);
 	    }
-	    else k.mergeR();
+	    else k.mergeR(_uMode);
 	}
 	if (splitL) {
 	    if (f.adjface(e_left) >= 0) {
@@ -138,32 +145,32 @@ void PtexSeparableFilter::splitAndApply(PtexSeparableKernel& k, int faceid, cons
 			ka.splitT(kc);
 			applyToCorner(kc, faceid, f, e_left);
 		    }
-		    else ka.mergeT();
+		    else ka.mergeT(_vMode);
 		}
 		if (splitB) {
 		    if (f.adjface(e_bottom) >= 0) {
 			ka.splitB(kc);
 			applyToCorner(kc, faceid, f, e_bottom);
 		    }
-		    else ka.mergeB();
+		    else ka.mergeB(_vMode);
 		}
 		applyAcrossEdge(ka, faceid, f, e_left);
 	    }
-	    else k.mergeL();
+	    else k.mergeL(_uMode);
 	}
 	if (splitT) {
 	    if (f.adjface(e_top) >= 0) {
 		k.splitT(ka);
 		applyAcrossEdge(ka, faceid, f, e_top);
 	    }
-	    else k.mergeT();
+	    else k.mergeT(_vMode);
 	}
 	if (splitB) {
 	    if (f.adjface(e_bottom) >= 0) {
 		k.splitB(ka);
 		applyAcrossEdge(ka, faceid, f, e_bottom);
 	    }
-	    else k.mergeB();
+	    else k.mergeB(_vMode);
 	}
     }
 #endif
@@ -236,8 +243,9 @@ void PtexSeparableFilter::applyToCorner(PtexSeparableKernel& k, int faceid,
 	aeid = (af->adjedge(aeid) + 1) % 4;
 
 	// we hit a boundary or reached starting face
-	// note: we need need to edge id too because we might
-	// have a torus texture where all 4 corners are from the same face
+	// note: we need to check edge id too because we might have
+	// a periodic texture (w/ toroidal topology) where all 4 corners
+	// are from the same face
 	if (afid < 0 || (afid == faceid && aeid == eid)) {
 	    numCorners = i - 2;
 	    break;
@@ -309,7 +317,7 @@ void PtexSeparableFilter::apply(PtexSeparableKernel& k, int faceid, const Ptex::
     assert(k.u >= 0 && k.u + k.uw <= k.res.u());
     assert(k.v >= 0 && k.v + k.vw <= k.res.v());
 
-    if (k.uw == 0 || k.vw == 0) return;
+    if (k.uw <= 0 || k.vw <= 0) return;
 
     // downres kernel if needed
     while (k.res.u() > f.res.u()) k.downresU();

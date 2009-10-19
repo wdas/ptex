@@ -23,6 +23,11 @@
 
 class PtexWriterBase : public PtexWriter, public PtexIO {
 public:
+    virtual void setBorderModes(Ptex::BorderMode uBorderMode, Ptex::BorderMode vBorderMode)
+    {
+	_extheader.ubordermode = uBorderMode;
+	_extheader.vbordermode = vBorderMode;
+    }
     virtual void writeMeta(const char* key, const char* value);
     virtual void writeMeta(const char* key, const int8_t* value, int count);
     virtual void writeMeta(const char* key, const int16_t* value, int count);
@@ -72,6 +77,7 @@ protected:
     std::string _tilepath;	// temp tile file path ("<path>.tiles.tmp")
     FILE* _tilefp;		// temp tile file handle
     Header _header;		// the file header
+    ExtHeader _extheader;	// extended header
     int _pixelSize;		// size of a pixel in bytes
 
     struct MetaEntry {

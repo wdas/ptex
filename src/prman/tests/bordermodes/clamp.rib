@@ -1,0 +1,45 @@
+##RenderMan RIB
+version 3.04
+Sides 2
+Display "clamp.tif" "it" "rgba"
+Option "searchpath" "shader" [".:../.."]
+ShadingRate 2
+PixelSamples 3 3
+Format 512 512 1
+FrameBegin 1
+Clipping 0.905669 1.20561
+Projection "orthographic"
+ScreenWindow -.5 .5 -.5 .5
+Rotate 0 0 0 1 
+Scale 1 1 -1 
+ConcatTransform [0.998752 0.000000 -0.049945 0.000000 0.000000 1.000000 0.000000 0.000000 0.049945 0.000000 0.998752 0.000000 0.000000 0.000000 -1.055641 1.000000 ]
+
+WorldBegin
+AttributeBegin 
+	Declare "mapname" "string"
+	Surface "ptextest" "string mapname" ["clamp.ptx"]
+	AttributeBegin 
+		Attribute "identifier" "name" ["pPlanez"]
+		ReverseOrientation
+		SubdivisionMesh "catmull-clark"  [4 ] [0 1 3 2  ]
+		["interpolateboundary"] [0 0] [] []
+		  "P"  [
+		-0.500000 -0.500000 0.000000  
+		0.500000 -0.500000 0.000000  
+		-0.500000 0.500000 0.000000  
+		0.500000 0.500000 0.000000  
+		]
+		  "N"  [
+		0.000000 0.000000 1.000000  
+		0.000000 0.000000 1.000000  
+		0.000000 0.000000 1.000000  
+		0.000000 0.000000 1.000000  
+		]
+		  "facevarying float[2] st"  [-.2 -.2 1.2 -.2 1.2 1.2 -.2 1.2 ]
+		  "uniform integer faceid"  [0]
+		ReverseOrientation
+	AttributeEnd 
+AttributeEnd 
+
+WorldEnd
+FrameEnd
