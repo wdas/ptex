@@ -11,3 +11,8 @@ clean:
 
 $(SUBDIRS):
 	$(MAKE) -C $@
+
+zip:
+	@rm -f ../ptex.zip
+	cd .. ; zip ptex.zip install/doc/html/* src/{ptex,utils,prman,tests}/*
+	@echo "Done regenerating ../ptex.zip"
