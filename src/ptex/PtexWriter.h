@@ -1,7 +1,7 @@
 #ifndef PtexWriter_h
 #define PtexWriter_h
 
-/* 
+/*
    CONFIDENTIAL INFORMATION: This software is the confidential and
    proprietary information of Walt Disney Animation Studios ("Disney").
    This software is owned by Disney and may not be used, disclosed,
@@ -43,10 +43,17 @@ public:
 	return _ok;
     }
     void getError(Ptex::String& error) {
-	error = (_error + "\nPtex file: " + _path).c_str(); 
+	error = (_error + "\nPtex file: " + _path).c_str();
     }
 
 protected:
+    struct MetaEntry {
+	std::string key;
+	MetaDataType datatype;
+	std::vector<uint8_t> data;
+	MetaEntry() : datatype(MetaDataType(0)), data() {}
+    };
+
     virtual void finish() = 0;
     PtexWriterBase(const char* path,
 		   Ptex::MeshType mt, Ptex::DataType dt,
@@ -67,27 +74,21 @@ protected:
     void writeFaceData(FILE* fp, const void* data, int stride, Res res,
 		       FaceDataHeader& fdh);
     void writeReduction(FILE* fp, const void* data, int stride, Res res);
-    void writeMetaData(FILE* fp, uint32_t& memsize, uint32_t& zipsize);
+    int writeMetaDataBlock(FILE* fp, MetaEntry& val);
     void setError(const std::string& error) { _error = error; _ok = false; }
     bool storeFaceInfo(int faceid, FaceInfo& dest, const FaceInfo& src, int flags=0);
 
-    bool _ok;			// true if no error has occurred
-    std::string _error;		// the error text (if any)
-    std::string _path;		// file path
-    std::string _tilepath;	// temp tile file path ("<path>.tiles.tmp")
-    FILE* _tilefp;		// temp tile file handle
-    Header _header;		// the file header
-    ExtHeader _extheader;	// extended header
-    int _pixelSize;		// size of a pixel in bytes
-
-    struct MetaEntry {
-	MetaDataType datatype;
-	std::vector<uint8_t> data;
-	MetaEntry() : datatype(MetaDataType(0)), data() {}
-    };
-    typedef std::map<std::string, MetaEntry> MetaData;
-    MetaData _metadata;
-    z_stream_s _zstream;	// libzip compression stream
+    bool _ok;				     // true if no error has occurred
+    std::string _error;			     // the error text (if any)
+    std::string _path;			     // file path
+    std::string _tilepath;		     // temp tile file path ("<path>.tiles.tmp")
+    FILE* _tilefp;			     // temp tile file handle
+    Header _header;			     // the file header
+    ExtHeader _extheader;		     // extended header
+    int _pixelSize;			     // size of a pixel in bytes
+    std::vector<MetaEntry> _metadata;	     // meta data waiting to be written
+    std::map<std::string,int> _metamap;	     // for preventing duplicate keys
+    z_stream_s _zstream;		     // libzip compression stream
 
     PtexUtils::ReduceFn* _reduceFn;
 };
@@ -116,6 +117,7 @@ private:
     void generateReductions();
     void flagConstantNeighorhoods();
     void storeConstValue(int faceid, const void* data, int stride, Res res);
+    void writeMetaData(FILE* fp);
 
     std::string _newpath;		  // path to ".new" file
     std::string _tmppath;		  // temp file path ("<path>.tmp")
@@ -155,6 +157,7 @@ class PtexIncrWriter : public PtexWriterBase {
     virtual bool writeConstantFace(int faceid, const FaceInfo& f, const void* data);
 
  protected:
+    void writeMetaDataEdit();
     virtual void finish();
     virtual ~PtexIncrWriter();
 

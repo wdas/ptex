@@ -130,7 +130,7 @@ int testround(float val)
 }
 
 
-int testroundall()
+int testroundrange(int inc)
 {
     int count = 0;
     // check all legal float32 values within legal float16 range
@@ -138,17 +138,29 @@ int testroundall()
     float f2 = 65519; // max float 16
     unsigned int i1 = floatToBits(f1);
     unsigned int i2 = floatToBits(f2);
-    for (unsigned int i = i1; i < i2; i++) count += testround(bitsToFloat(i));
+    for (unsigned int i = i1; i < i2; i+=inc) count += testround(bitsToFloat(i));
 
     // and the negatives
     f1 = -2.9802320611338473e-08; // min float16
     f2 = -65519; // max float 16
     i1 = floatToBits(f1);
     i2 = floatToBits(f2);
-    for (unsigned int i = i1; i < i2; i++) count += testround(bitsToFloat(i));
+    for (unsigned int i = i1; i < i2; i+=inc) count += testround(bitsToFloat(i));
     return count;
 }
 
+
+int testroundall()
+{
+    // can be slow
+    return testroundrange(1);
+}
+
+int testroundsome()
+{
+    // fairly dense sampling is still a good test
+    return testroundrange(97);
+}
 
 int compatcheck()
 {
@@ -318,7 +330,7 @@ int test(const char* name, int (*fn)())
 }
 
 
-int testall()
+int testall(bool fulltest)
 {
     int total = 0;
     total += test("Float/double compatibility", compatcheck);
@@ -327,11 +339,11 @@ int testall()
     total += test("Infinity conversion", infcheck);
     total += test("Nan conversion", nancheck);
     total += test("Overflow", overflowtestall);
-    total += test("Rounding", testroundall);
+    total += test("Rounding", fulltest ? testroundall : testroundsome);
     if (!total)
-	printf("all tests passed.\n");
+	printf("halftest: all tests passed.\n");
     else
-	printf("total errors: %d\n", total);
+	printf("halftest: total errors: %d\n", total);
     return total;
 }
 
@@ -376,7 +388,8 @@ void printall()
 
 int main()
 {
-    return testall()? 1 : 0;
+    bool fullTest = 0;
+    return testall(fullTest)? 1 : 0;
     //printall(); // for diff comparision of output
     //f2htimingtest();
     //h2ftimingtest();

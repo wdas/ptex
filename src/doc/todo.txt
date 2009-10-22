@@ -2,23 +2,22 @@
 \page todo To-do list
 
 In work:
-- individually stored large meta-data
-- PtexWriter API convenience changes
 
 Planned:
-- user-supplied mipmaps
-- lerp for bilinear and box
-- lerp for triangular textures
-- other kernels for triangular textures (bspline, box, etc.)
+- large (> 1.0) filter width using "negative" mipmap levels
+- user-supplied mipmaps (including negative levels)
 
 Considering:
-- large (> 1.0) filter width using face blending
 - elliptical filtering for rectangular textures
-- multi-level cache
-- big-endian
+- lerp for bilinear and box
+- lerp for elliptical filters
+- other kernels for elliptical filters (bspline, box, etc.)
+- PtexWriter API convenience changes
+- big-endian support
 
 Recently done:
-- clamp/black/periodic modes
+- individually stored large meta-data
+- clamp/black/periodic boundary modes
 - triangle filter support (w/ triangular textures)
 - large filter (0.25 to 1.0)
 - improved blur quality near EVs

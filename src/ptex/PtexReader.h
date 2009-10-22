@@ -1,7 +1,7 @@
 #ifndef PtexReader_h
 #define PtexReader_h
 
-/* 
+/*
    CONFIDENTIAL INFORMATION: This software is the confidential and
    proprietary information of Walt Disney Animation Studios ("Disney").
    This software is owned by Disney and may not be used, disclosed,
@@ -32,11 +32,11 @@ public:
     safevector(size_t n, const T& val = T()) : std::vector<T>(n, val) {}
     const T& operator[] (size_t n) const {
 	assert(n < std::vector<T>::size());
-	return std::vector<T>::operator[](n); 
+	return std::vector<T>::operator[](n);
     }
     T& operator[] (size_t n) {
 	assert(n < std::vector<T>::size());
-	return std::vector<T>::operator[](n); 
+	return std::vector<T>::operator[](n);
     }
 };
 #else
@@ -45,7 +45,7 @@ public:
 
 class PtexReader : public PtexCachedFile, public PtexTexture, public PtexIO {
 public:
-    PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply, 
+    PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply,
 	       PtexInputHandler* handler);
     bool open(const char* path, Ptex::String& error);
 
@@ -71,7 +71,7 @@ public:
     virtual void getPixel(int faceid, int u, int v,
 			  float* result, int firstchan, int nchannels);
     virtual void getPixel(int faceid, int u, int v,
-			  float* result, int firstchan, int nchannels, 
+			  float* result, int firstchan, int nchannels,
 			  Ptex::Res res);
 
     DataType datatype() const { return _header.datatype; }
@@ -83,14 +83,24 @@ public:
 
     class MetaData : public PtexCachedData, public PtexMetaData {
     public:
-	MetaData(MetaData** parent, PtexCacheImpl* cache, int size)
-	    : PtexCachedData((void**)parent, cache, sizeof(*this) + size) {}
-	virtual void release() { AutoLockCache lock(_cache->cachelock); unref(); }
+	MetaData(MetaData** parent, PtexCacheImpl* cache, int size, PtexReader* reader)
+	    : PtexCachedData((void**)parent, cache, sizeof(*this) + size),
+	      _reader(reader) {}
+	virtual void release() {
+	    AutoLockCache lock(_cache->cachelock);
+	    // first, unref all lmdData refs
+	    for (int i = 0, n = _lmdRefs.size(); i < n; i++)
+		_lmdRefs[i]->unref();
+	    _lmdRefs.resize(0);
 
-	virtual int numKeys() { return int(_entries.size()); }
+	    // finally, unref self
+	    unref();
+	}
+
+ 	virtual int numKeys() { return int(_entries.size()); }
 	virtual void getKey(int n, const char*& key, MetaDataType& type)
 	{
-	    Entry* e = getEntry(n);
+	    Entry* e = _entries[n];
 	    key = e->key;
 	    type = e->type;
 	}
@@ -98,14 +108,14 @@ public:
 	virtual void getValue(const char* key, const char*& value)
 	{
 	    Entry* e = getEntry(key);
-	    if (e) value = (const char*) &e->value[0];
+	    if (e) value = (const char*) e->data;
 	    else value = 0;
 	}
 
 	virtual void getValue(const char* key, const int8_t*& value, int& count)
 	{
 	    Entry* e = getEntry(key);
-	    if (e) { value = (const int8_t*) &e->value[0]; count = int(e->value.size()); }
+	    if (e) { value = (const int8_t*) e->data; count = e->datasize; }
 	    else { value = 0; count = 0; }
 	}
 
@@ -113,8 +123,8 @@ public:
 	{
 	    Entry* e = getEntry(key);
 	    if (e) {
-		value = (const int16_t*) &e->value[0]; 
-		count = int(e->value.size()/sizeof(int16_t));
+		value = (const int16_t*) e->data;
+		count = int(e->datasize/sizeof(int16_t));
 	    }
 	    else { value = 0; count = 0; }
 	}
@@ -123,18 +133,18 @@ public:
 	{
 	    Entry* e = getEntry(key);
 	    if (e) {
-		value = (const int32_t*) &e->value[0]; 
-		count = int(e->value.size()/sizeof(int32_t));
+		value = (const int32_t*) e->data;
+		count = int(e->datasize/sizeof(int32_t));
 	    }
 	    else { value = 0; count = 0; }
 	}
-	
+
 	virtual void getValue(const char* key, const float*& value, int& count)
 	{
 	    Entry* e = getEntry(key);
 	    if (e) {
-		value = (const float*) &e->value[0]; 
-		count = int(e->value.size()/sizeof(float));
+		value = (const float*) e->data;
+		count = int(e->datasize/sizeof(float));
 	    }
 	    else { value = 0; count = 0; }
 	}
@@ -143,8 +153,8 @@ public:
 	{
 	    Entry* e = getEntry(key);
 	    if (e) {
-		value = (const double*) &e->value[0]; 
-		count = int(e->value.size()/sizeof(double));
+		value = (const double*) e->data;
+		count = int(e->datasize/sizeof(double));
 	    }
 	    else { value = 0; count = 0; }
 	}
@@ -152,43 +162,88 @@ public:
 	void addEntry(uint8_t keysize, const char* key, uint8_t datatype,
 		      uint32_t datasize, void* data)
 	{
-	    std::pair<MetaMap::iterator,bool> result = 
-		_map.insert(std::make_pair(std::string(key, keysize), Entry()));
-	    Entry* e = &result.first->second;
-	    e->key = result.first->first.c_str();
-	    e->type = MetaDataType(datatype);
-	    e->value.resize(datasize);
-	    memcpy(&e->value[0], data, datasize);
-	    if (result.second) {
-		// inserted new entry
-		_entries.push_back(e);
-	    }
+	    Entry* e = newEntry(keysize, key, datatype, datasize);
+	    e->data = malloc(datasize);
+	    memcpy(e->data, data, datasize);
+	}
+
+	void addLmdEntry(uint8_t keysize, const char* key, uint8_t datatype,
+			 uint32_t datasize, FilePos filepos, uint32_t zipsize)
+	{
+	    Entry* e = newEntry(keysize, key, datatype, datasize);
+	    e->isLmd = true;
+	    e->lmdData = 0;
+	    e->lmdPos = filepos;
+	    e->lmdZipSize = zipsize;
 	}
 
     protected:
-	struct Entry {
-	    const char* key; // ptr to map key string
-	    MetaDataType type;
-	    safevector<uint8_t> value;
-	    Entry() : key(0), type(MetaDataType(0)), value() {}
-	};
-	Entry* getEntry(int n) { return _entries[n]; }
-	Entry* getEntry(const char* key)
+	class LargeMetaData : public PtexCachedData
 	{
-	    MetaMap::iterator iter = _map.find(key);
-	    if (iter != _map.end()) return &iter->second;
-	    return 0;
+	 public:
+	    LargeMetaData(void** parent, PtexCacheImpl* cache, int size)
+		: PtexCachedData(parent, cache, size), _data(malloc(size)) {}
+	    void* data() { return _data; }
+	 private:
+	    virtual ~LargeMetaData() { free(_data); }
+	    void* _data;
+	};
+
+	struct Entry {
+	    const char* key;	      // ptr to map key string
+	    MetaDataType type;	      // meta data type
+	    uint32_t datasize;	      // size of data in bytes
+	    void* data;		      // if lmd, data only valid when lmd is loaded and ref'ed
+	    bool isLmd;		      // true if data is a large meta data block
+	    LargeMetaData* lmdData;   // large meta data (lazy-loaded, lru-cached)
+	    FilePos lmdPos;	      // large meta data file position
+	    uint32_t lmdZipSize;      // large meta data size on disk
+
+	    Entry() :
+		key(0), type(MetaDataType(0)), datasize(0), data(0),
+		isLmd(0), lmdData(0), lmdPos(0), lmdZipSize(0) {}
+	    ~Entry() { clear(); }
+	    void clear() {
+		if (isLmd) {
+		    isLmd = 0;
+		    if (lmdData) { lmdData->orphan(); lmdData = 0; }
+		    lmdPos = 0;
+		    lmdZipSize = 0;
+		}
+		else {
+		    free(data);
+		}
+		data = 0;
+	    }
+	};
+
+	Entry* newEntry(uint8_t keysize, const char* key, uint8_t datatype, uint32_t datasize)
+	{
+	    std::pair<MetaMap::iterator,bool> result =
+		_map.insert(std::make_pair(std::string(key, keysize), Entry()));
+	    Entry* e = &result.first->second;
+	    bool newEntry = result.second;
+	    if (newEntry) _entries.push_back(e);
+	    else e->clear();
+	    e->key = result.first->first.c_str();
+	    e->type = MetaDataType(datatype);
+	    e->datasize = datasize;
+	    return e;
 	}
 
+	Entry* getEntry(const char* key);
+
+	PtexReader* _reader;
 	typedef std::map<std::string, Entry> MetaMap;
 	MetaMap _map;
 	safevector<Entry*> _entries;
+	std::vector<LargeMetaData*> _lmdRefs;
     };
 
 
     class ConstDataPtr : public PtexFaceData {
     public:
-	ConstDataPtr(void* data, int pixelsize) 
+	ConstDataPtr(void* data, int pixelsize)
 	    : _data(data), _pixelsize(pixelsize) {}
 	virtual void release() { delete this; }
 	virtual Ptex::Res res() { return 0; }
@@ -311,7 +366,7 @@ public:
     public:
 	TiledFace(void** parent, PtexCacheImpl* cache, Res res, Res tileres,
 		  int levelid, PtexReader* reader)
-	    : TiledFaceBase(parent, cache, res, tileres, 
+	    : TiledFaceBase(parent, cache, res, tileres,
 			    reader->datatype(), reader->nchannels()),
 	      _reader(reader),
 	      _levelid(levelid)
@@ -336,12 +391,12 @@ public:
 	int _levelid;
 	safevector<FaceDataHeader> _fdh;
 	safevector<FilePos> _offsets;
-    };	    
+    };
 
 
     class TiledReducedFace : public TiledFaceBase {
     public:
-	TiledReducedFace(void** parent, PtexCacheImpl* cache, Res res, 
+	TiledReducedFace(void** parent, PtexCacheImpl* cache, Res res,
 			 Res tileres, DataType dt, int nchan,
 			 TiledFaceBase* parentface, PtexUtils::ReduceFn reducefn)
 	    : TiledFaceBase(parent, cache, res, tileres, dt, nchan),
@@ -349,7 +404,7 @@ public:
 	      _reducefn(reducefn)
 	{
 	    AutoLockCache locker(_cache->cachelock);
-	    _parentface->ref(); 
+	    _parentface->ref();
 	}
 	~TiledReducedFace()
 	{
@@ -368,11 +423,11 @@ public:
 	safevector<FaceDataHeader> fdh;
 	safevector<FilePos> offsets;
 	safevector<FaceData*> faces;
-	
-	Level(void** parent, PtexCacheImpl* cache, int nfaces) 
-	    : PtexCachedData(parent, cache, 
+
+	Level(void** parent, PtexCacheImpl* cache, int nfaces)
+	    : PtexCachedData(parent, cache,
 			     sizeof(*this) + nfaces * (sizeof(FaceDataHeader) +
-						       sizeof(FilePos) + 
+						       sizeof(FilePos) +
 						       sizeof(FaceData*))),
 	      fdh(nfaces),
 	      offsets(nfaces),
@@ -393,10 +448,10 @@ protected:
     }
 
     FilePos tell() { return _pos; }
-    void seek(FilePos pos) 
+    void seek(FilePos pos)
     {
 	if (pos != _pos) {
-	    _io->seek(_fp, pos); 
+	    _io->seek(_fp, pos);
 	    _pos = pos;
 #ifdef GATHER_STATS
 	    stats.nseeks++;
@@ -436,10 +491,10 @@ protected:
 
     int unpackedSize(FaceDataHeader fdh, int levelid, int faceid)
     {
-	if (fdh.encoding() == enc_constant) 
+	if (fdh.encoding() == enc_constant)
 	    // level 0 constant faces are not stored
 	    return levelid == 0 ? 0 : _pixelsize;
-	else 
+	else
 	    return getRes(levelid, faceid).size() * _pixelsize;
     }
 
@@ -451,6 +506,7 @@ protected:
     void readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int levelid, FaceData*& face);
     void readMetaData();
     void readMetaDataBlock(MetaData* metadata, FilePos pos, int zipsize, int memsize);
+    void readLargeMetaDataHeaders(MetaData* metadata, FilePos pos, int zipsize, int memsize);
     void readEditData();
     void readEditFaceData();
     void readEditMetaData();
@@ -472,12 +528,13 @@ protected:
     std::string _path;		      // current file path
     Header _header;		      // the header
     ExtHeader _extheader;	      // extended header
-    FilePos _extheaderpos;	      // file positions of data sections
-    FilePos _faceinfopos;	      // ...
-    FilePos _constdatapos;
+    FilePos _faceinfopos;	      // file positions of data sections
+    FilePos _constdatapos;            // ...
     FilePos _levelinfopos;
     FilePos _leveldatapos;
     FilePos _metadatapos;
+    FilePos _lmdheaderpos;
+    FilePos _lmddatapos;
     FilePos _editdatapos;
     int _pixelsize;		      // size of a pixel in bytes
     uint8_t* _constdata;	      // constant pixel value per face
@@ -512,7 +569,7 @@ protected:
 	Res res;
 	ReductionKey() : faceid(0), res(0,0) {}
 	ReductionKey(uint32_t faceid, Res res) : faceid(faceid), res(res) {}
-	bool operator==(const ReductionKey& k) const 
+	bool operator==(const ReductionKey& k) const
 	{ return k.faceid == faceid && k.res == res; }
 	struct Hasher {
 	    uint32_t operator() (const ReductionKey& key) const

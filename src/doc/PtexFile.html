@@ -1,8 +1,8 @@
-<h1>Ptex File Format Specification Version 1.2<br>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head></head><body><h1>Ptex File Format Specification Version 1.3<br>
 </h1>
 Revision history:<br>
-<table style="text-align: left;" border="1" cellpadding="2"
- cellspacing="2">
+<table style="text-align: left;" border="1" cellpadding="2" cellspacing="2">
   <tbody>
     <tr>
       <td style="vertical-align: top;">1.0<br>
@@ -29,6 +29,16 @@ included precomputed constant value<br>
       <td style="vertical-align: top;">Added: subface flag, const
 neighborhood flag, u/v border modes, separately stored large metadata
 items.<br> Clarified triangle texture storage.<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">1.3<br>
+      </td>
+      <td style="vertical-align: top;">10/20/09<br>
+      </td>
+      <td style="vertical-align: top;">Corrected size of "keysize" and "datatype" in meta data spec to match implementation.<br>
+Revised large metadata spec (not previously implemented).<br> Added "editdatapos" to extended header. <br> Added "compatibility barrier" for pre-1.3 file readers.<br>
+Added minor version to header.<br>
       </td>
     </tr>
   </tbody>
@@ -108,8 +118,7 @@ compression.<br>
 The file is composed of a number of data blocks stored in the order
 listed in the table below:
 <p>
-<table style="text-align: left;" border="1" cellpadding="2"
- cellspacing="2">
+<table style="text-align: left;" border="1" cellpadding="2" cellspacing="2">
   <tbody>
     <tr>
       <td style="vertical-align: top;">Header<br>
@@ -155,10 +164,22 @@ as single block<br>
       </td>
     </tr>
     <tr>
+      <td style="vertical-align: top;">Compatibility Barrier<br>
+      </td>
+      <td style="vertical-align: top;">barrier preventing pre-1.3 file readers from reading new data sections<br>
+      </td>
+    </tr>
+    <tr>
       <td style="vertical-align: top;">Large Meta Data<br>
       </td>
       <td style="vertical-align: top;">separately stored large meta
 data items<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">(future expansion)<br>
+      </td>
+      <td style="vertical-align: top;"><br>
       </td>
     </tr>
     <tr>
@@ -173,8 +194,7 @@ file<br>
 <br>
 </p>
 <h3>Header</h3>
-<table style="text-align: left;" border="1" cellpadding="2"
- cellspacing="2">
+<table style="text-align: left;" border="1" cellpadding="2" cellspacing="2">
   <tbody>
     <tr>
       <td style="vertical-align: top;">magic<br>
@@ -189,7 +209,7 @@ file<br>
       </td>
       <td style="vertical-align: top;">uint32<br>
       </td>
-      <td style="vertical-align: top;">version number (=1)<br>
+      <td style="vertical-align: top;">major version number (=1)<br>
       </td>
     </tr>
     <tr>
@@ -265,9 +285,9 @@ alpha channel<br>
       <td style="vertical-align: top;">size of Level Info block </td>
     </tr>
     <tr>
-      <td style="vertical-align: top;">(reserved)</td>
+      <td style="vertical-align: top;">minor version</td>
       <td style="vertical-align: top;">uint32</td>
-      <td style="vertical-align: top;">must be zero<br>
+      <td style="vertical-align: top;">minor version number<br>
       </td>
     </tr>
     <tr>
@@ -300,8 +320,7 @@ block (unzipped)<br>
 <br>
 <h3>Extended Header</h3>
 <br>
-<table style="text-align: left;" border="1" cellpadding="2"
- cellspacing="2">
+<table style="text-align: left;" border="1" cellpadding="2" cellspacing="2">
   <tbody>
     <tr>
       <td style="vertical-align: top;">ubordermode<br>
@@ -344,14 +363,29 @@ Data Header (unzipped)</td>
 Data blocks (not including header)<br>
       </td>
     </tr>
+    <tr>
+      <td style="vertical-align: top;">editdata size<br>
+      </td>
+      <td style="vertical-align: top;">uint64<br>
+      </td>
+      <td style="vertical-align: top;">size of edit data blocks<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">editdata pos<br>
+      </td>
+      <td style="vertical-align: top;">uint64<br>
+      </td>
+      <td style="vertical-align: top;">absolute file position of first edit data block<br>
+      </td>
+    </tr>
   </tbody>
 </table>
 <br>
 <h3>Face Info</h3>
 Information about the resolution and topological adjacency of each face.<br>
 <br>
-<table style="text-align: left;" border="1" cellpadding="2"
- cellspacing="2">
+<table style="text-align: left;" border="1" cellpadding="2" cellspacing="2">
   <tbody>
     <tr>
       <td style="vertical-align: top;">ures<br>
@@ -459,8 +493,7 @@ Info
 block lists the number of
 faces in the level and size of each level's data.&nbsp; <br>
 <br>
-<table style="text-align: left;" border="1" cellpadding="2"
- cellspacing="2">
+<table style="text-align: left;" border="1" cellpadding="2" cellspacing="2">
   <tbody>
     <tr>
       <td style="vertical-align: top;">leveldatasize<br>
@@ -529,8 +562,7 @@ face data is packed (with channels separated)
 and then optionally differenced and compressed.<br>
 <br>
 Level data header (compressed):<br>
-<table style="text-align: left;" border="1" cellpadding="2"
- cellspacing="2">
+<table style="text-align: left;" border="1" cellpadding="2" cellspacing="2">
   <tbody>
     <tr>
       <td style="vertical-align: top;">facesize<br>
@@ -557,8 +589,7 @@ per channel)<br>
 (times number of faces in level)<br>
 <br>
 For tiled faces, the face data begins with the following pre-header:<br>
-<table style="text-align: left;" border="1" cellpadding="2"
- cellspacing="2">
+<table style="text-align: left;" border="1" cellpadding="2" cellspacing="2">
   <tbody>
     <tr>
       <td style="vertical-align: top;">tileures<br>
@@ -593,8 +624,7 @@ direction)<br>
 <br>
 and is followed by a compressed header listing the tile sizes and
 encodings:<br>
-<table style="text-align: left;" border="1" cellpadding="2"
- cellspacing="2">
+<table style="text-align: left;" border="1" cellpadding="2" cellspacing="2">
   <tbody>
     <tr>
       <td style="vertical-align: top;">tilesizes<br>
@@ -633,13 +663,12 @@ The
 meta data is a stream of individual data blocks.<br>
 <br>
 Meta data block<br>
-<table style="text-align: left;" border="1" cellpadding="2"
- cellspacing="2">
+<table style="text-align: left;" border="1" cellpadding="2" cellspacing="2">
   <tbody>
     <tr>
       <td style="vertical-align: top;">keysize<br>
       </td>
-      <td style="vertical-align: top;">uint32<br>
+      <td style="vertical-align: top;">uint8<br>
       </td>
       <td style="vertical-align: top;">length of key string (including
 null)<br>
@@ -657,7 +686,7 @@ null)<br>
     <tr>
       <td style="vertical-align: top;">datatype<br>
       </td>
-      <td style="vertical-align: top;">uint32<br>
+      <td style="vertical-align: top;">uint8<br>
       </td>
       <td style="vertical-align: top;">0=ascii, 1=int8, 2=int16,
 3=int32, 4=float, 5=double<br>
@@ -689,6 +718,33 @@ are stored null-terminated.&nbsp; The size includes the null character.<br>
   </li>
 </ul>
 <br>
+
+<h3>Compatibility Barrier</h3>
+
+File versions prior to 1.3 lacked the "editdata pos" extended header
+attribute.  Early versions of the file reader would seek to the end of
+the known data blocks and assume any additional data blocks were edit
+blocks.  The compatibility barrier appears to old reader code as an
+empty edit block and prevents the old reader from misinterpreting newer
+data sections.
+
+The compatibility barrier is always written.
+<br>
+<br>
+<table style="text-align: left;" border="1" cellpadding="2" cellspacing="2">
+  <tbody>
+    <tr>
+      <td style="vertical-align: top;">barrier<br>
+      </td>
+      <td style="vertical-align: top;">uint64<br>
+      </td>
+      <td style="vertical-align: top;">must be zero<br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<br>
 <h3>Large Meta Data</h3>
 The large meta data section includes meta data blocks that are stored
 separately for individual access (presumably because the items are
@@ -697,25 +753,14 @@ consists of a header followed by a series of individually compressed
 blocks.<br>
 <br>
 Large meta data header (compressed)<br>
-<table style="text-align: left;" border="1" cellpadding="2"
- cellspacing="2">
+<table style="text-align: left;" border="1" cellpadding="2" cellspacing="2">
   <tbody>
-    <tr>
-      <td style="vertical-align: top;">metadatazipsize</td>
-      <td style="vertical-align: top;">uint32</td>
-      <td style="vertical-align: top;">on-disk size of Meta Data block
-(zipped)</td>
-    </tr>
-    <tr>
-      <td style="vertical-align: top;">metadatamemsize</td>
-      <td style="vertical-align: top;">uint32</td>
-      <td style="vertical-align: top;">in-memory size of Meta Data
-block (unzipped)</td>
-    </tr>
+    
+    
     <tr>
       <td style="vertical-align: top;">keysize<br>
       </td>
-      <td style="vertical-align: top;">uint32<br>
+      <td style="vertical-align: top;">uint8<br>
       </td>
       <td style="vertical-align: top;">length of key string (including
 null)</td>
@@ -731,11 +776,24 @@ null)</td>
     <tr>
       <td style="vertical-align: top;">datatype<br>
       </td>
-      <td style="vertical-align: top;">uint32<br>
+      <td style="vertical-align: top;">uint8<br>
       </td>
       <td style="vertical-align: top;">0=ascii, 1=int8, 2=int16,
 3=int32, 4=float, 5=double</td>
+    </tr><tr>
+      <td style="vertical-align: top;">datasize</td>
+      <td style="vertical-align: top;">uint32</td>
+      <td style="vertical-align: top;">size of data block (in bytes)</td>
     </tr>
+    <tr>
+      <td style="vertical-align: top;">zipsize<br>
+      </td>
+      <td style="vertical-align: top;">uint32<br>
+      </td>
+      <td style="vertical-align: top;">size of data block on disk<br>
+      </td>
+    </tr>
+
   </tbody>
 </table>
 (times number of large meta data blocks)<br>
@@ -749,8 +807,7 @@ be applied to the file.&nbsp; The format is designed to allow appending
 edit blocks to a file without otherwise affecting the file.<br>
 <br>
 Edit data block<br>
-<table style="text-align: left;" border="1" cellpadding="2"
- cellspacing="2">
+<table style="text-align: left;" border="1" cellpadding="2" cellspacing="2">
   <tbody>
     <tr>
       <td style="vertical-align: top;">edittype<br>
@@ -781,8 +838,7 @@ data<br>
 </table>
 <br>
 Edit face data<br>
-<table style="text-align: left;" border="1" cellpadding="2"
- cellspacing="2">
+<table style="text-align: left;" border="1" cellpadding="2" cellspacing="2">
   <tbody>
     <tr>
       <td style="vertical-align: top;">faceid<br>
@@ -829,8 +885,7 @@ value, as described in Constant Data section)<br>
 </table>
 <br>
 Edit meta data<br>
-<table style="text-align: left;" border="1" cellpadding="2"
- cellspacing="2">
+<table style="text-align: left;" border="1" cellpadding="2" cellspacing="2">
   <tbody>
     <tr>
       <td style="vertical-align: top;">metadatazipsize<br>
@@ -858,3 +913,4 @@ described in Meta Data section)<br>
 </table>
 <br>
 <br>
+</body></html>
