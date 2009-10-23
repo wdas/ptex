@@ -1,0 +1,5 @@
+install
+*.o
+*.so
+*.a
+*.slo

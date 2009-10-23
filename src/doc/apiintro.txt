@@ -1,0 +1,40 @@
+/**
+\page apiintro Introduction to Ptex API
+
+The %Ptex API consists of a set of abstract interface classes,
+PtexCache, PtexTexture, PtexWriter, PtexFilter, etc., that
+have special methods for construction and destruction as
+described below.
+
+<b>%Ptex API objects have no public constructors</b>.  Because the
+classes are abstract, they cannot be constructed directly.  Objects of
+a given type must be obtained through some other interface, either a
+static method on that class or from some other object that manages
+instances of that class.  For example, PtexFilter instances of
+different types are obtained via the static PtexFilter::getFilter()
+method, and PtexTexture instances are obtained either through a
+PtexCache instance or via the static PtexTexture::open() method if a
+cache isn't being used.
+
+<b>%Ptex API objects have no public destructors.</b> By design, the
+destructors of API objects are protected and instances may not be
+directly destroyed or deleted.  Instead, applications that use the API
+are expected to release objects back to the API by calling the release
+method on each object.  The release method in some cases just calls
+delete on the object, but in most cases objects are returned to the
+cache and may be reused if they are requested again later.  Also, most
+of the objects can be shared, even among different threads, so the
+release method frequently will just decrement a reference count and
+return.
+
+By defining all API objects method to use release() instead of delete,
+a consistent interface is provided and the implementation can choose
+how to manage each object's lifetime as it chooses.
+
+<b>The PtexPtr template can hold and release API objects
+automatically.</b> Use of PtexPtr makes it easy to use the API
+correctly.  See the PtexPtr documentation page for details and an
+example.
+
+*/
+

@@ -1,0 +1,4 @@
+API documentation is generated via doxygen (www.doxygen.org).
+Two versions are generated, one for the public api only,
+installed into ../../install/doc_API_only, and the other
+with a full source code index in ../../install/doc.

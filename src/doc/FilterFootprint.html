@@ -1,0 +1,78 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta content="text/html; charset=ISO-8859-1"
+ http-equiv="content-type">
+  <title>Filter Footprint</title>
+</head>
+<body>
+The Ptex filter footprint is specified as two vectors in uv space:<br>
+<div style="margin-left: 40px;"><br>
+W<sub>1</sub> = [uw1, vw1]<br>
+W<sub>2</sub> = [uw2, vw2]<br>
+</div>
+<br>
+The vectors form a parallelogram around the sample point, [u, v].<br>
+When the vectors are orthogonal, they form the major and minor axis of
+the enclosed ellipse.<br>
+<br>
+<h3>Determining the filter footprint<br>
+</h3>
+In general, the vectors represent the uv sampling interval along some
+orthogonal axes, a and b:<br>
+<br>
+<div style="margin-left: 40px;">[uw1, vw1] = [du/da, dv/da]<br>
+[uw2, vw2] = [du/db, dv/db]<br>
+</div>
+<br>
+Two special cases are of interest:<br>
+<br>
+A) Texture aligned grid (the classic Ptex case) - the vectors form two
+sides of a rectangle, uw by vw:<br>
+<br>
+<div style="margin-left: 40px;">[uw1, vw1] = [uw, 0]<br>
+[uw2, vw2] = [0, vw]<br>
+</div>
+<br>
+B) Projection from screen space (where a and b are screen coordinates
+in pixels):<br>
+<div style="margin-left: 40px;"><br>
+Given derivatives of the screen coordinates:<br>
+<br>
+</div>
+<div style="margin-left: 80px;">da/du = Du(a)<br>
+db/du = Du(b)<br>
+da/dv = Dv(a)<br>
+db/dv = Dv(b)<br>
+<br>
+</div>
+<div style="margin-left: 40px;">the vectors can be found by inverting
+the Jacobian matrix [da/du, db/du ; da/dv, db/dv]:<br>
+<div style="margin-left: 40px;"><br>
+det = (da/du * db/dv - db/du * da/dv)<br>
+du/da =&nbsp; (1/det) * db/dv<br>
+dv/da = -(1/det) * db/du<br>
+du/db = -(1/det) * da/dv<br>
+dv/db =&nbsp; (1/det) * da/du<br>
+[uw1, vw1] = [du/da, dv/da]<br>
+[uw2, vw2] = [du/db, dv/db]<br>
+<br>
+</div>
+</div>
+<div style="margin-left: 40px;">Note: if the ptex u, v coordinates
+aren't aligned with the renderer's uv coordinates, the chain rule can
+be used.<br>
+Given texture coordinates s and t:<br>
+<div style="margin-left: 40px;"><br>
+ds/du = Du(s)<br>
+dt/du = Du(t)<br>
+ds/dv = Dv(s)<br>
+dt/dv = Dv(t)<br>
+[uw1, vw1] = [ds/du*du/da + ds/dv*dv/da, dt/du*du/da + dt/dv*dv/da]<br>
+[uw2, vw2] = [ds/du*du/db + ds/dv*dv/db, dt/du*du/db + dt/dv*dv/db]<br>
+<br>
+<br>
+</div>
+</div>
+</body>
+</html>

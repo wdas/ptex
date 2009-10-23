@@ -1,0 +1,20 @@
+/**
+\page tritex Triangle textures
+
+Triangular textures in Ptex are stored as power-of-two images with triangular texels.
+
+For ease of storage and access, the texels are divided into even and
+odd texels and the odd texels are unfolded to form a rectangular image
+as shown below.  The main differences between the triangle and quad textures are:
+- The resolutions must be symmetric powers of two.  I.e. the images must be square.
+- The adjacency data is identical to the quad case, but the adjacent face and edge values
+   for the fourth edge of each face are ignored.
+- Subfaces are not supported.  (Non-quad faces in a quad mesh to be
+  mapped with quad subfaces, but this is unnecessary with a triangle
+  mesh.)
+
+<br>
+
+\image html tritex.png
+
+*/
