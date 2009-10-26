@@ -1,8 +1,8 @@
-SUBDIRS = ptex utils prman tests
+SUBDIRS = ptex # utils prman tests
 
-.PHONY: subdirs $(SUBDIRS)
+.PHONY: $(SUBDIRS)
 
-subdirs: $(SUBDIRS)
+install: $(SUBDIRS)
 
 clean:
 	for s in $(SUBDIRS); do \

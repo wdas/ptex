@@ -6,8 +6,9 @@ else
 LINK = $(CXX)
 endif
 
-# DEBUG = -g -DDEBUG
-DEBUG    = -O2 -DNDEBUG
+#DEBUG = -g -DDEBUG
+DEBUG = -O2 -DNDEBUG
+
 INCPATH  = -I.
 CXXFLAGS = -Wall -W -pedantic -std=c++98 $(DEBUG) $(INCPATH) -fPIC
 LFLAGS   = 
@@ -29,7 +30,7 @@ SRCS = \
 
 OBJECTS = $(patsubst %.cpp,%.o,$(SRCS))
 
-INSTALLDIR = ../../install
+INSTALLDIR ?= ../../$(shell uname)-$(shell uname -r | cut -d'-' -f1)-$(shell uname -m)-optimize
 
 INSTALL = \
 	lib/libPtex.a \
@@ -53,12 +54,16 @@ $(INSTALLDIR)/include/% : %
 	@ mkdir -p $(@D)
 	cp $^ $@
 
-install: all $(patsubst %,$(INSTALLDIR)/%,$(INSTALL))
+ALLINSTALL = $(patsubst %,$(INSTALLDIR)/%,$(INSTALL))
+
+install: all $(ALLINSTALL)
 
 all: $(ALL)
 
 clean:
-	rm -f *.o $(ALL)
+	rm -f *.o $(ALL) $(ALLINSTALL)
+
+cleanall: clean
 
 libPtex.a : libPtex.a($(OBJECTS))
 
