@@ -1,16 +1,16 @@
-SUBDIRS = ptex # utils prman tests
+SUBDIRS = ptex utils # prman tests
 
 .PHONY: $(SUBDIRS)
 
-install: $(SUBDIRS)
-
-clean:
-	for s in $(SUBDIRS); do \
-		$(MAKE) -C $$s clean; \
+install:
+	@for s in $(SUBDIRS); do \
+		$(MAKE) -C $$s install; \
 	done
 
-$(SUBDIRS):
-	$(MAKE) -C $@
+clean:
+	@for s in $(SUBDIRS); do \
+		$(MAKE) -C $$s clean; \
+	done
 
 zip:
 	@rm -f ../ptex.zip

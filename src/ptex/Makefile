@@ -1,16 +1,5 @@
-# use compiler from CXX env var if present, otherwise default to g++
-ifndef CXX
-CXX      = g++
-LINK     = g++
-else
-LINK = $(CXX)
-endif
+include ../Makefile.defs
 
-#DEBUG = -g -DDEBUG
-DEBUG = -O2 -DNDEBUG
-
-INCPATH  = -I.
-CXXFLAGS = -Wall -W -pedantic -std=c++98 $(DEBUG) $(INCPATH) -fPIC
 LFLAGS   = 
 LIBS     = -lm -lz -lpthread
 
@@ -30,7 +19,6 @@ SRCS = \
 
 OBJECTS = $(patsubst %.cpp,%.o,$(SRCS))
 
-INSTALLDIR ?= ../../$(shell uname)-$(shell uname -r | cut -d'-' -f1)-$(shell uname -m)-optimize
 
 INSTALL = \
 	lib/libPtex.a \

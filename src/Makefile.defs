@@ -1,0 +1,22 @@
+# use compiler from CXX env var if present, otherwise default to g++
+ifndef CXX
+CXX      = g++
+LINK     = g++
+else
+LINK = $(CXX)
+endif
+
+ifndef flavor
+flavor = debug
+endif
+
+CXXFLAGS = -Wall -W -pedantic -std=c++98 -fPIC
+
+ifeq ($(flavor), debug)
+  CXXFLAGS += -g -DDEBUG
+else
+  CXXFLAGS += -O2 -DNDEBUG
+endif
+
+
+INSTALLDIR ?= ../../$(shell uname)-$(shell uname -r | cut -d'-' -f1)-$(shell uname -m)-$(flavor)
