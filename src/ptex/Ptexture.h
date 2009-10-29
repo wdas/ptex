@@ -38,11 +38,6 @@
 
 #define PtexAPIVersion 2
 
-#ifndef DOXYGEN
-#define PtexAPINamespace PtexV2
-namespace PtexAPINamespace {
-#endif
-
 /** Common data structures and enums used throughout the API. */
 struct Ptex {
     /** Type of base mesh for which the textures are defined.  A mesh
@@ -937,10 +932,5 @@ template <class T> class PtexPtr {
     /// Assignment prohibited
     void operator= (PtexPtr& p);
 };
-
-#ifndef DOXYGEN
-}
-using namespace PtexAPINamespace;
-#endif
 
 #endif
