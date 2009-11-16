@@ -15,21 +15,27 @@ INSTALL = \
 #	bin/unsubdivideptx \
 #	bin/objtorib
 
+INSTALLDIR = ../../install
+INSTALLPATHS = $(patsubst %,$(INSTALLDIR)/%,$(INSTALL))
+
 ALL = ptxinfo subdivideobj subdivideptx unsubdivideptx objtorib
 
 $(INSTALLDIR)/bin/% : %
 	@ mkdir -p $(@D)
 	cp $^ $@
 
-install: $(patsubst %,$(INSTALLDIR)/%,$(INSTALL))
+install: $(INSTALLPATHS)
 
 all: install $(ALL)
 
 clean:
-	rm -f $(ALL)
+	rm -f $(ALL) $(INSTALLPATHS)
+
+PTEX_SHA = $(shell git rev-list --max-count=1 HEAD)
+PTEX_VER = $(shell git describe $(PTEX_SHA)) ($(PTEX_SHA))
 
 ptxinfo: ptxinfo.cpp $(PTEX)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
+	$(CXX) $(CXXFLAGS) -DPTEX_VER='"$(PTEX_VER)"' $^ -o $@ $(LIBS)
 
 subdivideobj: subdivideobj.cpp mesh.cpp
 	$(CXX) $(CXXFLAGS) $(INCSUBD) $^ -o $@ $(LIBS) $(LIBSUBD)

@@ -30,6 +30,8 @@ INSTALL = \
 
 ALL = libPtex.a libPtex.so
 
+INSTALLDIR = ../../install
+
 $(INSTALLDIR)/lib/% : %
 	@ mkdir -p $(@D)
 	cp $^ $@
@@ -53,7 +55,9 @@ clean:
 
 cleanall: clean
 
-libPtex.a : libPtex.a($(OBJECTS))
+libPtex.a: $(OBJECTS)
+	@rm -f $@
+	ar r $@ $(OBJECTS)
 
 libPtex.so: $(OBJECTS)
 	$(LINK) $(LFLAGS) -shared -o $@ $(OBJECTS) $(LIBS)

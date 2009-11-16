@@ -1,9 +1,8 @@
+include ../Makefile.defs
 
-.PHONY : all install dox
+.PHONY : install dox
 
-all: install dox
-
-INSTALLDIR = ../../install/doc/html
+INSTALLDIR = ../../install/doc/ptex
 
 INSTALL = \
 	PtexFile.html \
@@ -16,7 +15,10 @@ $(INSTALLDIR)/% : %
 	@ mkdir -p $(@D)
 	cp $^ $@
 
-install: $(patsubst %,$(INSTALLDIR)/%,$(INSTALL))
+install: $(patsubst %,$(INSTALLDIR)/%,$(INSTALL)) $(INSTALLDIR)/index.html
 
-dox:
+$(INSTALLDIR)/index.html : ../ptex/Ptexture.h
 	doxygen Doxyfile
+
+clean:
+	rm -rf $(INSTALLDIR)

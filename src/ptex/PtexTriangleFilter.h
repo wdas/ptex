@@ -33,7 +33,7 @@ class PtexTriangleFilter : public PtexFilter, public Ptex
 		     float uw1, float vw1, float uw2, float vw2,
 		     float width, float blur, Res faceRes);
 
-    void splitAndApply(PtexTriangleKernel& k, int faceid, const FaceInfo& f);
+    void splitAndApply(PtexTriangleKernel& k, int faceid, const Ptex::FaceInfo& f);
     void applyAcrossEdge(PtexTriangleKernel& k, const Ptex::FaceInfo& f, int eid);
     void apply(PtexTriangleKernel& k, int faceid, const Ptex::FaceInfo& f);
     void applyIter(PtexTriangleKernelIter& k, PtexFaceData* dh);

@@ -1,9 +1,10 @@
 *~
 build/
 install/
-Linux*/
+Linux*
 *.o
 *.so
 *.a
 *.slo
 ptex*.zip
+*build.log*

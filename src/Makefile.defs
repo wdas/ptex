@@ -6,17 +6,18 @@ else
 LINK = $(CXX)
 endif
 
-ifndef flavor
-flavor = debug
-endif
-
 CXXFLAGS = -Wall -W -pedantic -std=c++98 -fPIC
+
+ifndef flavor
+  flavor = debug
+endif
 
 ifeq ($(flavor), debug)
   CXXFLAGS += -g -DDEBUG
 else
-  CXXFLAGS += -O2 -DNDEBUG
+  ifeq ($(flavor), profile)
+    CXXFLAGS += -O2 -pg -DNDEBUG
+  else
+    CXXFLAGS += -O2 -DNDEBUG
+  endif
 endif
-
-
-INSTALLDIR ?= ../../$(shell uname)-$(shell uname -r | cut -d'-' -f1)-$(shell uname -m)-$(flavor)

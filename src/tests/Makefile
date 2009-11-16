@@ -8,6 +8,7 @@ LIBS     = -lm -lz -lpthread
 TESTS = halftest wtest rtest ftest
 
 tests: $(TESTS)
+	./run_tests.py
 
 clean:
 	rm -f $(ALL)

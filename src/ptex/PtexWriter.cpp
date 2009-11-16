@@ -38,7 +38,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <algorithm>
 #include <iostream>
 #include <sstream>
@@ -49,6 +48,55 @@
 
 
 namespace {
+
+    FILE* OpenTempFile(std::string& tmppath)
+    {
+	static Mutex lock;
+	AutoMutex locker(lock);
+
+	// choose temp dir
+	static std::string tmpdir;
+	static int initialized = 0;
+	if (!initialized) {
+	    initialized = 1;
+#ifdef WINDOWS
+	    // use GetTempPath API (first call determines length of result)
+	    DWORD result = ::GetTempPath(0, _T(""));
+	    if (result > 0) {
+		std::vector<TCHAR> tempPath(result + 1);
+		result = ::GetTempPath(static_cast<DWORD>(tempPath.size()), &tempPath[0]);
+		if (result > 0 && result <= tempPath.size())
+		    tmpdir = std::string(tempPath.begin(), 
+					 tempPath.begin() + static_cast<std::size_t>(result));
+		else
+		    tmpdir = ".";
+	    }
+#else
+	    // try $TEMP or $TMP, use /tmp as last resort
+	    const char* t = getenv("TEMP");
+	    if (!t) t = getenv("TMP");
+	    if (!t) t = "/tmp";
+	    tmpdir = t;
+#endif
+	}
+
+	// build temp path
+
+#ifdef WINDOWS
+	// use process id and counter to make unique filename
+	std::stringstream s;
+	static int count = 0;
+	s << tmpdir << "/" << "PtexTmp" << getpid() << "_" << ++count;
+	tmppath = s.str();
+	return fopen((char*) tmppath.c_str(), "w+");
+#else
+	// use mkstemp to open unique file
+	tmppath = tmpdir + "/PtexTmpXXXXXX";
+	int fd = mkstemp((char*) tmppath.c_str());
+	return fdopen(fd, "w+");
+#endif
+    }
+
     std::string fileError(const char* message, const char* path)
     {
 	std::stringstream str;
@@ -196,8 +244,8 @@ PtexWriterBase::PtexWriterBase(const char* path,
 {
     memset(&_header, 0, sizeof(_header));
     _header.magic = Magic;
-    _header.version = 1;
-    _header.minorversion = 3;
+    _header.version = PtexFileMajorVersion;
+    _header.minorversion = PtexFileMinorVersion;
     _header.meshtype = mt;
     _header.datatype = dt;
     _header.alphachan = alphachan;
@@ -220,8 +268,7 @@ PtexWriterBase::PtexWriterBase(const char* path,
     // create temp file for writing tiles
     // (must compress each tile before assembling a tiled face)
     std::string error;
-    _tilepath = _path + ".tiles.tmp";
-    _tilefp = fopen(_tilepath.c_str(), "wb+");
+    _tilefp = OpenTempFile(_tilepath);
     if (!_tilefp) {
 	setError(fileError("Error creating temp file: ", _tilepath.c_str()));
     }
@@ -659,8 +706,7 @@ PtexMainWriter::PtexMainWriter(const char* path, PtexTexture* tex,
       _genmipmaps(genmipmaps),
       _reader(0)
 {
-    _tmppath = _path + ".tmp";
-    _tmpfp = fopen(_tmppath.c_str(), "wb+");
+    _tmpfp = OpenTempFile(_tmppath);
     if (!_tmpfp) {
 	setError(fileError("Error creating temp file: ", _tmppath.c_str()));
 	return;

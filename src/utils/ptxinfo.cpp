@@ -193,6 +193,7 @@ void DumpInternal(PtexTexture* tx)
 void usage()
 {
     std::cerr << "Usage: ptxinfo [options] file\n"
+	      << "  -v Show ptex software version\n"
 	      << "  -m Dump meta data\n"
 	      << "  -f Dump face info\n"
 	      << "  -d Dump data\n"
@@ -202,9 +203,9 @@ void usage()
     exit(1);
 }
 
-
 int main(int argc, char** argv)
 {
+    bool showver = 0;
     bool dumpmeta = 0;
     bool dumpfaceinfo = 0;
     bool dumpdata = 0;
@@ -219,6 +220,7 @@ int main(int argc, char** argv)
 	    if (!*cp) usage(); // handle bare '-'
 	    while (*cp) {
 		switch (*cp++) {
+		case 'v': showver = 1; break;
 		case 'm': dumpmeta = 1; break;
 		case 'd': dumpdata = 1; break;
 		case 'D': dumpdata = 1; dumpalldata = 1; break;
@@ -232,7 +234,17 @@ int main(int argc, char** argv)
 	else if (fname) usage();
 	else fname = *argv;
     }
-    if (!fname) usage();
+    if (showver) {
+#ifndef PTEX_VER
+#define PTEX_VER "Unknown"
+#endif
+	std::cout << "Ptex Version " << PTEX_VER << std::endl;
+    }
+
+    if (!fname) {
+	if (!showver) usage();
+	return 0;
+    }
 
     Ptex::String error;
     PtexPtr<PtexTexture> r ( PtexTexture::open(fname, error) );
