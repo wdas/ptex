@@ -86,6 +86,13 @@ struct Ptex {
 	dt_float		///< Single-precision (32-bit) floating point.
     };
 
+    /** How to handle mesh border when filtering. */
+    enum BorderMode {
+	m_clamp,		///< texel access is clamped to border
+	m_black,		///< texel beyond border are assumed to be black
+	m_periodic		///< texel access wraps to other side of face
+    };
+
     /** Edge IDs used in adjacency data in the Ptex::FaceInfo struct.
 	Edge ID usage for triangle meshes is TBD. */
     enum EdgeId {
@@ -110,6 +117,9 @@ struct Ptex {
 
     /** Look up name of given data type. */
     PTEXAPI static const char* DataTypeName(DataType dt);
+
+    /** Look up name of given border mode. */
+    PTEXAPI static const char* BorderModeName(BorderMode m);
 
     /** Look up name of given edge ID. */
     PTEXAPI static const char* EdgeIdName(EdgeId eid);
@@ -449,6 +459,12 @@ class PtexTexture {
     /** Type of data stored in file. */
     virtual Ptex::DataType dataType() = 0;
 
+    /** Mode for filtering texture access beyond mesh border. */
+    virtual Ptex::BorderMode uBorderMode() = 0;
+
+    /** Mode for filtering texture access beyond mesh border. */
+    virtual Ptex::BorderMode vBorderMode() = 0;
+
     /** Index of alpha channel (if any).  One channel in the file can be flagged to be the alpha channel.
 	If no channel is acting as the alpha channel, -1 is returned.
 	See PtexWriter for more details.  */
@@ -732,14 +748,11 @@ class PtexWriter {
 	edit blocks are slower to read back, and they have no mipmaps so
 	filtering can be inefficient.
 
-	If incremental is false, then the edits are applied to the
-	file and the entire file is regenerated on close as if it were
-	written all at once with open().
+	If incremental is false, then the edits are applied to the file
+	and the entire file is regenerated as if it were written all
+	at once with the open method.
 
-	If the file doesn't exist it will be created and written as if
-	open() were used.  If the file exists, the mesh type, data
-	type, number of channels, alpha channel, and number of faces
-	must agree with those stored in the file.
+	See open() for the meaning of the remaining params.
      */
     PTEXAPI
     static PtexWriter* edit(const char* path, bool incremental,
@@ -842,7 +855,8 @@ class PtexFilter {
 	    filter(filter), lerp(lerp), sharpness(sharpness) {}
     };
 
-    /** Construct a filter for the given texture. */
+    /* Construct a filter for the given texture.
+    */
     PTEXAPI static PtexFilter* getFilter(PtexTexture* tx, const Options& opts);
 
     /** Release resources held by this pointer (pointer becomes invalid). */
