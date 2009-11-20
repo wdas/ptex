@@ -290,13 +290,8 @@ int main(int argc, char** argv)
     std::cout << "uBorderMode: " << Ptex::BorderModeName(r->uBorderMode()) << std::endl;
     std::cout << "vBorderMode: " << Ptex::BorderModeName(r->vBorderMode()) << std::endl;
     std::cout << "numFaces: " << r->numFaces() << std::endl;
-
-    int hasEdits = 0;
-    for (int i = 0, nfaces=r->numFaces(); i < nfaces; i++) 
-	if (r->getFaceInfo(i).hasEdits()) hasEdits++;
-    std::cout << "hasFaceEdits: " << (hasEdits? "yes" : "no");
-    if (hasEdits) std::cout << " (" << hasEdits << " faces)";
-    std::cout << std::endl;
+    std::cout << "hasEdits: " << (r->hasEdits() ? "yes" : "no") << std::endl;
+    std::cout << "hasMipMaps: " << (r->hasMipMaps() ? "yes" : "no") << std::endl;
 
     PtexPtr<PtexMetaData> meta ( r->getMetaData() );
     if (meta) {
