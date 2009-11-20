@@ -96,6 +96,7 @@ struct PtexIO : public Ptex {
 
     static const uint32_t Magic = 'P' | ('t'<<8) | ('e'<<16) | ('x'<<24);
     static const int HeaderSize = sizeof(Header);
+    static const int ExtHeaderSize = sizeof(ExtHeader);
     static const int LevelInfoSize = sizeof(LevelInfo);
     static const int FaceDataHeaderSize = sizeof(FaceDataHeader);
     static const int EditFaceDataHeaderSize = sizeof(EditFaceDataHeader);

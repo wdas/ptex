@@ -53,7 +53,7 @@ class PtexSeparableFilter : public PtexFilter, public Ptex
     PtexSeparableFilter(PtexTexture* tx, const PtexFilter::Options& opts ) :
 	_tx(tx), _options(opts), _result(0), _weight(0), 
 	_firstChanOffset(0), _nchan(0), _ntxchan(0),
-	_dt((DataType)0) {}
+	_dt((DataType)0), _uMode(tx->uBorderMode()), _vMode(tx->vBorderMode()) {}
     virtual ~PtexSeparableFilter() {}
 
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
@@ -74,6 +74,7 @@ class PtexSeparableFilter : public PtexFilter, public Ptex
     int _nchan;			// number of channels to eval
     int _ntxchan;		// number of channels in texture
     DataType _dt;		// data type of texture
+    BorderMode _uMode, _vMode;	// border modes (clamp,black,periodic)
 };
 
 #endif

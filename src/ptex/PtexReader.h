@@ -80,7 +80,7 @@ public:
     virtual Ptex::MeshType meshType() { return MeshType(_header.meshtype); }
     virtual Ptex::DataType dataType() { return DataType(_header.datatype); }
     virtual Ptex::BorderMode uBorderMode() { return BorderMode(_extheader.ubordermode); };
-    virtual Ptex::BorderMode vBorderMode() { return BorderMode(_extheader.ubordermode); };
+    virtual Ptex::BorderMode vBorderMode() { return BorderMode(_extheader.vbordermode); };
     virtual int alphaChannel() { return _header.alphachan; }
     virtual int numChannels() { return _header.nchannels; }
     virtual int numFaces() { return _header.nfaces; }
@@ -102,6 +102,7 @@ public:
     int nchannels() const { return _header.nchannels; }
     int pixelsize() const { return _pixelsize; }
     const Header& header() const { return _header; }
+    const ExtHeader& extheader() const { return _extheader; }
     const LevelInfo& levelinfo(int level) const { return _levelinfo[level]; }
 
     class MetaData : public PtexCachedData, public PtexMetaData {
