@@ -4,6 +4,55 @@
 #include "Ptexture.h"
 #include "PtexHalf.h"
 
+void writeMeta(PtexWriter* w,
+	       const char* sval, double* dvals, int ndvals, int16_t* ivals, int nivals,
+	       const char* xval)
+{
+    if (sval) w->writeMeta("sval", sval);
+    if (dvals) w->writeMeta("dvals", dvals, ndvals);
+    if (ivals) w->writeMeta("ivals", ivals, nivals);
+    if (xval) w->writeMeta("xval", xval);
+}
+
+
+bool checkMeta(const char* path,
+	       const char* sval, double* dvals, int ndvals, int16_t* ivals, int nivals,
+	       const char* xval)
+{
+    std::string error;
+    PtexPtr<PtexTexture> tx(PtexTexture::open(path, error));
+    if (!tx) {
+	std::cerr << error << std::endl;
+	return 0;
+    }
+    PtexPtr<PtexMetaData> meta(tx->getMetaData());
+
+    const char* f_sval;
+    meta->getValue("sval", f_sval);
+
+    const double* f_dvals;
+    int f_ndvals;
+    meta->getValue("dvals", f_dvals, f_ndvals);
+
+    const int16_t* f_ivals;
+    int f_nivals;
+    meta->getValue("ivals", f_ivals, f_nivals);
+
+    const char* f_xval;
+    meta->getValue("xval", f_xval);
+
+    bool ok = ((!sval || 0==strcmp(sval, f_sval)) &&
+	       (!ndvals || ndvals == f_ndvals && 0==memcmp(dvals, f_dvals, ndvals*sizeof(dvals[0]))) &&
+	       (!nivals || nivals == f_nivals && 0==memcmp(ivals, f_ivals, nivals*sizeof(ivals[0]))) &&
+	       (!xval || 0==strcmp(xval, f_xval)));
+    if (!ok) {
+	std::cerr << "Meta data readback failed" << std::endl;
+	return 0;
+    }
+    return 1;
+}
+
+
 int main(int /*argc*/, char** /*argv*/)
 {
     static Ptex::Res res[] = { Ptex::Res(8,7),
@@ -35,14 +84,13 @@ int main(int /*argc*/, char** /*argv*/)
 			       { -1, -1, 5, 7 }};
 
     int nfaces = sizeof(res)/sizeof(res[0]);
-    Ptex::DataType dt = Ptex::dt_half;//float;
-//#define DTYPE float
+    Ptex::DataType dt = Ptex::dt_half;
 #define DTYPE PtexHalf
     int alpha = -1;
     int nchan = 3;
 
     Ptex::String error;
-    PtexWriter* w = 
+    PtexWriter* w =
 	PtexWriter::open("test.ptx", Ptex::mt_quad, dt, nchan, alpha, nfaces, error);
     if (!w) {
 	std::cerr << error.c_str() << std::endl;
@@ -72,36 +120,52 @@ int main(int /*argc*/, char** /*argv*/)
     }
     free(buff);
 
-    w->writeMeta("hello", "goodbye");
-    double vals[3] = { 1.1,2.2,3.3 };
-    w->writeMeta("flarf", vals, 3);
+    char* sval = "a str val";
+    int ndvals = 3;
+    double dvals_buff[3] = { 1.1,2.2,3.3 };
+    double* dvals = dvals_buff;
+    int nivals = 4;
     int16_t ivals[4] = { 2, 4, 6, 8 };
-    w->writeMeta("flarfi", ivals, 4);
+    char* xval = 0;
 
+    writeMeta(w, sval, dvals, ndvals, ivals, nivals, xval);
     if (!w->close(error)) {
 	std::cerr << error.c_str() << std::endl;
+	return 1;
     }
-
     w->release();
+    if (!checkMeta("test.ptx", sval, dvals, ndvals, ivals, nivals, xval))
+	return 1;
 
     // add some incremental edits
     w = PtexWriter::edit("test.ptx", true, Ptex::mt_quad, dt, nchan, alpha, nfaces, error);
-    w->writeMeta("hello", "ciao");
-    w->writeMeta("flarf", "boodle");
-    vals[2] = 0;
-    w->writeMeta("yahoo", vals, 3);
-    if (!w->close(error)) {
-	std::cerr << error.c_str() << std::endl;
-    }
-    w->release();
+    sval = "a string value";
+    dvals[2] = 0;
+    writeMeta(w, sval, dvals, ndvals, 0, 0, 0);
 
-    // add some non-incremental edits
-    w = PtexWriter::edit("test.ptx", false, Ptex::mt_quad, dt, nchan, alpha, nfaces, error);
-    w->writeMeta("hello", "aloha");
     if (!w->close(error)) {
 	std::cerr << error.c_str() << std::endl;
+	return 1;
     }
     w->release();
+    if (!checkMeta("test.ptx", sval, dvals, ndvals, ivals, nivals, xval))
+	return 1;
+
+    // add some non-incremental edits, including some large meta data
+    ndvals = 500;
+    dvals = (double*)malloc(ndvals * sizeof(dvals[0]));
+    for (int i = 0; i < ndvals; i++) dvals[i] = i;
+
+    w = PtexWriter::edit("test.ptx", false, Ptex::mt_quad, dt, nchan, alpha, nfaces, error);
+    xval = "another string value";
+    writeMeta(w, 0, dvals, ndvals, 0, 0, xval);
+    if (!w->close(error)) {
+	std::cerr << error.c_str() << std::endl;
+	return 1;
+    }
+    w->release();
+    if (!checkMeta("test.ptx", sval, dvals, ndvals, ivals, nivals, xval))
+	return 1;
 
     return 0;
 }

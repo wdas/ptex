@@ -239,7 +239,7 @@ public:
 	return _searchpath.c_str(); 
     }
 
-    virtual PtexTexture* get(const char* filename, Ptex::String& error);
+    virtual PtexTexture* get(const char* path, Ptex::String& error);
 
     virtual void purge(PtexTexture* texture)
     {

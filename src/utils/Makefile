@@ -10,7 +10,6 @@ endif
 DEBUG    = -O2 -DNDEBUG
 INCPATH  = -I../ptex
 CXXFLAGS = -Wall -W -pedantic -std=c++98 $(DEBUG) $(INCPATH) -fPIC
-LFLAGS   = 
 PTEX     = ../ptex/libPtex.a
 LIBS     = -lm -lz -lpthread
 
@@ -30,8 +29,8 @@ install: all $(patsubst %,$(INSTALLDIR)/%,$(INSTALL))
 all: $(ALL)
 
 clean:
-	rm -f *.o $(ALL)
+	rm -f $(ALL)
 
-ptxinfo: ptxinfo.o $(PTEX)
-	$(LINK) $(LFLAGS) $^ -o $@ $(LIBS)
+ptxinfo: ptxinfo.cpp $(PTEX)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
 

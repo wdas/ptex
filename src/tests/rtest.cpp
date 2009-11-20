@@ -53,6 +53,23 @@ void DumpData(Ptex::DataType dt, int nchan, PtexFaceData* dh, std::string prefix
     free(dpixel);
 }
 
+template <typename T>
+class DumpMetaArrayVal
+{
+ public:
+    void operator()(PtexMetaData* meta, const char* key)
+    {
+	const T* val=0;
+	int count=0;
+	meta->getValue(key, val, count);
+	for (int i = 0; i < count; i++) {
+	    if (i%10==0 && (i || count > 10)) std::cout << "\n  ";
+	    std::cout <<  "  " << val[i];
+	}
+    }
+};
+
+
 void DumpMetaData(PtexMetaData* meta)
 {
     std::cout << "meta:" << std::endl;
@@ -61,7 +78,6 @@ void DumpMetaData(PtexMetaData* meta)
 	Ptex::MetaDataType type;
 	meta->getKey(i, key, type);
 	std::cout << "  " << key << " type=" << Ptex::MetaDataTypeName(type);
-	int count;
 	switch (type) {
 	case Ptex::mdt_string:
 	    {
@@ -70,46 +86,11 @@ void DumpMetaData(PtexMetaData* meta)
 		std::cout <<  "  " << val;
 	    }
 	    break;
-	case Ptex::mdt_int8:
-	    {
-		const int8_t* val=0;
-		meta->getValue(key, val, count);
-		for (int j = 0; j < count; j++)
-		    std::cout <<  "  " << val[j];
-	    }
-	    break;
-	case Ptex::mdt_int16:
-	    {
-		const int16_t* val=0;
-		meta->getValue(key, val, count);
-		for (int j = 0; j < count; j++)
-		    std::cout <<  "  " << val[j];
-	    }
-	    break;
-	case Ptex::mdt_int32:
-	    {
-		const int32_t* val=0;
-		meta->getValue(key, val, count);
-		for (int j = 0; j < count; j++)
-		    std::cout <<  "  " << val[j];
-	    } 
-	    break;
-	case Ptex::mdt_float:
-	    {
-		const float* val=0;
-		meta->getValue(key, val, count);
-		for (int j = 0; j < count; j++)
-		    std::cout <<  "  " << val[j];
-	    }
-	    break;
-	case Ptex::mdt_double:
-	    {
-		const double* val=0;
-		meta->getValue(key, val, count);
-		for (int j = 0; j < count; j++)
-		    std::cout <<  "  " << val[j];
-	    }
-	    break;
+	case Ptex::mdt_int8:   DumpMetaArrayVal<int8_t>()(meta, key); break;
+	case Ptex::mdt_int16:  DumpMetaArrayVal<int16_t>()(meta, key); break;
+	case Ptex::mdt_int32:  DumpMetaArrayVal<int32_t>()(meta, key); break;
+	case Ptex::mdt_float:  DumpMetaArrayVal<float>()(meta, key); break;
+	case Ptex::mdt_double: DumpMetaArrayVal<double>()(meta, key); break;
 	}
 	std::cout << std::endl;
     }

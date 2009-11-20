@@ -52,7 +52,7 @@ struct PtexIO : public Ptex {
 	uint32_t faceinfosize;
 	uint32_t constdatasize;
 	uint32_t levelinfosize;
-	uint32_t reserved;
+	uint32_t minorversion;
 	uint64_t leveldatasize;
 	uint32_t metadatazipsize;
 	uint32_t metadatamemsize;
@@ -64,7 +64,9 @@ struct PtexIO : public Ptex {
 	BorderMode vbordermode:32;
 	uint32_t lmdheaderzipsize;
 	uint32_t lmdheadermemsize;
-	uint64_t largemetadatasize;
+	uint64_t lmddatasize;
+	uint64_t editdatasize;
+	uint64_t editdatapos;
     };
     struct LevelInfo {
 	uint64_t leveldatasize;
@@ -101,9 +103,13 @@ struct PtexIO : public Ptex {
     static const int FaceDataHeaderSize = sizeof(FaceDataHeader);
     static const int EditFaceDataHeaderSize = sizeof(EditFaceDataHeader);
     static const int EditMetaDataHeaderSize = sizeof(EditMetaDataHeader);
-    static const int BlockSize = 16384; // target block size for file I/O
-    static const int TileSize  = 65536; // target tile size (uncompressed)
-    static const int AllocaMax = 16384;	// max size for using alloca
+
+    // these constants can be tuned for performance
+    static const int BlockSize = 16384;        // target block size for file I/O
+    static const int TileSize  = 65536;        // target tile size (uncompressed)
+    static const int AllocaMax = 16384;        // max size for using alloca
+    static const int MetaDataThreshold = 1024; // cutoff for large meta data
+
     static bool LittleEndian() {
 	short word = 0x0201;
 	return *(char*)&word == 1; 
