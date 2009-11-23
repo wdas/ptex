@@ -309,8 +309,8 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 
 	// temporarily release cache lock while we open the file
 	cachelock.unlock();
+	char tmppath[PATH_MAX+1];
 	if (!_io) {
-	    char tmppath[PATH_MAX+1];
 	    if (filename[0] != '/' && !_searchdirs.empty()) {
 		// file is relative, search in searchpath
 		bool found = false;

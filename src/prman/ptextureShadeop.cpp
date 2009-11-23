@@ -110,10 +110,6 @@ static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
 	PtexPtr<PtexFilter> filter ( getFilter(tx, *sharpness, *lerp) );
 	int numVals = RslArg::NumValues(argc, argv);
 	for (int i = 0; i < numVals; ++i) {
-	    bool stop = 0;
-	    if (*faceid == 9 && *u == 0 && *v == 1) {
-		stop = 1;
-	    }
 	    float* resultval = *result;
 	    filter->eval(resultval, chan, 3, int(*faceid), *u, *v, *uw1, *vw1, *uw2, *vw2, *width, *blur);
 

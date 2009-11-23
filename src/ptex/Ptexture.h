@@ -900,6 +900,10 @@ class PtexFilter {
    the pointer goes out of scope.  Usage of PtexPtr is optional, but
    recommended.
 
+   Note: for efficiency and safety, PtexPtr is noncopyable.  However,
+   ownership can be transferred between PtexPtr instances via the
+   PtexPtr::swap member function.
+
    Example:
    \code
       {
@@ -932,6 +936,14 @@ template <class T> class PtexPtr {
 
     /// Get pointer value.
     T* get() { return _ptr; }
+
+    /// Swap pointer values.
+    void swap(PtexPtr& p)
+    {
+	T* tmp = p._ptr;
+	p._ptr = _ptr;
+	_ptr = tmp;
+    }
 
  private:
     /// Copying prohibited

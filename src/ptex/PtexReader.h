@@ -453,9 +453,7 @@ protected:
 	if (pos != _pos) {
 	    _io->seek(_fp, pos);
 	    _pos = pos;
-#ifdef GATHER_STATS
-	    stats.nseeks++;
-#endif
+	    STATS_INC(nseeks);
 	}
     }
 
