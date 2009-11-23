@@ -325,6 +325,10 @@ std::ostream& operator << (std::ostream& stream, const Ptex::String& str);
    Meta data is acquired from PtexTexture and accessed through this interface.
  */
 class PtexMetaData {
+ protected:
+    /// Destructor not for public use.  Use release() instead.
+    virtual ~PtexMetaData() {}
+
  public:
     /// Release resources held by this pointer (pointer becomes invalid).
     virtual void release() = 0;
@@ -358,9 +362,6 @@ class PtexMetaData {
     /** Query the value of a given meta data entry.
 	If the key doesn't exist or the type doesn't match, value is set to null */
     virtual void getValue(const char* key, const double*& value, int& count) = 0;
-
- protected:
-    virtual ~PtexMetaData() {} ///< Destructor not for public use.  Use release() instead.
 };
 
 
@@ -375,6 +376,10 @@ class PtexMetaData {
     from PtexTexture.
  */
 class PtexFaceData {
+ protected:
+    /// Destructor not for public use.  Use release() instead.
+    virtual ~PtexFaceData() {} 
+
  public:
     /// Release resources held by this pointer (pointer becomes invalid).
     virtual void release() = 0;
@@ -409,9 +414,6 @@ class PtexFaceData {
 
     /** Access a tile from the data block.  Tiles are accessed in v-major order. */
     virtual PtexFaceData* getTile(int tile) = 0;
-
- protected:
-    virtual ~PtexFaceData() {} ///< Destructor not for public use.  Use release() instead.
 };
 
 
@@ -425,6 +427,10 @@ class PtexFaceData {
    Data access through this interface is returned in v-major order with all data channels interleaved per texel.
  */
 class PtexTexture {
+ protected:
+    /// Destructor not for public use.  Use release() instead.
+    virtual ~PtexTexture() {} 
+
  public:
     /** Open a ptex file for reading.
 
@@ -556,9 +562,6 @@ class PtexTexture {
     virtual void getPixel(int faceid, int u, int v,
 			  float* result, int firstchan, int nchannels,
 			  Ptex::Res res) = 0;
-    
- protected:
-    virtual ~PtexTexture() {} ///< Destructor not for public use.  Use release() instead.
 };
 
 
@@ -570,6 +573,9 @@ class PtexTexture {
     interface.
  */
 class PtexInputHandler {
+ protected:
+    virtual ~PtexInputHandler() {}
+
  public:
     typedef void* Handle;
 
@@ -595,9 +601,6 @@ class PtexInputHandler {
 
     /** Return the last error message encountered. */
     virtual const char* lastError() = 0;
-
- protected:
-    virtual ~PtexInputHandler() {}
 };
 
 
@@ -619,6 +622,10 @@ class PtexInputHandler {
  */
 
 class PtexCache {
+ protected:
+    /// Destructor not for public use.  Use release() instead.
+    virtual ~PtexCache() {} 
+
  public:
     /** Create a cache with the specified limits.
 
@@ -698,9 +705,6 @@ class PtexCache {
         active PtexTexture* handles remain open until released.
      */
     virtual void purgeAll() = 0;
-
- protected:
-    virtual ~PtexCache() {} ///< Destructor not for public use.  Use release() instead.
 };
 
 
@@ -721,6 +725,10 @@ class PtexCache {
 */
 
 class PtexWriter {
+ protected:
+    /// Destructor not for public use.  Use release() instead.
+    virtual ~PtexWriter() {} 
+
  public:
     /** Open a new texture file for writing.
 	@param path Path to file.
@@ -819,18 +827,15 @@ class PtexWriter {
 	constant. */
     virtual bool writeConstantFace(int faceid, const Ptex::FaceInfo& info, const void* data) = 0;
 
-#if NEW_API
-    virtual bool writeFaceReduction(int faceid, const Ptex::Res& res, const void* data, int stride=0) = 0;
-    virtual bool writeConstantFaceReduction(int faceid, const Ptex::Res& res, const void* data) = 0;
-#endif
-
     /** Close the file.  This operation can take some time if mipmaps are being generated or if there
 	are many edit blocks.  If an error occurs while writing, false is returned and an error string
 	is written into the error parameter. */
     virtual bool close(Ptex::String& error) = 0;
 
- protected:
-    virtual ~PtexWriter() {} ///< Destructor not for public use.  Use release() instead.
+#if NEW_API
+    virtual bool writeFaceReduction(int faceid, const Ptex::Res& res, const void* data, int stride=0) = 0;
+    virtual bool writeConstantFaceReduction(int faceid, const Ptex::Res& res, const void* data) = 0;
+#endif
 };
 
 
@@ -844,6 +849,10 @@ class PtexWriter {
    To apply the filter to a ptex data file, use the eval() method.
  */
 class PtexFilter {
+ protected:
+    /// Destructor not for public use.  Use release() instead.
+    virtual ~PtexFilter() {}; 
+
  public:
     /// Filter types
     enum FilterType {
@@ -901,9 +910,6 @@ class PtexFilter {
     virtual void eval(float* result, int firstchan, int nchannels,
 		      int faceid, float u, float v, float uw1, float vw1, float uw2, float vw2,
 		      float width=1, float blur=0) = 0;
-
- protected:
-    virtual ~PtexFilter() {}; ///< Destructor not for public use.  Use release() instead.
 };
 
 
