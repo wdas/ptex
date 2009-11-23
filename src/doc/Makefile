@@ -1,12 +1,13 @@
 
-.PHONY : all doc doc_api_only
+.PHONY : all doc
 
-all: doc_api_only # doc 
+all: doc
+
+INSTALLDIR = ../../install/doc/ptex
 
 doc:
-	mkdir -p ../../install/doc
+	mkdir -p $(INSTALLDIR)
 	doxygen Doxyfile
 
-doc_api_only:
-	mkdir -p ../../install/doc_API_only
-	doxygen Doxyfile_API_only
+clean:
+	rm -rf $(INSTALLDIR)
