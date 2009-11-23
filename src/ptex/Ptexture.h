@@ -62,6 +62,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <ostream>
 
 #define PtexAPIVersion 2
+#define PtexFileMajorVersion 1
+#define PtexFileMinorVersion 3
 
 /** Common data structures and enums used throughout the API. */
 struct Ptex {

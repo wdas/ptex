@@ -269,8 +269,8 @@ PtexWriterBase::PtexWriterBase(const char* path,
 {
     memset(&_header, 0, sizeof(_header));
     _header.magic = Magic;
-    _header.version = 1;
-    _header.minorversion = 3;
+    _header.version = PtexFileMajorVersion;
+    _header.minorversion = PtexFileMinorVersion;
     _header.meshtype = mt;
     _header.datatype = dt;
     _header.alphachan = alphachan;

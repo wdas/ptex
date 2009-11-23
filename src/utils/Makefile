@@ -13,10 +13,12 @@ CXXFLAGS = -Wall -W -pedantic -std=c++98 $(DEBUG) $(INCPATH) -fPIC
 PTEX     = ../ptex/libPtex.a
 LIBS     = -lm -lz -lpthread
 
-INSTALLDIR = ../../install
-
 INSTALL = \
 	bin/ptxinfo
+
+INSTALLDIR = ../../install
+INSTALLPATHS = $(patsubst %,$(INSTALLDIR)/%,$(INSTALL))
+
 
 ALL = ptxinfo
 
@@ -24,13 +26,16 @@ $(INSTALLDIR)/bin/% : %
 	@ mkdir -p $(@D)
 	cp $^ $@
 
-install: all $(patsubst %,$(INSTALLDIR)/%,$(INSTALL))
+install: $(INSTALLPATHS)
 
-all: $(ALL)
+all: install $(ALL)
 
 clean:
-	rm -f $(ALL)
+	rm -f $(ALL) $(INSTALLPATHS)
+
+PTEX_SHA = $(shell git rev-list --max-count=1 HEAD)
+PTEX_VER = $(shell git describe $(PTEX_SHA)) ($(PTEX_SHA))
 
 ptxinfo: ptxinfo.cpp $(PTEX)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
+	$(CXX) $(CXXFLAGS) -DPTEX_VER='"$(PTEX_VER)"' $^ -o $@ $(LIBS)
 
