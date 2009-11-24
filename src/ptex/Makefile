@@ -15,10 +15,8 @@ LIBS     = -lm -lz -lpthread
 
 SRCS = \
 	PtexCache.cpp \
-	PtexFilterKernel.cpp \
 	PtexFilters.cpp \
 	PtexHalf.cpp \
-	PtexMitchellFilter.cpp \
 	PtexReader.cpp \
 	PtexSeparableFilter.cpp \
 	PtexSeparableKernel.cpp \

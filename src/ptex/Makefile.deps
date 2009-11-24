@@ -1,15 +1,10 @@
 PtexCache.o: PtexCache.cpp PtexPlatform.h Ptexture.h PtexInt.h \
   PtexReader.h PtexIO.h PtexCache.h PtexMutex.h PtexDict.h PtexUtils.h \
   PtexHashMap.h
-PtexFilterKernel.o: PtexFilterKernel.cpp PtexFilterContext.h Ptexture.h \
-  PtexInt.h PtexUtils.h PtexFilterKernel.h PtexHalf.h
 PtexFilters.o: PtexFilters.cpp PtexPlatform.h Ptexture.h PtexInt.h \
-  PtexMitchellFilter.h PtexFilterContext.h PtexUtils.h PtexFilterKernel.h \
-  PtexSeparableFilter.h PtexSeparableKernel.h PtexTriangleFilter.h
+  PtexSeparableFilter.h PtexSeparableKernel.h PtexUtils.h \
+  PtexTriangleFilter.h
 PtexHalf.o: PtexHalf.cpp PtexHalf.h PtexInt.h
-PtexMitchellFilter.o: PtexMitchellFilter.cpp PtexPlatform.h \
-  PtexMitchellFilter.h Ptexture.h PtexInt.h PtexFilterContext.h \
-  PtexUtils.h PtexFilterKernel.h
 PtexReader.o: PtexReader.cpp PtexPlatform.h Ptexture.h PtexInt.h \
   PtexUtils.h PtexReader.h PtexIO.h PtexCache.h PtexMutex.h PtexDict.h \
   PtexHashMap.h

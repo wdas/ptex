@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 #include "PtexPlatform.h"
 #include "Ptexture.h"
-#include "PtexMitchellFilter.h"
 #include "PtexSeparableFilter.h"
 #include "PtexSeparableKernel.h"
 #include "PtexTriangleFilter.h"
@@ -433,11 +432,6 @@ PtexFilter* PtexFilter::getFilter(PtexTexture* tex, const PtexFilter::Options& o
     switch (tex->meshType()) {
     case Ptex::mt_quad:
 	switch (opts.filter) {
-	    // This is the original (deprecated) Mitchell filter.
-	    // It lacks significant features (lerping, large blur, subfaces) and
-	    // is kept for now just for regression testing.
-	case -1:	    return new PtexMitchellFilter(tex, opts.sharpness);
-
 	case f_point:       return new PtexPointFilter(tex);
 	case f_bilinear:    return new PtexBilinearFilter(tex, opts);
 	default:
