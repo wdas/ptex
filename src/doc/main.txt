@@ -12,13 +12,8 @@
 
 \section addtionaldocs Additional documenatation pages
 - \subpage license
-- \subpage intro
 - \subpage apiintro
-- \subpage adjdata
 - \subpage filterfootprint
-- \subpage tritex
-- \subpage fileformat
-- \subpage metadata
 */
 
 /**
@@ -27,12 +22,6 @@
 */
 
 /**
-\page fileformat Ptex File Format Specification
-\htmlinclude PtexFile.html
-*/
-
-/**
-\page filterfootprint Filter Footprint
-\image html uvellipse.png
+\page filterfootprint Filter footprint calculation
 \htmlinclude FilterFootprint.html
 */

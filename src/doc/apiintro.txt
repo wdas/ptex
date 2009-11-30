@@ -29,7 +29,7 @@ return.
 
 By defining all API objects method to use release() instead of delete,
 a consistent interface is provided and the implementation can choose
-how to manage each object's lifetime as it chooses.
+how to manage each object's lifetime.
 
 <b>The PtexPtr template can hold and release API objects
 automatically.</b> Use of PtexPtr makes it easy to use the API
