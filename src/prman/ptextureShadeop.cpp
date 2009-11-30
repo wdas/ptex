@@ -19,20 +19,33 @@
 
 static PtexCache* cache = 0;
 
-namespace {
-    PtexFilter* getFilter(PtexTexture* tx, float sharpness, bool lerp)
-    {
-	PtexFilter::FilterType type = PtexFilter::f_bicubic;
-	//sharpness = 1;
-	//type = PtexFilter::f_gaussian;
-	//type = PtexFilter::f_point;
-	//type = PtexFilter::FilterType(-1); // original Ptex filter
-	return PtexFilter::getFilter(tx, PtexFilter::Options(type, lerp, sharpness));
-    }
-}
+/* prman-tokenized strings for keyword arguments from rsl */
+static const char* blurToken=0;
+static const char* widthToken=0;
+static const char* lerpToken=0;
+static const char* filterToken=0;
+static const char* gaussianToken=0;
+static const char* bsplineToken=0;
+static const char* catmullromToken=0;
+static const char* mitchellToken=0;
+static const char* boxToken=0;
+static const char* pointToken=0;
+RixTokenStorage* tokenizer = 0;
 
-static void initPtexCache(RixContext *)
+static void initPtex(RixContext *ctx)
 { 
+    tokenizer = (RixTokenStorage*) ctx->GetRixInterface(k_RixGlobalTokenData);
+    blurToken = tokenizer->GetToken("blur");
+    widthToken = tokenizer->GetToken("width");
+    lerpToken = tokenizer->GetToken("lerp");
+    filterToken = tokenizer->GetToken("filter");
+    gaussianToken = tokenizer->GetToken("gaussian");
+    bsplineToken = tokenizer->GetToken("bspline");
+    catmullromToken = tokenizer->GetToken("catmullrom");
+    mitchellToken = tokenizer->GetToken("mitchell");
+    boxToken = tokenizer->GetToken("box");
+    pointToken = tokenizer->GetToken("point");
+
     if (!cache) {
 	int maxfiles = 1000; // open file handles
 	int maxmem = 100;    // memory (MB)
@@ -77,16 +90,57 @@ static void initPtexCache(RixContext *)
     }
 }
 
-static void termPtexCache(RixContext *)
+static void termPtex(RixContext *)
 {
     cache->release();
     cache = 0;
 }
 
-/* 
- * This has been replaced by ptextureDSO which is a more general call 
- */
-static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
+static void getFilterOptions(int argc, const RslArg* argv[], PtexFilter::Options& opts,
+			     RslFloatIter& width, RslFloatIter& blur)
+{
+    int i;
+    for (i = 0; i+1 < argc; i += 2) {
+	const RslArg* tokArg = argv[i];
+	const RslArg* valArg = argv[i+1];
+	if (!tokArg->IsString()) break;
+	const char* token = *RslStringIter(tokArg);
+
+	if (token == blurToken) {
+	    if (!valArg->IsFloat()) break;
+	    blur = RslFloatIter(valArg);
+	}
+	else if (token == widthToken) {
+	    if (!valArg->IsFloat()) break;
+	    width = RslFloatIter(valArg);
+	}
+	else if (token == lerpToken) {
+	    if (!valArg->IsFloat()) break;
+	    opts.lerp = *RslFloatIter(valArg);
+	}
+	else if (token == filterToken) {
+	    if (!valArg->IsString()) break;
+	    const char* filter = tokenizer->GetToken(*RslStringIter(valArg));
+	    if (filter == gaussianToken) opts.filter = PtexFilter::f_gaussian;
+	    else if (filter == bsplineToken) opts.filter = PtexFilter::f_bspline;
+	    else if (filter == catmullromToken) opts.filter = PtexFilter::f_catmullrom;
+	    else if (filter == mitchellToken) opts.filter = PtexFilter::f_mitchell;
+	    else if (filter == boxToken) opts.filter = PtexFilter::f_box;
+	    else if (filter == pointToken) opts.filter = PtexFilter::f_point;
+	    else break;
+	}
+	else {
+	    break;
+	}
+    }
+
+    if (i != argc) {
+	// TODO report bad arg list
+    }
+}
+
+
+static int ptextureColor(RslContext* ctx, int argc, const RslArg* argv[] )
 {
     RslPointIter result(argv[0]);
     RslStringIter mapname(argv[1]);
@@ -98,16 +152,18 @@ static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
     RslFloatIter vw1(argv[7]);
     RslFloatIter uw2(argv[8]);
     RslFloatIter vw2(argv[9]);
-    RslFloatIter width(argv[10]);
-    RslFloatIter blur(argv[11]);
-    RslFloatIter sharpness(argv[12]);
-    RslFloatIter lerp(argv[13]);
+
+    PtexFilter::Options filterOptions;
+    float defaultWidth = 1, defaultBlur = 0;
+    RslFloatIter width(&defaultWidth, ctx);
+    RslFloatIter blur(&defaultBlur, ctx);
+    getFilterOptions(argc-10, argv+10, filterOptions, width, blur);
 
     Ptex::String error;
     PtexPtr<PtexTexture> tx ( cache->get(*mapname, error) );
     if (tx) {
 	int chan = int(*channel);
-	PtexPtr<PtexFilter> filter ( getFilter(tx, *sharpness, *lerp) );
+	PtexPtr<PtexFilter> filter ( PtexFilter::getFilter(tx, filterOptions) );
 	int numVals = RslArg::NumValues(argc, argv);
 	for (int i = 0; i < numVals; ++i) {
 	    float* resultval = *result;
@@ -136,7 +192,7 @@ static int ptextureColor(RslContext*, int argc, const RslArg* argv[] )
 }
 
 
-static int ptextureFloat(RslContext*, int argc, const RslArg* argv[] )
+static int ptextureFloat(RslContext* ctx, int argc, const RslArg* argv[] )
 {
     RslPointIter result(argv[0]);
     RslStringIter mapname(argv[1]);
@@ -148,16 +204,18 @@ static int ptextureFloat(RslContext*, int argc, const RslArg* argv[] )
     RslFloatIter vw1(argv[7]);
     RslFloatIter uw2(argv[8]);
     RslFloatIter vw2(argv[9]);
-    RslFloatIter width(argv[10]);
-    RslFloatIter blur(argv[11]);
-    RslFloatIter sharpness(argv[12]);
-    RslFloatIter lerp(argv[13]);
+
+    PtexFilter::Options filterOptions;
+    float defaultWidth = 1, defaultBlur = 0;
+    RslFloatIter width(&defaultWidth, ctx);
+    RslFloatIter blur(&defaultBlur, ctx);
+    getFilterOptions(argc-10, argv+10, filterOptions, width, blur);
 
     Ptex::String error;
     PtexPtr<PtexTexture> tx( cache->get(*mapname, error) );
     if (tx) {
 	int chan = int(*channel);
-	PtexPtr<PtexFilter> filter ( getFilter(tx, *sharpness, *lerp) );
+	PtexPtr<PtexFilter> filter ( PtexFilter::getFilter(tx, filterOptions) );
 	int numVals = RslArg::NumValues(argc, argv);
 	for (int i = 0; i < numVals; ++i) {
 	    filter->eval(*result, chan, 1, int(*faceid), *u, *v, *uw1, *vw1, *uw2, *vw2, *width, *blur);
@@ -199,13 +257,11 @@ static int ptexenvColor(RslContext*, int argc, const RslArg* argv[] )
     RslVectorIter R3(argv[6]);
     RslFloatIter blur(argv[7]);
 
-    float sharp = 0;
-
     Ptex::String error;
     PtexTexture* tx = cache->get(*mapname, error);
     if (tx) {
 	int chan = int(*channel);
-	PtexPtr<PtexFilter> filter ( getFilter(tx, sharp, true) );
+	PtexPtr<PtexFilter> filter ( PtexFilter::getFilter(tx, PtexFilter::Options(PtexFilter::f_bspline, 1)) );
 	int numVals = RslArg::NumValues(argc, argv);
 	for (int i = 0; i < numVals; ++i) {
 	    float* resultval = *result;
@@ -303,15 +359,15 @@ static int ptexenvColor(RslContext*, int argc, const RslArg* argv[] )
 */
 static RslFunction ptexFunctions[] =
 {
-    // color = ptexture(mapname, chan, faceid, u, v, uw1, vw1, uw2, vw2, width, blur, sharpness, lerp)
-    { "color Ptexture(string, float, float, float, float, float, float, float, float, float, float, float, float)",
+    // color = Ptexture(mapname, chan, faceid, u, v, uw1, vw1, uw2, vw2, [options, ...])
+    { "color Ptexture(string, float, float, float, float, float, float, float, float, ...)",
       ptextureColor, 0, 0, 0, 0 },
 
-    // float = ptexture(mapname, chan, faceid, u, v, uw1, vw1, uw2, vw2, width, blur, sharpness, lerp)
-    { "float Ptexture(string, float, float, float, float, float, float, float, float, float, float, float, float)",
+    // float = Ptexture(mapname, chan, faceid, u, v, uw1, vw1, uw2, vw2, [options, ...])
+    { "float Ptexture(string, float, float, float, float, float, float, float, float, ...)",
       ptextureFloat, 0, 0, 0, 0 },
 
-    // color = ptexenv(mapname, R0, R1, R2, R3, blur)
+    // color = Ptexenv(mapname, R0, R1, R2, R3, blur)
     { "color Ptexenv(string, uniform float, vector, vector, vector, vector, float)",
       ptexenvColor, 0, 0, 0, 0 },
     {0, 0, 0, 0, 0, 0}
@@ -319,5 +375,5 @@ static RslFunction ptexFunctions[] =
 
 
 extern "C" {
-RSLEXPORT RslFunctionTable RslPublicFunctions(ptexFunctions, initPtexCache, termPtexCache);
+RSLEXPORT RslFunctionTable RslPublicFunctions(ptexFunctions, initPtex, termPtex);
 };

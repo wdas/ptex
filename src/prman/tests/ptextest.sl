@@ -3,12 +3,12 @@ plugin "ptextureShadeop.so";
 surface ptextest(string mapname="";
 		 uniform float width=1;
 		 uniform float blur=0; 
-		 uniform float sharpness=1.0;
+		 string filter="gaussian";
 		 uniform float lerp=1;
-		 uniform float __faceindex=0)
+		 varying float __faceindex=0)
 {
     if (mapname != "") {
-	Ci = ptexture(mapname, 0, __faceindex, u, v, du, dv, width, blur, sharpness, lerp);
+	Ci = Ptexture(mapname, 0, __faceindex, u, v, du, 0, 0, dv, "width", width, "blur", blur, "filter", filter, "lerp", lerp);
     }
     else {
 	Ci = 1;
