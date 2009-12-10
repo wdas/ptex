@@ -1,0 +1,114 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="icon" href="PtexCube16.png">
+<link href="ptex.css" rel="stylesheet" type="text/css">
+<title>Ptex Documentation</title>
+
+<style type="text/css">
+BODY { background-color:#E7E2D5; color:black;
+       background-image:url('bg.gif'); background-repeat:no-repeat }
+A         { color: #00005f; }
+A.nav     { text-decoration: none; }
+A:hover   { color: #3f3f9f; }
+DIV.container { width:100%; margin:0px;}
+DIV.logo    { position:absolute; left:20px; top:20px; }
+DIV.nav     { position:absolute; left:0px; top:80px; width:132px; text-align:right; font-size: 14px; }
+DIV.content { position:absolute; left:170px; top:80px; width:600px; }
+LI.pad      { padding-top:10px; padding-bottom:10px; }
+
+</style>
+
+  </head>
+  <body>
+
+<a class="logo" href="index.html"><img src="PtexLogoColor64.png" border=0 alt="Ptex"></a> <br>
+<div class="nav">
+<div class="nav" style="top:32px"><img src="grad.png"></div>
+<div class="nav" style="top:0px;"><a class="nav" href="overview.html">Overview</a></div>
+<div class="nav" style="top:30px;"><a class="nav" href="documentation.html">Documentation</a></div>
+<div class="nav" style="top:60px;"><a class="nav" href="samples.html">Samples</a></div>
+<div class="nav" style="top:90px;"><a class="nav" href="download.html">Download</a></div>
+<div class="nav" style="top:120px;"><a class="nav" href="mailinglists.html">Mailing Lists</a></div>
+</div>
+
+<div class="content">
+
+<h2 style="margin-top:0px">Technical Details</h2>
+<ul>
+    <li>See the <a href="ptexpaper.html">paper</a>, 
+<i>Ptex: Per-Face Texture Mapping for Production Rendering</i>, Brent Burley and Dylan Lacewell, Eurographics Symposium on Rendering 2008.
+    <li>View the slides from the Eurographics presentation as <a href="http://www.disneyanimation.com/library/ptex/ptex.ppt">Powerpoint</a> or <a href="http://www.disneyanimation.com/library/ptex/ptex-slides.pdf">pdf</a>.</li>
+</ul>
+
+<h2>Workflow</h2>
+<ul>
+    <li>Watch a YouTube video, demonstrating the <a href="http://www.youtube.com/watch?v=GxNlAlOuQQQ">Ptex painting workflow</a>.</li>
+</li>
+</ul>
+
+<a name="fileformat"></a><h2>Ptex File Format</h2>
+
+<blockquote>
+Ptex uses a custom file format that is designed specifically for
+efficient rendering.  A Ptex file can store an arbitrary number of
+textures along with mipmaps and adjacency data used for filtering
+across face boundaries.
+</blockquote>
+
+<ul>
+<li><a href="PtexFile.html">Ptex File Format Specification</a></li>
+<li><a href="adjdata.html">Adjacency data</a></li>
+<li><a href="tritex.html">Triangle textures</a></li>
+<li><a href="metakeys.html">Standard meta data keys</a></li>
+</ul>
+
+<a name="api"></a><h2>Ptex API</h2>
+<blockquote>
+The Ptex API is written in C++ and can peform file I/O, caching, and filtering needed for rendering.
+See the <a href="apidocs/index.html">Ptex API</a> docs for details.
+</blockquote>
+
+<a name="license"></a><h2>Ptex License</h2>
+
+<blockquote>
+PTEX SOFTWARE<br>
+Copyright 2009 Disney Enterprises, Inc. All rights reserved<br><br>
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+<ul>
+<li> Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+
+<li> Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in
+     the documentation and/or other materials provided with the
+     distribution.
+
+<li> The names "Disney", "Walt Disney Pictures", "Walt Disney Animation
+     Studios" or the names of its contributors may NOT be used to
+     endorse or promote products derived from this software without
+     specific prior written permission from Walt Disney Pictures.
+</ul>
+
+Disclaimer: THIS SOFTWARE IS PROVIDED BY WALT DISNEY PICTURES AND
+CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
+BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, NONINFRINGEMENT AND TITLE ARE DISCLAIMED.
+IN NO EVENT SHALL WALT DISNEY PICTURES, THE COPYRIGHT HOLDER OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND BASED ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+</blockquote>
+
+</div>
+</body>
+</html>

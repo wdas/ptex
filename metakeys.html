@@ -1,0 +1,31 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Ptex: Standard meta data keys</title>
+<link href="ptex.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>Standard meta data keys</h1>
+
+Meta data keys that begin with "Ptex" are reserved.<p>
+Standard Ptex keys are documented in the following table.<p>
+<table border="1" cellspacing="3" cellpadding="3">
+<tr>
+<td>Key</td><td>Type</td><td>Description</td><td>Count </td></tr>
+
+<tr>
+<td>PtexFaceVertCounts </td><td>int32 </td><td>Number of vertices for each face. </td><td>one value per face  </td></tr>
+<tr>
+<td>PtexFaceVertIndices </td><td>int32 </td><td>Index of each face vert within PtexVertPositions array. </td><td>one value per vertex per face  </td></tr>
+<tr>
+<td>PtexVertPositions </td><td>float </td><td>3d position of each vertex. </td><td>three values per vertex  </td></tr>
+
+</table>
+<p>
+The PtexFaceVertCounts, PtexFaceVertIndices, and PtexVertPositions can be used to describe geometry on which the Ptex texture can be mapped. This data isn't used directly by the Ptex library but can be used by 3d painting programs, Ptex texture viewers, or similar applications.<p>
+Notes:<ul>
+<li>The faceids and per-face UVs used to map the Ptex texture data are implied by the face and vertex ordering listed in these keys.</li><li>Non-quad faces are allowed. They are not required to be subdivided into quad subfaces as with the texture data. Thus, the faceids in the texture data may not match the entries in the meta data exactly, though they will be in the same order. </li></ul>
+
+</body>
+</html>

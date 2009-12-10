@@ -1,0 +1,75 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html/4/loose.dtd">
+<html><head> 
+
+
+<title>Ptex: Per-Face Texture Mapping for Production Rendering</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> 
+</head><body bgcolor="#ffffff">
+
+<h1 align="center">
+Ptex: Per-Face Texture Mapping for Production Rendering
+</h1>
+
+<center>
+    <b>Brent Burley<sup>1</sup> and Dylan Lacewell<sup>1,2</sup></b>
+
+<p>
+<sup>1</sup>Walt Disney Animation Studios<br>
+<sup>2</sup>University of Utah
+</p>
+</center>
+
+<center>
+<p>
+<a href="http://www.disneyanimation.com/library/ptex/ptex-teaser-big.png"><img src="ptex-teaser.png" alt="" border="0"></a>
+</p>
+</center>
+
+<blockquote>
+    <b>Figure 1:</b> T. Rex with 2694 faces rendered with Ptex.  No explicit
+UV assignment was used.  The largest texture layer, the fine-scale
+displacements, has 836 million texels stored in a single Ptex file
+with individual face resolutions ranging from 64 x 64 to
+2048 x 2048 texels.  No seams are visible across faces, even
+under close magnification. (©Walt Disney Animation Studios) 
+
+</blockquote>
+
+<blockquote>
+<h3>Abstract:</h3>
+Explicit parameterization of subdivision surfaces for texture mapping
+adds significant cost and complexity to film production.  Most
+parameterization methods currently in use require setup effort, and
+none are completely general.  We propose a new texture mapping method
+for Catmull-Clark subdivision surfaces that requires no explicit
+parameterization. Our method, <i>Ptex</i>, stores a separate
+texture per quad face of the subdivision control mesh, along with a
+novel per-face adjacency map, in a single texture file per
+surface. Ptex uses the adjacency data to perform seamless anisotropic
+filtering of multi-resolution textures across surfaces of arbitrary
+topology. Just as importantly, Ptex requires no manual setup and
+scales to models of arbitrary mesh complexity and texture detail.
+
+Ptex has been successfully used to texture all of the models in an
+animated theatrical short and is currently being applied to an entire
+animated feature.  Ptex has eliminated UV assignment from our studio
+and significantly increased the efficiency of our pipeline.
+</blockquote>
+
+<p>
+Access the definitive version of this paper at <a href="http://diglib.eg.org/">diglib.eg.org</a> or download the preprint <a href="http://www.disneyanimation.com/library/ptex/ptex.pdf">here</a>.
+</p>
+
+Cite this paper as:
+<blockquote>
+<pre>@inproceedings{burley08ptex,
+    author      = {Brent Burley and Dylan Lacewell},
+    title       = {Ptex: Per-Face Texture Mapping for Production Rendering},
+    booktitle   = {Eurographics Symposium on Rendering 2008},
+    year        = {2008},
+    pages       = {1155--1164}
+}
+</pre>
+</blockquote>
+
+</body></html>
