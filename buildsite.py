@@ -25,7 +25,7 @@ $news
 </center>
 '''
 
-newsitems = [['Xxx xx, 20xx',
+newsitems = [['Jan 15, 2010',
               'Ptex released as free open source.'],
              ['Sep 30, 2009',
               'Ptex integrated into <a href="https://renderman.pixar.com/">Pixar\'s RenderMan Pro Server 15.0</a>.'],
