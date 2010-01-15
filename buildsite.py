@@ -165,7 +165,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 download='''
 Read the <a href="documentation.html#api">Ptex License</a> before downloading this software.<br><br>
 The Ptex API is hosted as free open source at <a href="http://github.com/wdas/ptex">github</a>.<br>
-Download the <a href="http://github.com/wdas/ptex/archives/master">latest release</a>.<br>
+Download the source for the latest release, <a href="http://github.com/wdas/ptex/archives/v2.0.0">v2.0.0</a>.<br>
 '''
 
 mailinglists='''
