@@ -21,7 +21,7 @@ $news
 <br>
 <center>
 <a target="_top" href="http://disneyanimation.com">
-<img src="http://daweb/new/include/header/headerlogo-clean.png" border=0></a>
+<img src="wdaslogo.png" border=0></a>
 </center>
 '''
 
