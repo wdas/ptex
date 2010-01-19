@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <stdio.h>
 #include <stdint.h>
 #include <iostream>
+#include <string.h>
 
 #if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
 #include <float.h>

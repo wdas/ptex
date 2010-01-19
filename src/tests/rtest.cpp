@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 #include "Ptexture.h"
+#include <cstdlib>
 
 void DumpData(Ptex::DataType dt, int nchan, PtexFaceData* dh, std::string prefix)
 {

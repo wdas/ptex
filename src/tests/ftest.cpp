@@ -1,5 +1,7 @@
 #include <string>
 #include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
 #include "Ptexture.h"
 
 int main(int argc, char** argv)
