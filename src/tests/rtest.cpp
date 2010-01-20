@@ -2,6 +2,7 @@
 #include <iostream>
 #include "Ptexture.h"
 #include <cstdlib>
+#include <cstdio> // printf()
 
 void DumpData(Ptex::DataType dt, int nchan, PtexFaceData* dh, std::string prefix)
 {
