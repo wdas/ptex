@@ -3,7 +3,7 @@ from string import Template
 
 main='''
 <b>Ptex</b> is a texture mapping system developed
-by <a href="http://disneyanimation.com" target="_top">Walt Disney
+by <a href="http://www.disneyanimation.com" target="_top">Walt Disney
 Animation Studios</a> for production-quality rendering:
 <ul>
 <li class="pad">No UV assignment is required!  Ptex applies a
