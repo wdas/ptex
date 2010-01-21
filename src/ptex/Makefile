@@ -9,7 +9,7 @@ endif
 # DEBUG = -g -DDEBUG
 DEBUG    = -O2 -DNDEBUG
 INCPATH  = -I.
-DEFINES  = -DPATH_MAX=256
+DEFINES  = 
 CXXFLAGS = -Wall -pedantic -W -std=c++98 $(DEBUG) $(INCPATH) $(DEFINES) -fPIC
 LFLAGS   = 
 LIBS     = -lm -lz -lpthread

@@ -101,7 +101,9 @@ void DumpMetaData(PtexMetaData* meta)
 int main(int /*argc*/, char** /*argv*/)
 {
     Ptex::String error;
-    PtexTexture* r = PtexTexture::open("test.ptx", error);
+    PtexPtr<PtexCache> c(PtexCache::create());
+    c->setSearchPath("foo/bar:.");
+    PtexPtr<PtexTexture> r(c->get("test.ptx", error));
 
     if (!r) {
 	std::cerr << error.c_str() << std::endl;
@@ -153,6 +155,5 @@ int main(int /*argc*/, char** /*argv*/)
 	dh->release();
     }
 
-    r->release();
     return 0;
 }

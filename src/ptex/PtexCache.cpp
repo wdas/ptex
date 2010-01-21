@@ -334,17 +334,21 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 
 	// temporarily release cache lock while we open the file
 	cachelock.unlock();
-	char tmppath[PATH_MAX+1];
+	std::string tmppath;
+	const char* pathToOpen = filename;
 	if (!_io) {
 	    if (filename[0] != '/' && !_searchdirs.empty()) {
 		// file is relative, search in searchpath
+		tmppath.reserve(256); // minimize reallocs (will grow automatically)
 		bool found = false;
 		struct stat statbuf;
 		for (size_t i = 0, size = _searchdirs.size(); i < size; i++) {
-		    snprintf(tmppath, sizeof(tmppath), "%s/%s", _searchdirs[i].c_str(), filename);
-		    if (stat(tmppath, &statbuf) == 0) {
+		    tmppath = _searchdirs[i];
+		    tmppath += "/";
+		    tmppath += filename;
+		    if (stat(tmppath.c_str(), &statbuf) == 0) {
 			found = true;
-			filename = tmppath;
+			pathToOpen = tmppath.c_str();
 			break;
 		    }
 		}
@@ -356,7 +360,7 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 		}
 	    }
 	}
-	if (ok) ok = reader->open(filename, error);
+	if (ok) ok = reader->open(pathToOpen, error);
 
 	// reacquire cache lock
 	cachelock.lock();

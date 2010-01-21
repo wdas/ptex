@@ -79,7 +79,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 typedef __int64 FilePos;
 #define fseeko _fseeki64
 #define ftello _ftelli64
-#define PATH_MAX MAX_PATH
 
 inline double log2(double x) {
     return log(x) * 1.4426950408889634; 
