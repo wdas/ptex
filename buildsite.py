@@ -20,7 +20,7 @@ $news
 <br>
 <br>
 <center>
-<a target="_top" href="http://disneyanimation.com">
+<a target="_top" href="http://www.disneyanimation.com">
 <img src="wdaslogo.png" border=0></a>
 </center>
 '''
