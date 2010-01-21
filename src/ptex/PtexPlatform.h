@@ -53,6 +53,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <Windows.h>
 #include <malloc.h>
 #include <io.h>
+#include <tchar.h> 
+#include <process.h>
 
 #else
 

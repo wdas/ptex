@@ -223,7 +223,7 @@ PtexWriter* PtexWriter::edit(const char* path, bool incremental,
 		std::stringstream str;
 		str << "PtexWriter::edit error: header doesn't match existing file, "
 		    << "conversions not currently supported";
-		error = str.str();
+		error = str.str().c_str();
 		return 0;
 	    }
 	}

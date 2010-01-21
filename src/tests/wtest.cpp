@@ -20,10 +20,10 @@ bool checkMeta(const char* path,
 	       const char* sval, double* dvals, int ndvals, int16_t* ivals, int nivals,
 	       const char* xval)
 {
-    std::string error;
+    Ptex::String error;
     PtexPtr<PtexTexture> tx(PtexTexture::open(path, error));
     if (!tx) {
-	std::cerr << error << std::endl;
+        std::cerr << error.c_str() << std::endl;
 	return 0;
     }
     PtexPtr<PtexMetaData> meta(tx->getMetaData());
