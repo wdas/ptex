@@ -71,7 +71,7 @@ struct Ptex {
 	can be triangle-based (with triangular textures) or quad-based
 	(with rectangular textures). */
     enum MeshType {
-	mt_triangle,		///< Mesh is triangle-based (placeholder, not yet supported).
+	mt_triangle,		///< Mesh is triangle-based.
 	mt_quad			///< Mesh is quad-based.
     };
 
