@@ -125,13 +125,13 @@ int main(int /*argc*/, char** /*argv*/)
     }
     free(buff);
 
-    char* sval = "a str val";
+    const char* sval = "a str val";
     int ndvals = 3;
     double dvals_buff[3] = { 1.1,2.2,3.3 };
     double* dvals = dvals_buff;
     int nivals = 4;
     int16_t ivals[4] = { 2, 4, 6, 8 };
-    char* xval = 0;
+    const char* xval = 0;
 
     writeMeta(w, sval, dvals, ndvals, ivals, nivals, xval);
     if (!w->close(error)) {
