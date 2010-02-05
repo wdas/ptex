@@ -43,8 +43,12 @@ bool checkMeta(const char* path,
     meta->getValue("xval", f_xval);
 
     bool ok = ((!sval || 0==strcmp(sval, f_sval)) &&
-	       (!ndvals || ndvals == f_ndvals && 0==memcmp(dvals, f_dvals, ndvals*sizeof(dvals[0]))) &&
-	       (!nivals || nivals == f_nivals && 0==memcmp(ivals, f_ivals, nivals*sizeof(ivals[0]))) &&
+	       (!ndvals || (ndvals == f_ndvals &&
+			    0==memcmp(dvals, f_dvals,
+				      ndvals * sizeof(dvals[0])))) &&
+	       (!nivals || (nivals == f_nivals &&
+			    0==memcmp(ivals, f_ivals,
+				      nivals*sizeof(ivals[0])))) &&
 	       (!xval || 0==strcmp(xval, f_xval)));
     if (!ok) {
 	std::cerr << "Meta data readback failed" << std::endl;
