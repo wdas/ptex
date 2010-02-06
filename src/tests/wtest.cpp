@@ -61,13 +61,13 @@ bool checkMeta(const char* path,
 int main(int /*argc*/, char** /*argv*/)
 {
     static Ptex::Res res[] = { Ptex::Res(8,7),
-			       Ptex::Res(1,2),
+			       Ptex::Res(0x0201),
 			       Ptex::Res(3,1),
-			       Ptex::Res(5,4),
+			       Ptex::Res(0x0405),
 			       Ptex::Res(9,8),
-			       Ptex::Res(2,4),
+			       Ptex::Res(0x0402),
 			       Ptex::Res(6,2),
-			       Ptex::Res(7,4),
+			       Ptex::Res(0x0407),
 			       Ptex::Res(2,1)};
     static int adjedges[][4] = {{ 2, 3, 0, 1 },
 				{ 2, 3, 0, 1 },
