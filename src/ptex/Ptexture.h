@@ -164,9 +164,12 @@ struct Ptex {
 	/// Constructor.
 	Res(int8_t ulog2, int8_t vlog2) : ulog2(ulog2), vlog2(vlog2) {}
 
-	/// Constructor from 16-bit integer, as returned by val() member function.
-	Res(uint16_t value) { val() = value; }
-	
+	/// Constructor from 16-bit integer
+	Res(uint16_t value) {
+	    ulog2 = *(uint8_t *)&value;
+	    vlog2 = *((uint8_t *)&value + 1);
+	}
+
 	/// U resolution in texels.
 	int u() const { return 1<<(unsigned)ulog2; }
 
