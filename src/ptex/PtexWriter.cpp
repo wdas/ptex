@@ -86,7 +86,7 @@ namespace {
 	    initialized = 1;
 #ifdef WINDOWS
 	    // use GetTempPath API (first call determines length of result)
-	    DWORD result = ::GetTempPath(0, _T(""));
+	    DWORD result = ::GetTempPath(0, L"");
 	    if (result > 0) {
 		std::vector<TCHAR> tempPath(result + 1);
 		result = ::GetTempPath(static_cast<DWORD>(tempPath.size()), &tempPath[0]);
@@ -111,9 +111,9 @@ namespace {
 	// use process id and counter to make unique filename
 	std::stringstream s;
 	static int count = 0;
-	s << tmpdir << "/" << "PtexTmp" << getpid() << "_" << ++count;
+	s << tmpdir << "/" << "PtexTmp" << _getpid() << "_" << ++count;
 	tmppath = s.str();
-	return fopen((char*) tmppath.c_str(), "w+");
+	return fopen((char*) tmppath.c_str(), "wb+");
 #else
 	// use mkstemp to open unique file
 	tmppath = tmpdir + "/PtexTmpXXXXXX";
