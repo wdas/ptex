@@ -1137,11 +1137,14 @@ void PtexMainWriter::writeMetaData(FILE* fp)
     // write small meta data items in a single zip block
     for (int i = 0, n = _metadata.size(); i < n; i++) {
 	MetaEntry& e = _metadata[i];
+#ifndef PTEX_NO_LARGE_METADATA_BLOCKS
 	if (int(e.data.size()) > MetaDataThreshold) {
 	    // skip large items, but record for later
 	    lmdEntries.push_back(&e);
 	}
-	else {
+	else 
+#endif
+    {
 	    // add small item to zip block
 	    _header.metadatamemsize += writeMetaDataBlock(fp, e);
 	}

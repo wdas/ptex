@@ -1,4 +1,5 @@
 #include <string>
+#include <map>
 #include <iostream>
 #include "Ptexture.h"
 #include <cstdlib>
@@ -74,11 +75,26 @@ class DumpMetaArrayVal
 
 void DumpMetaData(PtexMetaData* meta)
 {
-    std::cout << "meta:" << std::endl;
-    for (int i = 0; i < meta->numKeys(); i++) {
+    // Sort the meta keys before printing them out because the
+    // internal key order may change depending on whether large meta
+    // data support was included.  Normally the key order shouldn't
+    // matter, but we don't want it to cause the regression test to fail.
+
+    std::map<std::string,int> sortedkeys;
+    for (int i = 0; i < meta->numKeys(); i++)
+    {
 	const char* key;
 	Ptex::MetaDataType type;
 	meta->getKey(i, key, type);
+        sortedkeys[key] = i;
+    }
+
+    std::cout << "meta:" << std::endl;
+    std::map<std::string,int>::iterator iter;
+    for (iter = sortedkeys.begin(); iter != sortedkeys.end(); iter++) {
+	const char* key;
+	Ptex::MetaDataType type;
+	meta->getKey(iter->second, key, type);
 	std::cout << "  " << key << " type=" << Ptex::MetaDataTypeName(type);
 	switch (type) {
 	case Ptex::mdt_string:
