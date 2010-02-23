@@ -13,6 +13,11 @@ CXXFLAGS = -Wall -W -pedantic -std=c++98 $(DEBUG) $(INCPATH) -fPIC
 PTEX     = ../ptex/libPtex.a
 LIBS     = -lm -lz -lpthread
 
+ifdef PTEX_STATIC
+CXXFLAGS += -DPTEX_STATIC
+endif
+
+
 INSTALL = \
 	bin/ptxinfo
 
