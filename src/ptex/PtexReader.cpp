@@ -783,7 +783,6 @@ void PtexReader::getData(int faceid, void* buffer, int stride, Res res)
     if (!_ok) return;
 
     // note - all locking is handled in called getData methods
-    FaceInfo& f = _faceinfo[faceid];
     int resu = res.u(), resv = res.v();
     int rowlen = _pixelsize * resu;
     if (stride == 0) stride = rowlen;
@@ -798,8 +797,8 @@ void PtexReader::getData(int faceid, void* buffer, int stride, Res res)
     else if (d->isTiled()) {
 	// loop over tiles
 	Res tileres = d->tileRes();
-	int ntilesu = f.res.ntilesu(tileres);
-	int ntilesv = f.res.ntilesv(tileres);
+	int ntilesu = res.ntilesu(tileres);
+	int ntilesv = res.ntilesv(tileres);
 	int tileures = tileres.u();
 	int tilevres = tileres.v();
 	int tilerowlen = _pixelsize * tileures;

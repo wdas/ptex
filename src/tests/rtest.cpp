@@ -5,55 +5,32 @@
 #include <cstdlib>
 #include <cstdio> // printf()
 
-void DumpData(Ptex::DataType dt, int nchan, PtexFaceData* dh, std::string prefix)
+void DumpData(Ptex::Res res, Ptex::DataType dt, int nchan, void* data, std::string prefix)
 {
-    void* dpixel = malloc(Ptex::DataSize(dt)*nchan);
     float* pixel = (float*) malloc(sizeof(float)*nchan);
     uint8_t* cpixel = (uint8_t*) malloc(sizeof(uint8_t)*nchan);
-    Ptex::Res res = dh->res();
-    printf("%sdata (%d x %d)", prefix.c_str(), res.u(), res.v());
-    if (dh->isTiled()) {
-	Ptex::Res tileres = dh->tileRes();
-	printf(", tiled (%d x %d):\n", tileres.u(), tileres.v());
-	int n = res.ntiles(tileres);
-	for (int i = 0; i < n; i++) {
-	    PtexFaceData* t = dh->getTile(i);
-	    std::cout << prefix << "  tile " << i;
-	    if (!t) {
-		std::cout << " NULL!" << std::endl;
-	    } else {
-		DumpData(dt, nchan, t, prefix + "  ");
-		t->release();
-	    }
-	}
-    } else {
-	int ures, vres;
-	if (dh->isConstant()) { ures = vres = 1; std::cout << ", const: "; }
-	else { ures = res.u(); vres = res.v(); std::cout << ":\n"; }
+    printf("%sdata (%d x %d):\n", prefix.c_str(), res.u(), res.v());
+    int ures = res.u(), vres = res.v();
+    int pixelSize = Ptex::DataSize(dt) * nchan;
 	
-	int vimax = vres;// if (vimax > 16) vimax = 16;
-	for (int vi = 0; vi < vimax; vi++) {
-	    if (vi == 8 && vres > 16) { vi = vres-8; std::cout << prefix << "  ..." << std::endl; }
-	    std::cout << prefix << "  ";
-	    int uimax = ures;// if (uimax > 16) uimax = 16;
-	    for (int ui = 0; ui < uimax; ui++) {
-		if (ui == 8 && ures > 16) { ui = ures-8; std::cout << "... "; }
-		dh->getPixel(ui, vi, dpixel);
-		Ptex::ConvertToFloat(pixel, dpixel, dt, nchan);
-		Ptex::ConvertFromFloat(cpixel, pixel, Ptex::dt_uint8, nchan);
-		for (int c=0; c < nchan; c++) {
-		    printf("%02x", cpixel[c]);
-		}
-		printf(" ");
-	    }
-	    if (uimax != ures) printf(" ...");
-	    printf("\n");
-	}
-	if (vimax != vres) std::cout << prefix << "  ..." << std::endl;
+    for (int vi = 0; vi < vres; vi++) {
+        if (vi == 8 && vres > 16) { vi = vres-8; std::cout << prefix << "  ..." << std::endl; }
+        std::cout << prefix << "  ";
+        for (int ui = 0; ui < ures; ui++) {
+            if (ui == 8 && ures > 16) { ui = ures-8; std::cout << "... "; }
+            uint8_t* dpixel = (uint8_t*)data + (vi * ures + ui) * pixelSize;
+            Ptex::ConvertToFloat(pixel, dpixel, dt, nchan);
+            Ptex::ConvertFromFloat(cpixel, pixel, Ptex::dt_uint8, nchan);
+            for (int c=0; c < nchan; c++) {
+                printf("%02x", cpixel[c]);
+            }
+            printf(" ");
+        }
+        printf("\n");
     }
+
     free(cpixel);
     free(pixel);
-    free(dpixel);
 }
 
 template <typename T>
@@ -156,19 +133,15 @@ int main(int /*argc*/, char** /*argv*/)
 		  << "  flags: " << int(f.flags) << "\n";
 
 	Ptex::Res res = f.res;
+        void* data = malloc(Ptex::DataSize(r->dataType()) * r->numChannels() * res.size());
 	while (res.ulog2 > 0 || res.vlog2 > 0) {
-	    PtexFaceData* dh = r->getData(i, res);
-	    if (!dh) break;
-	    DumpData(r->dataType(), r->numChannels(), dh, "  ");
-	    bool isconst = dh->isConstant();
-	    dh->release();
-	    if (isconst) break;
+            r->getData(i, data, 0, res);
+	    DumpData(res, r->dataType(), r->numChannels(), data, "  ");
 	    if (res.ulog2) res.ulog2--;
 	    if (res.vlog2) res.vlog2--;
 	}
-	PtexFaceData* dh = r->getData(i, Ptex::Res(0,0));
-	DumpData(r->dataType(), r->numChannels(), dh, "  ");
-	dh->release();
+        r->getData(i, data, 0, Ptex::Res(0,0));
+	DumpData(res, r->dataType(), r->numChannels(), data, "  ");
     }
 
     return 0;
