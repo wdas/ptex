@@ -109,6 +109,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <iostream>
+#include <ctype.h>
 #include "Ptexture.h"
 #include "PtexReader.h"
 #include "PtexCache.h"
@@ -337,7 +338,13 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 	std::string tmppath;
 	const char* pathToOpen = filename;
 	if (!_io) {
-	    if (filename[0] != '/' && !_searchdirs.empty()) {
+            bool isAbsolute = (filename[0] == '/'
+#ifdef WINDOWS
+                               || filename[0] == '\\'
+                               || (isalpha(filename[0]) && filename[1] == ':')
+#endif
+                               );
+	    if (!isAbsolute && !_searchdirs.empty()) {
 		// file is relative, search in searchpath
 		tmppath.reserve(256); // minimize reallocs (will grow automatically)
 		bool found = false;
