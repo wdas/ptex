@@ -2,16 +2,28 @@
 import os
 os.environ['PATH'] = ':'.join(['.', os.environ['PATH']])
 
-tests = ['wtest',
-         'rtest > rtest.dat && cmp rtest.dat rtestok.dat',
-         'ftest > ftest.dat && cmp ftest.dat ftestok.dat',
-         'halftest']
+def CompareFiles(a, b):
+    'Compare files using Universal Newline Support for portability'
+    return open(a, 'rU').readlines() != open(b, 'rU').readlines()
 
+tests = ['wtest',
+         ('rtest', 'rtest.dat', 'rtestok.dat'),
+         ('ftest', 'ftest.dat', 'ftestok.dat'),
+         'halftest']
 
 failed = 0
 for test in tests:
-    print 'Running:', test
-    status = os.system(test)
+    if type(test) is tuple:
+        cmd, output, ref = test
+        cmd = cmd + ' > ' + output
+    else:
+        cmd = test
+        output = ref = None
+    print 'Running:', cmd
+    status = os.system(cmd)
+    if status == 0 and output and ref:
+        print 'Comparing:', output, ref
+        status = CompareFiles(output, ref)
     if status != 0:
         print 'FAILED'
         failed += 1
