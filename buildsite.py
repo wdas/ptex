@@ -96,8 +96,7 @@ documentation='''
 
 <h2>Workflow</h2>
 <ul>
-    <li>Watch a YouTube video, demonstrating the <a href="http://www.youtube.com/watch?v=GxNlAlOuQQQ">Ptex painting workflow</a>.</li>
-</li>
+    <li>Watch a YouTube video, demonstrating the <a href="http://www.youtube.com/watch?v=GxNlAlOuQQQ">Ptex painting workflow</a>.  <br><i>Note: the application shown in the video is not part of the Ptex open source package.</i></li>
 </ul>
 
 <a name="fileformat"></a><h2>Ptex File Format</h2>
@@ -165,7 +164,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 download='''
 Read the <a href="documentation.html#api">Ptex License</a> before downloading this software.<br><br>
 The Ptex API is hosted as free open source at <a href="http://github.com/wdas/ptex">github</a>.<br>
-Download the source for the latest release, <a href="http://github.com/wdas/ptex/archives/v2.0.0">v2.0.0</a>.<br>
+Browse the <a href="http://github.com/wdas/ptex/commits/master">change history</a>.<br>
+Download the source for the <a href="http://github.com/wdas/ptex/archives/v2.0.0">v2.0.0 release</a>.<br>
+Download the source for the <a href="http://github.com/wdas/ptex/archives/master">latest version</a>.<br>
 '''
 
 mailinglists='''
