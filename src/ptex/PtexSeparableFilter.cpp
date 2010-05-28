@@ -305,13 +305,14 @@ void PtexSeparableFilter::applyToCorner(PtexSeparableKernel& k, int faceid,
 	// valence 5+, make kernel symmetric and apply equally to each face
 	// first, rotate to standard orientation, u=v=0
 	k.rotate(eid + 2);
-	k.makeSymmetric();
+        double initialWeight = k.weight();
+        double newWeight = k.makeSymmetric(initialWeight);
 	for (int i = 1; i <= numCorners; i++) {
 	    PtexSeparableKernel kc = k;
 	    applyToCornerFace(kc, f, 2, cfaceId[i], *cface[i], cedgeId[i]);
 	}
-	// adjust weight for additional corners (one was already counted)
-	_weight += k.weight() * (numCorners-1);
+        // adjust weight for symmetrification and for additional corners
+        _weight += newWeight * numCorners - initialWeight;
     }
     else {
 	// valence 2 or 3, ignore corner face (just adjust weight)

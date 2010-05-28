@@ -385,7 +385,7 @@ class PtexSeparableKernel : public Ptex {
 	res.vlog2++;
     }
 
-    void makeSymmetric()
+    double makeSymmetric(double initialWeight)
     {
 	assert(u == 0 && v == 0);
 
@@ -397,22 +397,52 @@ class PtexSeparableKernel : public Ptex {
 	    do { downresV(); } while (res.vlog2 > res.ulog2);
 	}
 
-	// check initial weight so we can preserve overall weight
-	double initialWeight = weight();
-
 	// truncate excess samples in longer dimension
 	uw = vw = PtexUtils::min(uw, vw);
 
-	// combine corresponding u and v samples
-	double newWeight = 0;
+	// combine corresponding u and v samples and compute new kernel weight
+        double newWeight = 0;
 	for (int i = 0; i < uw; i++) {
-	    ku[i] += kv[i];
-	    newWeight += ku[i];
+            double sum = ku[i] + kv[i];
+	    ku[i] = kv[i] = sum;
+            newWeight += sum;
 	}
+        newWeight *= newWeight; // equivalent to k.weight() ( = sum(ku)*sum(kv) )
 
-	// compensate for weight change by scaling v weights
-	double scale = newWeight == 0 ? 1.0 : initialWeight / (newWeight * newWeight);
-	for (int i = 0; i < uw; i++) kv[i] = ku[i] * scale;
+	// compute scale factor to compensate for weight change
+	double scale = newWeight == 0 ? 1.0 : initialWeight / newWeight;
+
+        // Note: a sharpening kernel (like Mitchell) can produce
+        // negative weights which may cancel out when adding the two
+        // kernel axes together, and this can cause the compensation
+        // scale factor to spike up.  We expect the scale factor to be
+        // less than one in "normal" cases (i.e. ku*kv <= (ku+kv)^2 if ku
+        // and kv are both positive), so clamping to -1..1 will have
+        // no effect on positive kernels.  If there are negative
+        // weights, the clamping will just limit the amount of
+        // sharpening happening at the corners, and the result will
+        // still be smooth.
+
+        // clamp scale factor to -1..1 range
+        if (scale >= 1) {
+            // scale by 1 (i.e. do nothing)
+        }
+        else {
+            if (scale < -1) {
+                // a negative scale means the original kernel had an overall negative weight
+                // after making symmetric, the kernel will always be positive
+                // scale ku by -1
+                // note: choice of u is arbitrary; we could have scaled u or v (but not both)
+                for (int i = 0; i < uw; i++) ku[i] *= -1;
+                newWeight = -newWeight;
+            }
+            else {
+                // scale ku to restore initialWeight (again, choice of u instead of v is arbitrary)
+                for (int i = 0; i < uw; i++) ku[i] *= scale;
+                newWeight = initialWeight;
+            }
+        }
+        return newWeight;
     }
 
     void apply(double* dst, void* data, DataType dt, int nChan, int nTxChan)
