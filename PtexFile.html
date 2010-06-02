@@ -3,7 +3,7 @@
 <head>
 <link href="ptex.css" rel="stylesheet" type="text/css">
 </head>
-<body><h1>Ptex File Format Specification Version 1.3<br>
+<body><h1>Ptex File Format Specification Version 1.3r1<br>
 </h1>
 Revision history:<br>
 <table style="text-align: left;" border="1" cellpadding="2" cellspacing="2">
@@ -43,6 +43,14 @@ items.<br> Clarified triangle texture storage.<br>
       <td style="vertical-align: top;">Corrected size of "keysize" and "datatype" in meta data spec to match implementation.<br>
 Revised large metadata spec (not previously implemented).<br> Added "editdatapos" to extended header. <br> Added "compatibility barrier" for pre-1.3 file readers.<br>
 Added minor version to header.<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">1.3r1<br>
+      </td>
+      <td style="vertical-align: top;">6/2/10<br>
+      </td>
+      <td style="vertical-align: top;">Corrected details of Constant Data block to match implementation.<br>
       </td>
     </tr>
   </tbody>
@@ -472,9 +480,7 @@ face.&nbsp; For non-constant faces, these values represent the average
 of the values for each
 face.<br>
 <ul>
-  <li>The data block contains the first channel for all the faces (in
-faceid
-order), then the second channel, etc.</li>
+  <li>The per-channel data values are interleaved for each face, and all the faces are packed together in faceid order.</li>
   <li>The entire block is zip
 compressed
 as a single unit (with no differencing).</li>
