@@ -83,6 +83,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <iostream>
 #include "Ptexture.h"
 #include "PtexReader.h"
