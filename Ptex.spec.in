@@ -1,0 +1,67 @@
+# RPMs can be built using 'git make-rpm'
+Name:           Ptex
+Version:        __VERSION__
+Release:        __RELEASE__%{?dist}
+Summary:        Per-Face Texture Mapping for Production Rendering
+
+Group:          System Environment/Libraries
+License:        Disney
+URL:            http://gitweb/projects/%{name}
+Source0:        http://gitweb/projects/%{name}-%{version}.tar.gz
+
+BuildRequires:  gcc
+BuildRequires:  gcc-c++
+BuildRequires:  make
+BuildRequires:  pkgconfig-disney
+
+prefix:         %{_prefix}
+
+%description
+Ptex is a texture mapping system developed by
+Walt Disney Animation Studios for production-quality rendering.
+
+%prep
+%setup -q
+
+%build
+
+%install
+%{__make} -C src
+
+%{__mkdir_p} %{buildroot}%{_bindir}
+%{__cp} install/bin/* %{buildroot}%{_bindir}
+
+%{__mkdir_p} %{buildroot}%{_libdir}
+%{__cp} install/lib/* %{buildroot}%{_libdir}
+
+%{__mkdir_p} %{buildroot}%{_includedir}
+%{__cp} install/include/* %{buildroot}%{_includedir}
+
+%{__mkdir_p} %{buildroot}%{_defaultdocdir}
+%{__cp} -r install/doc/ptex %{buildroot}%{_defaultdocdir}/Ptex
+
+%{__mkdir_p} %{buildroot}%{_libdir}/pkgconfig
+pkgconfig-gen \
+	--name Ptex \
+	--desc 'Ptex Library' \
+	--prefix %{_prefix} > %{buildroot}%{_libdir}/pkgconfig/Ptex.pc
+
+%clean
+rm -rf %{buildroot}
+
+%post
+
+%postun
+
+%files
+%defattr(-,root,root,-)
+%{_bindir}/*
+%{_libdir}/*.so
+%{_libdir}/*.a
+%{_libdir}/pkgconfig/*.pc
+%{_defaultdocdir}/Ptex
+%{_includedir}/*.h
+
+%changelog
+* Fri Jun 25 2010 David Aguilar <david.aguilar@disneyanimation.com> 2.0.0-1
+- Initial package.
