@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 */
 
 #if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
+# ifndef PTEXAPI
 #  ifndef PTEX_STATIC
 #    ifdef PTEX_EXPORTS
 #       define PTEXAPI __declspec(dllexport)
@@ -51,8 +52,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #  else
 #    define PTEXAPI
 #  endif
+# endif
 #else
-#  define PTEXAPI
+#  ifndef PTEXAPI
+#    define PTEXAPI
+#  endif
 #  ifndef DOXYGEN
 #    define PTEX_USE_STDSTRING
 #  endif

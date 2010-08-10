@@ -148,8 +148,8 @@ PtexCacheImpl::~PtexCacheImpl()
     // explicitly pop all unused items so that they are 
     // destroyed while cache is still valid
     AutoLockCache locker(cachelock);
-    while (_unusedData.pop());
-    while (_unusedFiles.pop());
+    while (_unusedData.pop()) continue;
+    while (_unusedFiles.pop()) continue;
 }
 
 void PtexCacheImpl::setFileInUse(PtexLruItem* file)

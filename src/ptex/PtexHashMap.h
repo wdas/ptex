@@ -342,7 +342,8 @@ PtexHashMap<KeyType, DataType, HashFn>::erase(iterator iter)
 template<class KeyType, class DataType, class HashFn>
 void PtexHashMap<KeyType, DataType, HashFn>::clear()
 {
-    for (iterator i = begin(); i != end(); i = erase(i));
+    for (iterator i = begin(); i != end(); )
+        i = erase(i);
     free(_buckets);
     _buckets = 0;
     _numEntries = 0;

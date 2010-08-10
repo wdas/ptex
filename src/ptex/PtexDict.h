@@ -585,7 +585,8 @@ typename PtexDict<T>::iterator PtexDict<T>::erase(iterator iter)
 template<class T>
 void PtexDict<T>::clear()
 {
-    for (iterator i=begin(); i != end(); i = erase(i));
+    for (iterator i=begin(); i != end(); )
+        i = erase(i);
     free(_buckets);
     _buckets = 0;
     _numEntries = 0;

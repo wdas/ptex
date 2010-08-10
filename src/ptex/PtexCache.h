@@ -152,7 +152,7 @@ private:
 class PtexLruList {
 public:
     PtexLruList() { _end._prev = _end._next = &_end; }
-    ~PtexLruList() { while (pop()); }
+    ~PtexLruList() { while (pop()) continue; }
 
     void extract(PtexLruItem* node)
     {
