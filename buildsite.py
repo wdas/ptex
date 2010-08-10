@@ -161,13 +161,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 </blockquote>
 '''
 
+releases = [
+    ['v2.0.0', 'Nov 23, 2009', 'Initial release'],
+    ['v2.0.22', 'May 28, 2010', 'Windows compatibility fixes, minor bug fixes'],
+    ['latest', '', 'Latest commit']]
+
 download='''
 Read the <a href="documentation.html#api">Ptex License</a> before downloading this software.<br><br>
 The Ptex API is hosted as free open source at <a href="http://github.com/wdas/ptex">github</a>.<br>
-Browse the <a href="http://github.com/wdas/ptex/commits/master">change history</a>.<br>
-Download the source for the <a href="http://github.com/wdas/ptex/archives/v2.0.0">v2.0.0 release</a>.<br>
-Download the source for the <a href="http://github.com/wdas/ptex/archives/master">latest version</a>.<br>
-'''
+Browse the <a href="http://github.com/wdas/ptex/commits/master">change history</a>.<br><br>
+Download the source:<br>
+<hr width=100%%>
+<table style="table-layout:fixed;width:600px;">
+<col width=80> <col width=120> <col>
+%s
+</table>
+''' % ('\n'.join(['<tr><td><a href="http://github.com/wdas/ptex/archives/%s">%s</a></td><td>%s</td><td>%s</td></tr>'
+                  % (v,v,d,c) for v,d,c in releases]))
 
 mailinglists='''
 Two mailing lists have been set up for Ptex on Google Groups:
