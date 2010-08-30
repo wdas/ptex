@@ -25,16 +25,21 @@ $news
 </center>
 '''
 
-newsitems = [['Jan 15, 2010',
-              'Ptex released as free open source.'],
-             ['Sep 30, 2009',
-              'Ptex integrated into <a href="https://renderman.pixar.com/">Pixar\'s RenderMan Pro Server 15.0</a>.'],
-             ['Nov 21, 2008',
-              'Disney\'s Bolt released; first feature film to use Ptex.'],
-             ['Jun 24, 2008',
-              'Ptex presented at Eurographics Symposium on Rendering.'],
-             ['Jun 10, 2008',
-              'Glago\'s Guest premiered at Annecy; first production to use Ptex.']]
+newsitems = [
+    ['Aug 24, 2010',
+     'Ptex supported in <a href="http://www.3d-coat.com/">3D-Coat 3.3</a>.'],
+    ['July 27, 2010',
+     'Ptex supported in <a href="http://www.sidefx.com/index.php">Houdini 11</a>.'],
+    ['Jan 15, 2010',
+     'Ptex released as free open source.'],
+    ['Sep 30, 2009',
+     'Ptex integrated into <a href="https://renderman.pixar.com/">Pixar\'s RenderMan Pro Server 15.0</a>.'],
+    ['Nov 21, 2008',
+     'Disney\'s Bolt released; first feature film to use Ptex.'],
+    ['Jun 24, 2008',
+     'Ptex presented at Eurographics Symposium on Rendering.'],
+    ['Jun 10, 2008',
+     'Glago\'s Guest premiered at Annecy; first production to use Ptex.']]
 
 news = '''
 <table style="table-layout:fixed;width:600px;">
