@@ -86,7 +86,7 @@ namespace {
 	    initialized = 1;
 #ifdef WINDOWS
 	    // use GetTempPath API (first call determines length of result)
-	    DWORD result = ::GetTempPath(0, (LPSTR) L"");
+	    DWORD result = ::GetTempPath(0, (LPTSTR) L"");
 	    if (result > 0) {
 		std::vector<TCHAR> tempPath(result + 1);
 		result = ::GetTempPath(static_cast<DWORD>(tempPath.size()), &tempPath[0]);
