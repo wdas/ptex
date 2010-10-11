@@ -26,6 +26,8 @@ $news
 '''
 
 newsitems = [
+    ['Sep 29, 2010',
+     'Ptex export supported in <a href="http://www.mudbox3d.com/advantage_packs_2011_mudbox_data_sheet_us.pdf">Mudbox 2011 SAP</a>.'],
     ['Aug 24, 2010',
      'Ptex supported in <a href="http://www.3d-coat.com/">3D-Coat 3.3</a>.'],
     ['July 27, 2010',
