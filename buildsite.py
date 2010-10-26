@@ -199,6 +199,7 @@ sampleitems=[
     ['bunny', '22M', 'Stanford Bunny (Loop subd).'],
     ['holeycube', '2.3M', 'Cube w/ holes through center, rendered with displacement map (Catmull-Clark subd).'],
     ['nonquad', '494K', 'Catmull-Clark subd with fifteen quad faces and two triangle faces.'],
+    ['pentagon', '1.6M', 'Catmull-Clark subd with single pentagon face.'],
     ['triangle', '263K', 'Mesh with nine triangle faces mapped with 4x4 texels per face, rendered using point and gaussian filter.'],
     ['envcube', '534K', 'Ptex cube maps reflected on a sphere.'],
     ]
