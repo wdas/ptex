@@ -26,6 +26,8 @@ $news
 '''
 
 newsitems = [
+    ['Dec 19, 2010',
+     'Ptex plugin for Cinema 4D released by <a href="http://www.blackstar-solutions.de/index.php?id=10170">Blackstar Solutions</a>.'],
     ['Sep 29, 2010',
      'Ptex export supported in <a href="http://www.mudbox3d.com/advantage_packs_2011_mudbox_data_sheet_us.pdf">Mudbox 2011 SAP</a>.'],
     ['Aug 24, 2010',
