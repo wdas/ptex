@@ -38,9 +38,10 @@ SRCS = \
 OBJECTS = $(patsubst %.cpp,%.o,$(SRCS))
 
 INSTALLDIR = ../../install
+LIBDIR = lib
 
 INSTALL = \
-	lib/libPtex.a \
+	$(LIBDIR)/libPtex.a \
 	include/Ptexture.h \
 	include/PtexHalf.h \
 	include/PtexInt.h \
@@ -50,10 +51,10 @@ ALL = libPtex.a
 
 ifndef PTEX_STATIC
 ALL += libPtex.so
-INSTALL += lib/libPtex.so
+INSTALL += $(LIBDIR)/libPtex.so
 endif
 
-$(INSTALLDIR)/lib/% : %
+$(INSTALLDIR)/$(LIBDIR)/% : %
 	@ mkdir -p $(@D)
 	cp $^ $@
 

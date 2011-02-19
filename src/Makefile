@@ -1,4 +1,6 @@
 SUBDIRS = ptex utils tests
+INSTALLDIR = ../../install
+LIBDIR = lib
 
 .PHONY: subdirs $(SUBDIRS)
 
@@ -10,4 +12,4 @@ clean:
 	done
 
 $(SUBDIRS):
-	$(MAKE) -C $@
+	$(MAKE) -C $@ INSTALLDIR=$(INSTALLDIR) LIBDIR=$(LIBDIR)
