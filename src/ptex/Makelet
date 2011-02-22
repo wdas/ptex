@@ -1,0 +1,62 @@
+#! -*- perl -*-
+use Kida::ToolKit::FAUtilities;
+use Kida::ToolKit::Clean;
+
+my $flavor = Kida::Exposed::getGlobalVariable('Flavor');
+if ($flavor =~ /debug/) {
+  setLocalDefaults( 'CPP', 'incDirs+', {all => '.'});
+  setLocalDefaults( 'CPP', 'flags+', {Linux => '-fkeep-inline-functions'});
+  setLocalDefaults( 'Exe', 'flags+', {Linux => '-fkeep-inline-functions -g'});
+  setLocalDefaults( 'SharedLib', 'flags+', {Linux => '-fkeep-inline-functions -g'});
+}
+
+my $headers = Headers(input => [ 'Ptexture.h', 'PtexHalf.h', 'PtexUtils.h' ]);
+
+my $libinputs = ['PtexCache.cpp',
+		 'PtexFilterKernel.cpp',
+		 'PtexFilters.cpp',
+		 'PtexHalf.cpp',
+		 'PtexMitchellFilter.cpp',
+		 'PtexReader.cpp',
+		 'PtexSeparableFilter.cpp',
+		 'PtexSeparableKernel.cpp',
+		 'PtexUtils.cpp',
+		 'PtexWriter.cpp'];
+
+my $Ptex_a = StaticLib(name	  => 'libPtex.a',
+		       input 	  => CPPs(input => $libinputs,
+					  'flags+' => '-Wall -pedantic -pthread'));
+
+my $Ptex_so = SharedLib(name	   => 'libPtex.so',
+			input      => $Ptex_a,
+			libs       => [ '-Wl,-no-whole-archive', 'm', 'z', 'pthread' ],
+			'flags+'   => '-Wl,-whole-archive',
+			'libDirs+' => [ ]);
+
+my $ptxmake = Exe(name => 'ptxmake', input => '../utils/ptxmake.cpp',
+		  'incDirs+' => [ "$ENV{RP_ImageToolkit}/include" ],
+		  'libDirs+' => [ "$ENV{RP_ImageToolkit}/$LIB" ],
+		  libs => ['ItImage', $Ptex_so->installed()]);
+
+my $ptxinfo = Exe(name => 'ptxinfo', input => '../utils/ptxinfo.cpp', libs => [$Ptex_so->installed()]);
+my $utils = VirtualTarget( name =>'utils', input=> $ptxinfo);
+
+my $wtest = Exe(name => 'wtest', input => '../tests/wtest.cpp', libs => [$Ptex_so->installed()]);
+my $rtest = Exe(name => 'rtest', input => '../tests/rtest.cpp', libs => [$Ptex_so->installed()]);
+my $ftest = Exe(name => 'ftest', input => '../tests/ftest.cpp', libs => [$Ptex_so->installed()]);
+
+my $tests = VirtualTarget( name =>'tests', input=>[ $wtest, $rtest, $ftest ]);
+
+my $all = VirtualTarget( name =>'all',
+			 input=>[ $Ptex_a, $Ptex_so, $utils, $tests, $ptxmake ]);
+
+Install(name=>'installhdr',input=>[$headers]);
+
+my $installs = [ $Ptex_a, $Ptex_so, $utils ];
+if ($flavor =~ /(debug|insure)/i) {
+  push(@$installs, $tests);
+  push(@$installs, $ptxmake);
+}
+
+Install(name=>'install',input=> $installs);
+

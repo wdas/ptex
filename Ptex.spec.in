@@ -1,0 +1,104 @@
+# RPMs can be built using 'git make-rpm'
+Name:           Ptex
+Version:        __VERSION__
+Release:        __RELEASE__%{?dist}
+Summary:        Per-Face Texture Mapping for Production Rendering
+
+Group:          System Environment/Libraries
+License:        Disney
+URL:            http://gitweb/projects/%{name}
+Source0:        http://gitweb/projects/%{name}-%{version}.tar.gz
+
+BuildRequires:  gcc
+BuildRequires:  gcc-c++
+BuildRequires:  make
+BuildRequires:  pkgconfig-disney
+
+prefix:         %{_prefix}
+BuildRoot:      %{_topdir}/BUILDROOT/%{name}-%{version}
+
+%description
+Ptex is a texture mapping system developed by
+Walt Disney Animation Studios for production-quality rendering.
+
+%package all
+Summary:        Meta-package for all Ptex components
+Group:          System Environment/Libraries
+Requires:       Ptex = %{version}-%{release}
+Requires:       Ptex-docs = %{version}-%{release}
+Requires:       Ptex-devel = %{version}-%{release}
+
+%description all
+Meta-package for Ptex
+
+%package docs
+Summary:        Ptex documentation
+Requires:       Ptex = %{version}-%{release}
+
+%description docs
+Documentation for Ptex
+
+%package devel
+Summary:        Ptex headers and static libraries
+Requires:       Ptex = %{version}-%{release}
+
+%description devel
+Development headers and static libraries for Ptex
+
+%prep
+%setup -q
+
+%build
+
+%install
+%{__make} -C src flavor=optimize
+
+%{__mkdir_p} %{buildroot}%{_bindir}
+%{__cp} install/bin/* %{buildroot}%{_bindir}
+
+%{__mkdir_p} %{buildroot}%{_libdir}
+%{__cp} install/lib/* %{buildroot}%{_libdir}
+
+%{__mkdir_p} %{buildroot}%{_includedir}
+%{__cp} install/include/* %{buildroot}%{_includedir}
+
+%{__mkdir_p} %{buildroot}%{_defaultdocdir}
+%{__cp} -r install/doc/ptex %{buildroot}%{_defaultdocdir}/Ptex
+
+%{__mkdir_p} %{buildroot}%{_libdir}/pkgconfig
+pkgconfig-gen \
+	--name Ptex \
+	--desc 'Ptex Library' \
+	--prefix %{_prefix} > %{buildroot}%{_libdir}/pkgconfig/Ptex.pc
+
+%clean
+rm -rf %{buildroot}
+
+%post
+
+%postun
+
+%files
+%defattr(-,root,root,-)
+%{_bindir}/*
+%{_libdir}/*.so
+
+%files docs
+%defattr(-,root,root,-)
+%{_defaultdocdir}/Ptex
+
+%files devel
+%defattr(-,root,root,-)
+%{_includedir}/*.h
+%{_libdir}/*.a
+%{_libdir}/pkgconfig/*.pc
+
+%files all
+# no files for you!
+
+%changelog
+* Tue Jun 29 2010 David Aguilar <david.aguialr@disneyanimation.com> 2.0.0.1-1
+- Split into separate Ptex, Ptex-docs, Ptex-devel, and Ptex-all packages.
+
+* Fri Jun 25 2010 David Aguilar <david.aguilar@disneyanimation.com> 2.0.0-1
+- Initial package.
