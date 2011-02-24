@@ -51,18 +51,12 @@ Development headers and static libraries for Ptex
 %build
 
 %install
-%{__make} -C src flavor=optimize
-
-%{__mkdir_p} %{buildroot}%{_bindir}
-%{__cp} install/bin/* %{buildroot}%{_bindir}
-
-%{__mkdir_p} %{buildroot}%{_libdir}
-%{__cp} install/lib/* %{buildroot}%{_libdir}
-
-%{__mkdir_p} %{buildroot}%{_includedir}
-%{__cp} install/include/* %{buildroot}%{_includedir}
+%{__make} PTEX_VER=%{version} flavor=optimize prefix=%{buildroot}%{_prefix} install
 
 %{__mkdir_p} %{buildroot}%{_defaultdocdir}
+%{__mkdir_p} install/doc
+%{__make} -C src/doc
+%{__mkdir_p} %{buildroot}%{_defaultdocdir}/Ptex
 %{__cp} -r install/doc/ptex %{buildroot}%{_defaultdocdir}/Ptex
 
 %{__mkdir_p} %{buildroot}%{_libdir}/pkgconfig
