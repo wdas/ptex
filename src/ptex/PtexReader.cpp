@@ -751,7 +751,8 @@ void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int leve
 	    int unpackedSize = _pixelsize * npixels;
 	    PackedFace* pf = new PackedFace((void**)&face, _cache,
 					    res, _pixelsize, unpackedSize);
-	    void* tmp = alloca(unpackedSize);
+            bool useMalloc = unpackedSize > AllocaMax;
+            void* tmp = useMalloc ? malloc(unpackedSize) : alloca(unpackedSize);
 	    readZipBlock(tmp, fdh.blocksize(), unpackedSize);
 	    if (fdh.encoding() == enc_diffzipped)
 		PtexUtils::decodeDifference(tmp, unpackedSize, _header.datatype);
@@ -762,6 +763,7 @@ void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int leve
 		PtexUtils::multalpha(pf->data(), npixels, _header.datatype,
 				     _header.nchannels, _header.alphachan);
 	    newface = pf;
+            if (useMalloc) free(tmp);
 	}
 	break;
     }
