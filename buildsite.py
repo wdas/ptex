@@ -173,6 +173,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 releases = [
     ['v2.0.0', 'Nov 23, 2009', 'Initial release'],
     ['v2.0.22', 'May 28, 2010', 'Windows compatibility fixes, minor bug fixes'],
+    ['v2.0.29', 'May 2, 2011', 'Minor bug fixes. API change: added PtexPtr::reset method.'],
     ['latest', '', 'Latest commit']]
 
 download='''
