@@ -977,6 +977,12 @@ template <class T> class PtexPtr {
 	_ptr = tmp;
     }
 
+    /// Deallocate object pointed to, and optionally set to new value.
+    void reset(T* ptr=0) {
+        if (_ptr) _ptr->release();
+        _ptr = ptr;
+    }
+
  private:
     /// Copying prohibited
     PtexPtr(const PtexPtr& p);
