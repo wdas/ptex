@@ -169,7 +169,7 @@ PtexReader::~PtexReader()
     // the rest must be orphaned since there may still be references outstanding
     orphanList(_levels);
     for (ReductionMap::iterator i = _reductions.begin(); i != _reductions.end(); i++) {
-	FaceData* f = i->second;
+	FaceData* f = (*i).second;
 	if (f) f->orphan();
     }
     if (_metadata) {
@@ -751,8 +751,7 @@ void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int leve
 	    int unpackedSize = _pixelsize * npixels;
 	    PackedFace* pf = new PackedFace((void**)&face, _cache,
 					    res, _pixelsize, unpackedSize);
-            bool useMalloc = unpackedSize > AllocaMax;
-            void* tmp = useMalloc ? malloc(unpackedSize) : alloca(unpackedSize);
+	    void* tmp = alloca(unpackedSize);
 	    readZipBlock(tmp, fdh.blocksize(), unpackedSize);
 	    if (fdh.encoding() == enc_diffzipped)
 		PtexUtils::decodeDifference(tmp, unpackedSize, _header.datatype);
@@ -763,7 +762,6 @@ void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int leve
 		PtexUtils::multalpha(pf->data(), npixels, _header.datatype,
 				     _header.nchannels, _header.alphachan);
 	    newface = pf;
-            if (useMalloc) free(tmp);
 	}
 	break;
     }

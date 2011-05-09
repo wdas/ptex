@@ -113,13 +113,6 @@ public:
 	    return value_type();
 	}
 
-	/// Pointer reference operator
-	value_type* operator->() const {
-	    static value_type v;
-	    v = operator*();
-	    return &v;
-	}
-
 	/// Proper assignment operator
 	iterator& operator=(const iterator& iter) {
 	    e = iter.e; h = iter.h; b = iter.b; return *this;
