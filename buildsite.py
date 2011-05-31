@@ -174,6 +174,7 @@ releases = [
     ['v2.0.0', 'Nov 23, 2009', 'Initial release'],
     ['v2.0.22', 'May 28, 2010', 'Windows compatibility fixes, minor bug fixes'],
     ['v2.0.29', 'May 2, 2011', 'Minor bug fixes. API change: added PtexPtr::reset method.'],
+    ['v2.0.30', 'May 9, 2011', 'Critical bug fix: threading crash when using multiple caches.'],
     ['latest', '', 'Latest commit']]
 
 download='''
