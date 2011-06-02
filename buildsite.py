@@ -26,6 +26,8 @@ $news
 '''
 
 newsitems = [
+    ['May 31, 2011',
+     'Ptex supported in <a href="http://thefoundry.co.uk/products/mari/">Mari 1.3</a>.'],
     ['Dec 19, 2010',
      'Ptex plugin for Cinema 4D released by <a href="http://www.blackstar-solutions.de/index.php?id=10170">Blackstar Solutions</a>.'],
     ['Sep 29, 2010',
