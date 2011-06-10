@@ -92,7 +92,7 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
 	// for a subface, build the kernel as if it were on a main face and then downres
 	uw = uw * width + blur * 2;
 	vw = vw * width + blur * 2;
-	buildKernel(k, u*.5, v*.5, uw*.5, vw*.5, f.res);
+	buildKernel(k, u*.5, v*.5, uw*.5, vw*.5, Ptex::Res(f.res.ulog2+1,f.res.vlog2+1));
 	if (k.res.ulog2 == 0) k.upresU();
 	if (k.res.vlog2 == 0) k.upresV();
 	k.res.ulog2--; k.res.vlog2--;
