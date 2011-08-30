@@ -27,7 +27,7 @@ $news
 
 newsitems = [
     ['July 22, 2011',
-     'Ptex supported in <a href="http://www.sitexgraphics.com/">Air 11'],
+     'Ptex supported in <a href="http://www.sitexgraphics.com/">Air 11.'],
     ['May 31, 2011',
      'Ptex supported in <a href="http://thefoundry.co.uk/products/mari/">Mari 1.3</a>.'],
     ['Apr 29, 2011',
