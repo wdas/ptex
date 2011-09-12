@@ -26,12 +26,14 @@ $news
 '''
 
 newsitems = [
+    ['Aug 11, 2011',
+     '<a href="http://developer.nvidia.com/siggraph-2011/">Real-time Ptex</a> demonstrated by NVIDIA at Siggraph 2011.'],
     ['July 22, 2011',
-     'Ptex supported in <a href="http://www.sitexgraphics.com/">Air 11.'],
+     'Ptex supported in <a href="http://www.sitexgraphics.com/">Air 11</a>.'],
     ['May 31, 2011',
      'Ptex supported in <a href="http://thefoundry.co.uk/products/mari/">Mari 1.3</a>.'],
     ['Apr 29, 2011',
-     'Ptex supported in <a href="http://www.chaosgroup.com/en/2/vray_maya.html">V-Ray 2.0 for Maya.'],
+     'Ptex supported in <a href="http://www.chaosgroup.com/en/2/vray_maya.html">V-Ray 2.0 for Maya</a>.'],
     ['Dec 19, 2010',
      'Ptex plugin for Cinema 4D released by <a href="http://www.blackstar-solutions.de/index.php?id=10170">Blackstar Solutions</a>.'],
     ['Sep 29, 2010',
