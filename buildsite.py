@@ -183,6 +183,7 @@ releases = [
     ['v2.0.22', 'May 28, 2010', 'Windows compatibility fixes, minor bug fixes'],
     ['v2.0.29', 'May 2, 2011', 'Minor bug fixes. API change: added PtexPtr::reset method.'],
     ['v2.0.30', 'May 9, 2011', 'Critical bug fix: threading crash when using multiple caches.'],
+    ['v2.0.33', 'Dec 14, 2011', 'Fixed crash when rendering triangle textures that have no stored mipmaps.'],
     ['master', '', 'Latest commit']]
 
 download='''
