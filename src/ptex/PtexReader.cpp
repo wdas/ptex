@@ -1191,8 +1191,10 @@ void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
     FaceData* volatile newface = 0;
 
     // don't tile if either dimension is 1 (rare, would complicate blendFaces too much)
+    // also, don't tile triangle reductions (too complicated)
     Res newtileres;
-    if (newres.ulog2 == 1 || newres.vlog2 == 1) {
+    bool isTriangle = r->_header.meshtype == mt_triangle;
+    if (newres.ulog2 == 1 || newres.vlog2 == 1 || isTriangle) {
 	newtileres = newres;
     }
     else {
@@ -1223,6 +1225,37 @@ void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
 	    newface = new ConstantFace((void**)&face, _cache, _pixelsize);
 	    memcpy(newface->getData(), tiles[0]->getData(), _pixelsize);
 	}
+        else if (isTriangle) {
+            // reassemble all tiles into temporary contiguous image
+            // (triangle reduction doesn't work on tiles)
+            int tileures = _tileres.u();
+            int tilevres = _tileres.v();
+            int sstride = _pixelsize * tileures;
+            int dstride = sstride * _ntilesu;
+            int dstepv = dstride * tilevres - sstride*(_ntilesu-1);
+
+            char* tmp = (char*) malloc(_ntiles * _tileres.size() * _pixelsize);
+            char* tmpptr = tmp;
+            for (int i = 0; i < _ntiles;) {
+                PtexFaceData* tile = tiles[i];
+                if (tile->isConstant())
+                    PtexUtils::fill(tile->getData(), tmpptr, dstride,
+                                    tileures, tilevres, _pixelsize);
+                else
+                    PtexUtils::copy(tile->getData(), sstride, tmpptr, dstride, tilevres, sstride);
+                i++;
+                tmpptr += i%_ntilesu ? sstride : dstepv;
+            }
+
+            // allocate a new packed face
+            newface = new PackedFace((void**)&face, _cache, newres,
+                                            _pixelsize, _pixelsize * newres.size());
+            // reduce and copy into new face
+            reducefn(tmp, _pixelsize * _res.u(), _res.u(), _res.v(),
+                     newface->getData(), _pixelsize * newres.u(), _dt, _nchan);
+
+            free(tmp);
+        }
 	else {
 	    // allocate a new packed face
 	    newface = new PackedFace((void**)&face, _cache, newres,
