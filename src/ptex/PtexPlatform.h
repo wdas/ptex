@@ -83,8 +83,8 @@ typedef __int64 FilePos;
 #define fseeko _fseeki64
 #define ftello _ftelli64
 
-inline double log2(double x) {
-    return log(x) * 1.4426950408889634; 
+inline float log2f(float x) {
+    return logf(x) * 1.4426950408889634f; 
 }
 
 #else
