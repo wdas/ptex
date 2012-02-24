@@ -90,14 +90,14 @@ const char* Ptex::MetaDataTypeName(MetaDataType mdt)
 
 namespace {
     template<typename DST, typename SRC>
-    void ConvertArrayClamped(DST* dst, SRC* src, int numChannels, double scale, double round=0)
+    void ConvertArrayClamped(DST* dst, SRC* src, int numChannels, float scale, float round=0)
     {
         for (int i = 0; i < numChannels; i++)
 	    dst[i] = DST(PtexUtils::clamp(src[i], 0.0f, 1.0f) * scale + round);
     }
 
     template<typename DST, typename SRC>
-    void ConvertArray(DST* dst, SRC* src, int numChannels, double scale, double round=0)
+    void ConvertArray(DST* dst, SRC* src, int numChannels, float scale, float round=0)
     {
 	for (int i = 0; i < numChannels; i++) dst[i] = DST(src[i] * scale + round);
     }
@@ -495,7 +495,7 @@ namespace {
 	for (const T* end = src + vw*sstride; src != end; src += rowskip)
 	    for (const T* rowend = src + rowlen; src != rowend;)
 		for (int i = 0; i < nchan; i++) buff[i] += *src++;
-	double scale = 1.0/(uw*vw);
+	float scale = 1.0f/(uw*vw);
 	for (int i = 0; i < nchan; i++) dst[i] = T(buff[i]*scale);
     }
 }
@@ -534,7 +534,7 @@ namespace {
 
 namespace {
     template<typename T>
-    inline void multalpha(T* data, int npixels, int nchannels, int alphachan, double scale)
+    inline void multalpha(T* data, int npixels, int nchannels, int alphachan, float scale)
     {
 	int alphaoffset; // offset to alpha chan from data ptr
 	int nchanmult;   // number of channels to alpha-multiply
@@ -551,7 +551,7 @@ namespace {
 	}
 	
 	for (T* end = data + npixels*nchannels; data != end; data += nchannels) {
-	    double aval = scale * data[alphaoffset];
+	    float aval = scale * data[alphaoffset];
 	    for (int i = 0; i < nchanmult; i++)	data[i] = T(data[i] * aval);
 	}
     }
@@ -559,7 +559,7 @@ namespace {
 
 void PtexUtils::multalpha(void* data, int npixels, DataType dt, int nchannels, int alphachan)
 {
-    double scale = OneValueInv(dt);
+    float scale = OneValueInv(dt);
     switch(dt) {
     case dt_uint8:  ::multalpha((uint8_t*) data, npixels, nchannels, alphachan, scale); break;
     case dt_uint16: ::multalpha((uint16_t*) data, npixels, nchannels, alphachan, scale); break;
@@ -571,7 +571,7 @@ void PtexUtils::multalpha(void* data, int npixels, DataType dt, int nchannels, i
 
 namespace {
     template<typename T>
-    inline void divalpha(T* data, int npixels, int nchannels, int alphachan, double scale)
+    inline void divalpha(T* data, int npixels, int nchannels, int alphachan, float scale)
     {
 	int alphaoffset; // offset to alpha chan from data ptr
 	int nchandiv;    // number of channels to alpha-divide
@@ -590,7 +590,7 @@ namespace {
 	for (T* end = data + npixels*nchannels; data != end; data += nchannels) {
 	    T alpha = data[alphaoffset];
 	    if (!alpha) continue; // don't divide by zero!
-	    double aval = scale / alpha;
+	    float aval = scale / alpha;
 	    for (int i = 0; i < nchandiv; i++)	data[i] = T(data[i] * aval);
 	}
     }
@@ -598,7 +598,7 @@ namespace {
 
 void PtexUtils::divalpha(void* data, int npixels, DataType dt, int nchannels, int alphachan)
 {
-    double scale = OneValue(dt);
+    float scale = OneValue(dt);
     switch(dt) {
     case dt_uint8:  ::divalpha((uint8_t*) data, npixels, nchannels, alphachan, scale); break;
     case dt_uint16: ::divalpha((uint16_t*) data, npixels, nchannels, alphachan, scale); break;
@@ -630,7 +630,7 @@ void PtexUtils::genRfaceids(const FaceInfo* faces, int nfaces,
 namespace {
     // apply to 1..4 channels, unrolled
     template<class T, int nChan>
-    void ApplyConst(double weight, double* dst, void* data, int /*nChan*/)
+    void ApplyConst(float weight, float* dst, void* data, int /*nChan*/)
     {
 	// dst[i] += data[i] * weight for i in {0..n-1}
 	PtexUtils::VecAccum<T,nChan>()(dst, (T*) data, weight);
@@ -638,7 +638,7 @@ namespace {
 
     // apply to N channels (general case)
     template<class T>
-    void ApplyConstN(double weight, double* dst, void* data, int nChan)
+    void ApplyConstN(float weight, float* dst, void* data, int nChan)
     {
 	// dst[i] += data[i] * weight for i in {0..n-1}
 	PtexUtils::VecAccumN<T>()(dst, (T*) data, nChan, weight);

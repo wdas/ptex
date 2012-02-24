@@ -48,11 +48,11 @@ class PtexSeparableKernel : public Ptex {
     Res res;			// resolution that kernel was built for
     int u, v;			// uv offset within face data
     int uw, vw;			// kernel width
-    double* ku;			// kernel weights in u
-    double* kv;			// kernel weights in v
+    float* ku;			// kernel weights in u
+    float* kv;			// kernel weights in v
     static const int kmax = 10;	// max kernel width
-    double kubuff[kmax];
-    double kvbuff[kmax];
+    float kubuff[kmax];
+    float kvbuff[kmax];
     
     PtexSeparableKernel()
 	: res(0), u(0), v(0), uw(0), vw(0), ku(kubuff), kv(kvbuff) {}
@@ -71,7 +71,7 @@ class PtexSeparableKernel : public Ptex {
     void set(Res resVal,
 	     int uVal, int vVal,
 	     int uwVal, int vwVal,
-	     const double* kuVal, const double* kvVal)
+	     const float* kuVal, const float* kvVal)
     {
 	assert(uwVal <= kmax && vwVal <= kmax);
 	res = resVal;
@@ -94,7 +94,7 @@ class PtexSeparableKernel : public Ptex {
 	assert(uw > 0 && vw > 0);
     }
 
-    double weight() const
+    float weight() const
     {
 	return accumulate(ku, uw) * accumulate(kv, vw);
     }
@@ -112,7 +112,7 @@ class PtexSeparableKernel : public Ptex {
     void mergeR(BorderMode mode)
     {
 	int w = uw + u - res.u();
-	double* kp = ku + uw - w;
+	float* kp = ku + uw - w;
 	if (mode != m_black)
 	    kp[-1] += accumulate(kp, w);
 	uw -= w;
@@ -131,7 +131,7 @@ class PtexSeparableKernel : public Ptex {
     void mergeT(BorderMode mode)
     {
 	int w = vw + v - res.v();
-	double* kp = kv + vw - w;
+	float* kp = kv + vw - w;
 	if (mode != m_black)
 	    kp[-1] += accumulate(kp, w);
 	vw -= w;
@@ -303,8 +303,8 @@ class PtexSeparableKernel : public Ptex {
 
     void downresU()
     {
-	double* src = ku;
-	double* dst = ku;
+	float* src = ku;
+	float* dst = ku;
 
 	// skip odd leading sample (if any)
 	if (u & 1) {
@@ -332,8 +332,8 @@ class PtexSeparableKernel : public Ptex {
 
     void downresV()
     {
-	double* src = kv;
-	double* dst = kv;
+	float* src = kv;
+	float* dst = kv;
 
 	// skip odd leading sample (if any)
 	if (v & 1) {
@@ -361,8 +361,8 @@ class PtexSeparableKernel : public Ptex {
 
     void upresU()
     {
-	double* src = ku + uw-1;
-	double* dst = ku + uw*2-2;
+	float* src = ku + uw-1;
+	float* dst = ku + uw*2-2;
 	for (int i = uw; i > 0; i--) {
 	    dst[0] = dst[1] = *src-- / 2;
 	    dst -=2;
@@ -374,8 +374,8 @@ class PtexSeparableKernel : public Ptex {
 
     void upresV()
     {
-	double* src = kv + vw-1;
-	double* dst = kv + vw*2-2;
+	float* src = kv + vw-1;
+	float* dst = kv + vw*2-2;
 	for (int i = vw; i > 0; i--) {
 	    dst[0] = dst[1] = *src-- / 2;
 	    dst -=2;
@@ -385,7 +385,7 @@ class PtexSeparableKernel : public Ptex {
 	res.vlog2++;
     }
 
-    double makeSymmetric(double initialWeight)
+    float makeSymmetric(float initialWeight)
     {
 	assert(u == 0 && v == 0);
 
@@ -401,16 +401,16 @@ class PtexSeparableKernel : public Ptex {
 	uw = vw = PtexUtils::min(uw, vw);
 
 	// combine corresponding u and v samples and compute new kernel weight
-        double newWeight = 0;
+        float newWeight = 0;
 	for (int i = 0; i < uw; i++) {
-            double sum = ku[i] + kv[i];
+            float sum = ku[i] + kv[i];
 	    ku[i] = kv[i] = sum;
             newWeight += sum;
 	}
         newWeight *= newWeight; // equivalent to k.weight() ( = sum(ku)*sum(kv) )
 
 	// compute scale factor to compensate for weight change
-	double scale = newWeight == 0 ? 1.0 : initialWeight / newWeight;
+	float scale = newWeight == 0 ? 1.0 : initialWeight / newWeight;
 
         // Note: a sharpening kernel (like Mitchell) can produce
         // negative weights which may cancel out when adding the two
@@ -445,27 +445,27 @@ class PtexSeparableKernel : public Ptex {
         return newWeight;
     }
 
-    void apply(double* dst, void* data, DataType dt, int nChan, int nTxChan)
+    void apply(float* dst, void* data, DataType dt, int nChan, int nTxChan)
     {
 	// dispatch specialized apply function
 	ApplyFn fn = applyFunctions[(nChan!=nTxChan)*20 + ((unsigned)nChan<=4)*nChan*4 + dt];
 	fn(*this, dst, data, nChan, nTxChan);
     }
 
-    void applyConst(double* dst, void* data, DataType dt, int nChan)
+    void applyConst(float* dst, void* data, DataType dt, int nChan)
     {
 	PtexUtils::applyConst(weight(), dst, data, dt, nChan);
     }
 
  private:
-    typedef void (*ApplyFn)(PtexSeparableKernel& k, double* dst, void* data, int nChan, int nTxChan);
-    typedef void (*ApplyConstFn)(double weight, double* dst, void* data, int nChan);
+    typedef void (*ApplyFn)(PtexSeparableKernel& k, float* dst, void* data, int nChan, int nTxChan);
+    typedef void (*ApplyConstFn)(float weight, float* dst, void* data, int nChan);
     static ApplyFn applyFunctions[40];
     static ApplyConstFn applyConstFunctions[20];
-    static inline double accumulate(const double* p, int n)
+    static inline float accumulate(const float* p, int n)
     {
-	double result = 0;
-	for (const double* e = p + n; p != e; p++) result += *p;
+	float result = 0;
+	for (const float* e = p + n; p != e; p++) result += *p;
 	return result;
     }
 };
