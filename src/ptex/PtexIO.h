@@ -105,6 +105,7 @@ struct PtexIO : public Ptex {
     static const int EditMetaDataHeaderSize = sizeof(EditMetaDataHeader);
 
     // these constants can be tuned for performance
+    static const int IBuffSize = 8192;         // default input buffer size
     static const int BlockSize = 16384;        // target block size for file I/O
     static const int TileSize  = 65536;        // target tile size (uncompressed)
     static const int AllocaMax = 16384;        // max size for using alloca

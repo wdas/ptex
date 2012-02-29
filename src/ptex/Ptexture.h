@@ -135,14 +135,14 @@ struct Ptex {
     }
 
     /** Look up value of given data type that corresponds to the normalized value of 1.0. */
-    static double OneValue(DataType dt) {
-	static const double one[] = { 255.0, 65535.0, 1.0, 1.0 };
+    static float OneValue(DataType dt) {
+	static const float one[] = { 255.0, 65535.0, 1.0, 1.0 };
 	return one[dt]; 
     }
 
     /** Lookup up inverse value of given data type that corresponds to the normalized value of 1.0. */
-    static double OneValueInv(DataType dt) {
-	static const double one[] = { 1.0/255.0, 1.0/65535.0, 1.0, 1.0 };
+    static float OneValueInv(DataType dt) {
+	static const float one[] = { 1.0/255.0, 1.0/65535.0, 1.0, 1.0 };
 	return one[dt]; 
     }
 
@@ -975,6 +975,12 @@ template <class T> class PtexPtr {
 	T* tmp = p._ptr;
 	p._ptr = _ptr;
 	_ptr = tmp;
+    }
+
+    /// Deallocate object pointed to, and optionally set to new value.
+    void reset(T* ptr=0) {
+        if (_ptr) _ptr->release();
+        _ptr = ptr;
     }
 
  private:

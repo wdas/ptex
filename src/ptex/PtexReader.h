@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <vector>
 #include <string>
 #include <map>
+#include <errno.h>
 #include "Ptexture.h"
 #include "PtexIO.h"
 #include "PtexCache.h"
@@ -541,6 +542,30 @@ protected:
     }
     void blendFaces(FaceData*& face, int faceid, Res res, bool blendu);
 
+    class DefaultInputHandler : public PtexInputHandler
+    {
+        char* buffer;
+     public:
+        virtual Handle open(const char* path) {
+            FILE* fp = fopen(path, "rb");
+            buffer = (char*) malloc(IBuffSize);
+            setvbuf(fp, buffer, _IOFBF, IBuffSize);
+            return (Handle) fp;
+        }
+        virtual void seek(Handle handle, int64_t pos) { fseeko((FILE*)handle, pos, SEEK_SET); }
+        virtual size_t read(void* buffer, size_t size, Handle handle) {
+            return fread(buffer, size, 1, (FILE*)handle) == 1 ? size : 0;
+        }
+        virtual bool close(Handle handle) {
+            bool ok = fclose((FILE*)handle) == 0;
+            free(buffer);
+            buffer = 0;
+            return ok;
+        }
+        virtual const char* lastError() { return strerror(errno); }
+    };
+
+    DefaultInputHandler _defaultIo;   // Default IO handler
     PtexInputHandler* _io;	      // IO handler
     bool _premultiply;		      // true if reader should premultiply the alpha chan
     bool _ownsCache;		      // true if reader owns the cache

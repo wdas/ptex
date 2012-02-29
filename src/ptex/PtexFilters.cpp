@@ -87,7 +87,7 @@ class PtexPointFilterTri : public PtexFilter, public Ptex
 	int vi = PtexUtils::clamp(int(vt), 0, resm1);
 	float uf = ut - ui, vf = vt - vi;
 	
-	if (uf + vf <= 1.0) {
+	if (uf + vf <= 1.0f) {
 	    // "even" triangles are stored in lower-left half-texture
 	    _tx->getPixel(faceid, ui, vi, result, firstchan, nchannels);
 	}
@@ -116,9 +116,9 @@ class PtexPointFilterTri : public PtexFilter, public Ptex
 class PtexWidth4Filter : public PtexSeparableFilter
 {
  public:
-    typedef double KernelFn(double x, const double* c);
+    typedef float KernelFn(float x, const float* c);
 
-    PtexWidth4Filter(PtexTexture* tx, const PtexFilter::Options& opts, KernelFn k, const double* c = 0) 
+    PtexWidth4Filter(PtexTexture* tx, const PtexFilter::Options& opts, KernelFn k, const float* c = 0) 
 	: PtexSeparableFilter(tx, opts), _k(k), _c(c) {}
 
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,
@@ -130,15 +130,15 @@ class PtexWidth4Filter : public PtexSeparableFilter
 
  private:
 
-    double blur(double x)
+    float blur(float x)
     {
 	// 2-unit (x in -1..1) cubic hermite kernel
 	// this produces a blur roughly 1.5 times that of the 4-unit b-spline kernel
-	x = fabs(x);
-	return x < 1 ? (2*x-3)*x*x+1 : 0;
+	x = fabsf(x);
+	return x < 1.0f ? (2.0f*x-3.0f)*x*x+1.0f : 0.0f;
     }
 
-    void buildKernelAxis(int8_t& k_ureslog2, int& k_u, int& k_uw, double* ku,
+    void buildKernelAxis(int8_t& k_ureslog2, int& k_u, int& k_uw, float* ku,
 			 float u, float uw, int f_ureslog2)
     {
 	// build 1 axis (note: "u" labels may repesent either u or v axis)
@@ -147,31 +147,31 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	uw = PtexUtils::max(uw, 1.0f/(1<<f_ureslog2));
 
 	// compute desired texture res based on filter width
-	k_ureslog2 = int(ceil(log2(1.0/uw)));
+	k_ureslog2 = int(ceilf(log2f(1.0f/uw)));
 	int resu = 1 << k_ureslog2;
-	double uwlo = 1.0/resu;         // smallest filter width for this res
+	float uwlo = 1.0f/resu;         // smallest filter width for this res
 
 	// compute lerp weights (amount to blend towards next-lower res)
-	double lerp2 = _options.lerp ? (uw-uwlo)/uwlo : 0;
-	double lerp1 = 1-lerp2;
+	float lerp2 = _options.lerp ? (uw-uwlo)/uwlo : 0;
+	float lerp1 = 1.0f-lerp2;
 
 	// adjust for large filter widths
-	if (uw >= .25) {
-	    if (uw < .5) {
+	if (uw >= .25f) {
+	    if (uw < .5f) {
 		k_ureslog2 = 2;
-		double upix = u * 4 - 0.5;
-		int u1 = int(ceil(upix - 2)), u2 = int(ceil(upix + 2));
+		float upix = u * 4.0f - 0.5f;
+		int u1 = int(ceilf(upix - 2)), u2 = int(ceilf(upix + 2));
 		u1 = u1 & ~1;	    // round down to even pair
 		u2 = (u2 + 1) & ~1; // round up to even pair
 		k_u = u1;
 		k_uw = u2-u1;
-		double x1 = u1-upix;
+		float x1 = u1-upix;
 		for (int i = 0; i < k_uw; i+=2) {
-		    double xa = x1 + i, xb = xa + 1, xc = (xa+xb)*0.25;
+		    float xa = x1 + i, xb = xa + 1.0f, xc = (xa+xb)*0.25f;
 		    // spread the filter gradually to approach the next-lower-res width
 		    // at uw = .5, s = 1.0; at uw = 1, s = 0.8
-		    double s = 1.0/(uw + .75);
-		    double ka = _k(xa, _c), kb = _k(xb, _c), kc = blur(xc*s);
+		    float s = 1.0f/(uw + .75f);
+		    float ka = _k(xa, _c), kb = _k(xb, _c), kc = blur(xc*s);
 		    ku[i] = ka * lerp1 + kc * lerp2;
 		    ku[i+1] = kb * lerp1 + kc * lerp2;
 		}
@@ -179,16 +179,16 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	    }
 	    else if (uw < 1) {
 		k_ureslog2 = 1;
-		double upix = u * 2 - 0.5;
-		k_u = int(floor(u - .5))*2;
+		float upix = u * 2.0f - 0.5f;
+		k_u = int(floorf(u - .5f))*2;
 		k_uw = 4;
-		double x1 = k_u-upix;
+		float x1 = k_u-upix;
 		for (int i = 0; i < k_uw; i+=2) {
-		    double xa = x1 + i, xb = xa + 1, xc = (xa+xb)*0.5;
+		    float xa = x1 + i, xb = xa + 1.0f, xc = (xa+xb)*0.5f;
 		    // spread the filter gradually to approach the next-lower-res width
 		    // at uw = .5, s = .8; at uw = 1, s = 0.5
-		    double s = 1.0/(uw*1.5 + .5);
-		    double ka = blur(xa*s), kb = blur(xb*s), kc = blur(xc*s);
+		    float s = 1.0f/(uw*1.5f + .5f);
+		    float ka = blur(xa*s), kb = blur(xb*s), kc = blur(xc*s);
 		    ku[i] = ka * lerp1 + kc * lerp2;
 		    ku[i+1] = kb * lerp1 + kc * lerp2;
 		}
@@ -198,9 +198,9 @@ class PtexWidth4Filter : public PtexSeparableFilter
 		// use res 0 (1 texel per face) w/ no lerping
 		// (future: use face-blended values for filter > 2)
 		k_ureslog2 = 0;
-		double upix = u - .5;
+		float upix = u - .5f;
 		k_uw = 2;
-		double ui = floor(upix);
+		float ui = floorf(upix);
 		k_u = int(ui);
 		ku[0] = blur(upix-ui);
 		ku[1] = 1-ku[0];
@@ -209,13 +209,13 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	}
 
 	// convert from normalized coords to pixel coords
-	double upix = u * resu - 0.5;
-	double uwpix = uw * resu;
+	float upix = u * resu - 0.5f;
+	float uwpix = uw * resu;
 
 	// find integer pixel extent: [u,v] +/- [2*uw,2*vw]
 	// (kernel width is 4 times filter width)
-	double dupix = 2*uwpix;
-	int u1 = int(ceil(upix - dupix)), u2 = int(ceil(upix + dupix));
+	float dupix = 2.0f*uwpix;
+	int u1 = int(ceilf(upix - dupix)), u2 = int(ceilf(upix + dupix));
 
 	if (lerp2) {
 	    // lerp kernel weights towards next-lower res
@@ -226,10 +226,10 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	    k_uw = u2-u1;
 
 	    // compute kernel weights
-	    double step = 1.0/uwpix, x1 = (u1-upix)*step;
+	    float step = 1.0f/uwpix, x1 = (u1-upix)*step;
 	    for (int i = 0; i < k_uw; i+=2) {
-		double xa = x1 + i*step, xb = xa + step, xc = (xa+xb)*0.5;
-		double ka = _k(xa, _c), kb = _k(xb, _c), kc = _k(xc, _c);
+		float xa = x1 + i*step, xb = xa + step, xc = (xa+xb)*0.5f;
+		float ka = _k(xa, _c), kb = _k(xb, _c), kc = _k(xc, _c);
 		ku[i] = ka * lerp1 + kc * lerp2;
 		ku[i+1] = kb * lerp1 + kc * lerp2;
 	    }
@@ -238,13 +238,13 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	    k_u = u1;
 	    k_uw = u2-u1;
 	    // compute kernel weights
-	    double x1 = (u1-upix)/uwpix, step = 1.0/uwpix;
+	    float x1 = (u1-upix)/uwpix, step = 1.0f/uwpix;
 	    for (int i = 0; i < k_uw; i++) ku[i] = _k(x1 + i*step, _c);
 	}
     }
 
     KernelFn* _k;		// kernel function
-    const double* _c;		// kernel coefficients (if any)
+    const float* _c;		// kernel coefficients (if any)
 };
 
 
@@ -264,26 +264,26 @@ class PtexBicubicFilter : public PtexWidth4Filter
 	//   == c[3]*x^3 + c[4]*x^2 + c[5]*x + c[6]
 	// else: 0
 
-	float B = 1 - sharpness; // choose C = (1-B)/2
-	_coeffs[0] = 1.5 - B;
-	_coeffs[1] = 1.5 * B - 2.5;
-	_coeffs[2] = 1 - (1./3) * B;
-	_coeffs[3] = (1./3) * B - 0.5;
-	_coeffs[4] = 2.5 - 1.5 * B;
-	_coeffs[5] = 2 * B - 4;
-	_coeffs[6] = 2 - (2./3) * B;
+	float B = 1.0f - sharpness; // choose C = (1-B)/2
+	_coeffs[0] = 1.5f - B;
+	_coeffs[1] = 1.5f * B - 2.5f;
+	_coeffs[2] = 1.0f - float(1.0/3.0) * B;
+	_coeffs[3] = float(1.0/3.0) * B - 0.5f;
+	_coeffs[4] = 2.5f - 1.5f * B;
+	_coeffs[5] = 2.0f * B - 4.0f;
+	_coeffs[6] = 2.0f - float(2.0/3.0) * B;
     }
 
  private:
-    static double kernelFn(double x, const double* c)
+    static float kernelFn(float x, const float* c)
     {
-	x = fabs(x);
-	if (x < 1)      return (c[0]*x + c[1])*x*x + c[2];
-	else if (x < 2) return ((c[3]*x + c[4])*x + c[5])*x + c[6];
-	else            return 0;
+	x = fabsf(x);
+	if (x < 1.0f)      return (c[0]*x + c[1])*x*x + c[2];
+	else if (x < 2.0f) return ((c[3]*x + c[4])*x + c[5])*x + c[6];
+	else               return 0.0f;
     }
 
-    double _coeffs[7]; // filter coefficients for current sharpness
+    float _coeffs[7]; // filter coefficients for current sharpness
 };
 
 
@@ -296,9 +296,9 @@ class PtexGaussianFilter : public PtexWidth4Filter
 	: PtexWidth4Filter(tx, opts, kernelFn) {}
 
  private:
-    static double kernelFn(double x, const double*)
+    static float kernelFn(float x, const float*)
     {
-	return exp(-2*x*x);
+	return expf(-2.0f*x*x);
     }
 };
 
@@ -327,8 +327,8 @@ class PtexBoxFilter : public PtexSeparableFilter
 	vw = PtexUtils::max(vw, 1.0f/(faceRes.v()));
 
 	// compute desired texture res based on filter width
-	int ureslog2 = int(ceil(log2(1.0/uw))),
-	    vreslog2 = int(ceil(log2(1.0/vw)));
+	int ureslog2 = int(ceilf(log2f(1.0f/uw))),
+	    vreslog2 = int(ceilf(log2f(1.0f/vw)));
 	Res res(ureslog2, vreslog2);
 	k.res = res;
 	
@@ -340,31 +340,31 @@ class PtexBoxFilter : public PtexSeparableFilter
 
 	// find integer pixel extent: [u,v] +/- [uw/2,vw/2]
 	// (box is 1 unit wide for a 1 unit filter period)
-	double u1 = u - 0.5*uw, u2 = u + 0.5*uw;
-	double v1 = v - 0.5*vw, v2 = v + 0.5*vw;
-	double u1floor = floor(u1), u2ceil = ceil(u2);
-	double v1floor = floor(v1), v2ceil = ceil(v2);
+	float u1 = u - 0.5f*uw, u2 = u + 0.5f*uw;
+	float v1 = v - 0.5f*vw, v2 = v + 0.5f*vw;
+	float u1floor = floorf(u1), u2ceil = ceilf(u2);
+	float v1floor = floorf(v1), v2ceil = ceilf(v2);
 	k.u = int(u1floor);
 	k.v = int(v1floor);
 	k.uw = int(u2ceil)-k.u;
 	k.vw = int(v2ceil)-k.v;
 
 	// compute kernel weights along u and v directions
-	computeWeights(k.ku, k.uw, 1-(u1-u1floor), 1-(u2ceil-u2));
-	computeWeights(k.kv, k.vw, 1-(v1-v1floor), 1-(v2ceil-v2));
+	computeWeights(k.ku, k.uw, 1.0f-(u1-u1floor), 1.0f-(u2ceil-u2));
+	computeWeights(k.kv, k.vw, 1.0f-(v1-v1floor), 1.0f-(v2ceil-v2));
     }
 
  private:
-    void computeWeights(double* kernel, int size, double f1, double f2)
+    void computeWeights(float* kernel, int size, float f1, float f2)
     {
 	assert(size >= 1 && size <= 3);
 
 	if (size == 1) {
-	    kernel[0] = f1 + f2 - 1;
+	    kernel[0] = f1 + f2 - 1.0f;
 	}
 	else {
 	    kernel[0] = f1;
-	    for (int i = 1; i < size-1; i++) kernel[i] = 1.0;
+	    for (int i = 1; i < size-1; i++) kernel[i] = 1.0f;
 	    kernel[size-1] = f2;
 	}
     }
@@ -390,26 +390,17 @@ class PtexBilinearFilter : public PtexSeparableFilter
 	uw = PtexUtils::max(uw, 1.0f/(faceRes.u()));
 	vw = PtexUtils::max(vw, 1.0f/(faceRes.v()));
 
-	// choose resolution closest to filter res
-	// there are three choices of "closest" that come to mind:
-	// 1) closest in terms of filter width, i.e. period of signal
-	// 2) closest in terms of texel resolution, (1 / filter width), i.e. freq of signal
-	// 3) closest in terms of resolution level (log2(1/filter width))
-	// Choice (1) probably makes the most sense.  In log2 terms, that means you should
-	// use the next higher level when the fractional part of the log2 res is > log2(1/.75),
-	// and you should add 1-log2(1/.75) to round up.
-	const double roundWidth = 0.5849625007211563; // 1-log2(1/.75)
-	int ureslog2 = int(log2(1.0/uw) + roundWidth);
-	int vreslog2 = int(log2(1.0/vw) + roundWidth);
+	int ureslog2 = int(ceilf(log2f(1.0f/uw)));
+	int vreslog2 = int(ceilf(log2f(1.0f/vw)));
 	Res res(ureslog2, vreslog2);
 	k.res = res;
 	
 	// convert from normalized coords to pixel coords
-	double upix = u * k.res.u() - 0.5;
-	double vpix = v * k.res.v() - 0.5;
+	float upix = u * k.res.u() - 0.5f;
+	float vpix = v * k.res.v() - 0.5f;
 
-	float ufloor = floor(upix);
-	float vfloor = floor(vpix);
+	float ufloor = floorf(upix);
+	float vfloor = floorf(vpix);
 	k.u = int(ufloor);
 	k.v = int(vfloor);
 	k.uw = 2;
@@ -417,9 +408,9 @@ class PtexBilinearFilter : public PtexSeparableFilter
 
 	// compute kernel weights
 	float ufrac = upix-ufloor, vfrac = vpix-vfloor;
-	k.ku[0] = 1 - ufrac;
+	k.ku[0] = 1.0f - ufrac;
 	k.ku[1] = ufrac;
-	k.kv[0] = 1 - vfrac;
+	k.kv[0] = 1.0f - vfrac;
 	k.kv[1] = vfrac;
     }
 };

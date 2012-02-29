@@ -79,7 +79,7 @@ struct PtexUtils : public Ptex {
 	return ones(x>>1) + !isPow2;
     }
 
-    static double smoothstep(double x, double a, double b)
+    static float smoothstep(float x, float a, float b)
     {
 	if ( x < a ) return 0;
 	if ( x >= b ) return 1;
@@ -87,7 +87,7 @@ struct PtexUtils : public Ptex {
 	return x*x * (3 - 2*x);
     }
 
-    static double qsmoothstep(double x, double a, double b)
+    static float qsmoothstep(float x, float a, float b)
     {
 	// quintic smoothstep (cubic is only C1)
 	if ( x < a ) return 0;
@@ -144,7 +144,7 @@ struct PtexUtils : public Ptex {
     template<typename T, int n>
     struct VecAccum {
 	VecAccum() {}
-	void operator()(double* dst, const T* val, double weight) 
+	void operator()(float* dst, const T* val, float weight) 
 	{
 	    *dst += *val * weight;
 	    // use template to unroll loop
@@ -152,12 +152,12 @@ struct PtexUtils : public Ptex {
 	}
     };
     template<typename T>
-    struct VecAccum<T,0> { void operator()(double*, const T*, double) {} };
+    struct VecAccum<T,0> { void operator()(float*, const T*, float) {} };
 
     // variable length vector accumulator: dst[i] += val[i] * weight
     template<typename T>
     struct VecAccumN {
-	void operator()(double* dst, const T* val, int nchan, double weight) 
+	void operator()(float* dst, const T* val, int nchan, float weight) 
 	{
 	    for (int i = 0; i < nchan; i++) dst[i] += val[i] * weight;
 	}
@@ -167,7 +167,7 @@ struct PtexUtils : public Ptex {
     template<typename T, int n>
     struct VecMult {
 	VecMult() {}
-	void operator()(double* dst, const T* val, double weight) 
+	void operator()(float* dst, const T* val, float weight) 
 	{
 	    *dst = *val * weight;
 	    // use template to unroll loop
@@ -175,20 +175,20 @@ struct PtexUtils : public Ptex {
 	}
     };
     template<typename T>
-    struct VecMult<T,0> { void operator()(double*, const T*, double) {} };
+    struct VecMult<T,0> { void operator()(float*, const T*, float) {} };
 
     // variable length vector multiplier: dst[i] = val[i] * weight
     template<typename T>
     struct VecMultN {
-	void operator()(double* dst, const T* val, int nchan, double weight) 
+	void operator()(float* dst, const T* val, int nchan, float weight) 
 	{
 	    for (int i = 0; i < nchan; i++) dst[i] = val[i] * weight;
 	}
     };
 
-    typedef void (*ApplyConstFn)(double weight, double* dst, void* data, int nChan);
+    typedef void (*ApplyConstFn)(float weight, float* dst, void* data, int nChan);
     static ApplyConstFn applyConstFunctions[20];
-    static void applyConst(double weight, double* dst, void* data, Ptex::DataType dt, int nChan)
+    static void applyConst(float weight, float* dst, void* data, Ptex::DataType dt, int nChan)
     {
 	// dispatch specialized apply function
 	ApplyConstFn fn = applyConstFunctions[((unsigned)nChan<=4)*nChan*4 + dt];
