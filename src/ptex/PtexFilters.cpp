@@ -390,17 +390,8 @@ class PtexBilinearFilter : public PtexSeparableFilter
 	uw = PtexUtils::max(uw, 1.0f/(faceRes.u()));
 	vw = PtexUtils::max(vw, 1.0f/(faceRes.v()));
 
-	// choose resolution closest to filter res
-	// there are three choices of "closest" that come to mind:
-	// 1) closest in terms of filter width, i.e. period of signal
-	// 2) closest in terms of texel resolution, (1 / filter width), i.e. freq of signal
-	// 3) closest in terms of resolution level (log2(1/filter width))
-	// Choice (1) probably makes the most sense.  In log2 terms, that means you should
-	// use the next higher level when the fractional part of the log2 res is > log2(1/.75),
-	// and you should add 1-log2(1/.75) to round up.
-	const float roundWidth = 0.5849625007211563; // 1-log2(1/.75)
-	int ureslog2 = int(log2f(1.0f/uw) + roundWidth);
-	int vreslog2 = int(log2f(1.0f/vw) + roundWidth);
+	int ureslog2 = int(ceilf(log2f(1.0f/uw)));
+	int vreslog2 = int(ceilf(log2f(1.0f/vw)));
 	Res res(ureslog2, vreslog2);
 	k.res = res;
 	
