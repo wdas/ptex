@@ -1,7 +1,7 @@
 ADD_EXECUTABLE ( pxinfo ptxinfo.cpp )
 
 TARGET_LINK_LIBRARIES ( pxinfo
-  Ptex_static
+  Ptex
   ${PTHREAD_LIBRARY}
   ${Z_LIBRARY}
   )

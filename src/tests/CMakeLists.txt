@@ -1,7 +1,7 @@
 ADD_EXECUTABLE ( halftest
   halftest.cpp)
 TARGET_LINK_LIBRARIES ( halftest
-  Ptex_static
+  Ptex
   ${PTHREAD_LIBRARY}
   ${Z_LIBRARY}
  )
@@ -9,7 +9,7 @@ TARGET_LINK_LIBRARIES ( halftest
 ADD_EXECUTABLE ( wtest
   wtest.cpp)
 TARGET_LINK_LIBRARIES ( wtest
-  Ptex_static
+  Ptex
   ${PTHREAD_LIBRARY}
   ${Z_LIBRARY}
   )
@@ -17,7 +17,7 @@ TARGET_LINK_LIBRARIES ( wtest
 ADD_EXECUTABLE ( rtest
   rtest.cpp)
 TARGET_LINK_LIBRARIES ( rtest
- Ptex_static
+ Ptex
   ${PTHREAD_LIBRARY}
   ${Z_LIBRARY}
  )
@@ -25,7 +25,7 @@ TARGET_LINK_LIBRARIES ( rtest
 ADD_EXECUTABLE ( ftest
   ftest.cpp)
 TARGET_LINK_LIBRARIES ( ftest
-  Ptex_static
+  Ptex
   ${PTHREAD_LIBRARY}
   ${Z_LIBRARY}
  )

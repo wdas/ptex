@@ -19,7 +19,7 @@ IF(DOXYGEN_FOUND)
   INSTALL(  
     CODE  
     "EXECUTE_PROCESS(  
-      COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile_location}/Doxyfile
+      COMMAND \"${DOXYGEN_EXECUTABLE}\" ${doxyfile_location}/Doxyfile
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/doc
       )"
     )
