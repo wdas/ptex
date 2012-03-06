@@ -548,8 +548,11 @@ protected:
      public:
         virtual Handle open(const char* path) {
             FILE* fp = fopen(path, "rb");
-            buffer = (char*) malloc(IBuffSize);
-            setvbuf(fp, buffer, _IOFBF, IBuffSize);
+            if (fp) {
+                buffer = (char*) malloc(IBuffSize);
+                setvbuf(fp, buffer, _IOFBF, IBuffSize);
+            }
+            else buffer = 0;
             return (Handle) fp;
         }
         virtual void seek(Handle handle, int64_t pos) { fseeko((FILE*)handle, pos, SEEK_SET); }
@@ -557,8 +560,8 @@ protected:
             return fread(buffer, size, 1, (FILE*)handle) == 1 ? size : 0;
         }
         virtual bool close(Handle handle) {
-            bool ok = fclose((FILE*)handle) == 0;
-            free(buffer);
+            bool ok = handle && (fclose((FILE*)handle) == 0);
+            if (buffer) free(buffer);
             buffer = 0;
             return ok;
         }
