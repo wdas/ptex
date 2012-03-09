@@ -10,10 +10,10 @@ set(SRCS
     PtexUtils.cpp
     PtexWriter.cpp)
 
-add_library ( Ptex_static STATIC ${SRCS} )
-set_target_properties( Ptex_static PROPERTIES OUTPUT_NAME Ptex )
+add_library(Ptex_static STATIC ${SRCS})
+set_target_properties(Ptex_static PROPERTIES OUTPUT_NAME Ptex)
 
-add_library ( Ptex_dynamic SHARED ${SRCS} )
+add_library(Ptex_dynamic SHARED ${SRCS})
 set_target_properties(Ptex_dynamic PROPERTIES OUTPUT_NAME Ptex)
 
-target_link_libraries(Ptex_dynamic ${CMAKE_THREAD_LIBS_INIT} ${ZLIB_LIBRARIES} )
+target_link_libraries(Ptex_dynamic ${CMAKE_THREAD_LIBS_INIT} ${ZLIB_LIBRARIES})

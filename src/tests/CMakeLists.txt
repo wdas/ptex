@@ -1,14 +1,14 @@
 add_executable(wtest wtest.cpp)
-target_link_libraries(wtest Ptex)
+target_link_libraries(wtest Ptex_dynamic)
 
 add_executable(rtest rtest.cpp)
-target_link_libraries(rtest Ptex)
+target_link_libraries(rtest Ptex_dynamic)
 
 add_executable(ftest ftest.cpp)
-target_link_libraries(ftest Ptex)
+target_link_libraries(ftest Ptex_dynamic)
 
 add_executable(halftest halftest.cpp)
-target_link_libraries(halftest Ptex)
+target_link_libraries(halftest Ptex_dynamic)
 
 # create a function to add tests that compare output
 # file results
