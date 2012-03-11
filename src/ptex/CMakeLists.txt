@@ -1,3 +1,7 @@
+if (WIN32)
+  add_definitions ( /DPTEX_EXPORTS )
+endif (WIN32)
+
 set(SRCS
     PtexCache.cpp
     PtexFilters.cpp
