@@ -298,7 +298,7 @@ class PtexGaussianFilter : public PtexWidth4Filter
  private:
     static float kernelFn(float x, const float*)
     {
-	return expf(-2.0f*x*x);
+	return exp(-2.0f*x*x);
     }
 };
 

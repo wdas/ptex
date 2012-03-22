@@ -43,7 +43,7 @@ namespace {
     inline float gaussian(float x_squared)
     {
 	static const float scale = -0.5f * (PtexTriangleKernelWidth * PtexTriangleKernelWidth);
-	return expf(scale * x_squared);
+	return exp(scale * x_squared);
     }
 }
 
