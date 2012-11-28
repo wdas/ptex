@@ -26,6 +26,10 @@ $news
 '''
 
 newsitems = [
+    ['Jan 17, 2012',
+     'Ptex supported in <a href="http://www.mentalimages.com">mental ray 3.10</a>.'],
+    ['Oct 5, 2011',
+     'Ptex supported in <a href="http://www.3delight.com">3Delight Studio Pro 10</a>.'],
     ['Aug 11, 2011',
      '<a href="http://developer.nvidia.com/siggraph-2011/">Real-time Ptex</a> demonstrated by NVIDIA at Siggraph 2011.'],
     ['July 22, 2011',
