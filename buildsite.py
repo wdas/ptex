@@ -64,14 +64,14 @@ main = Template(main).safe_substitute(news=news)
 
 overview='''
 
-<a href="http://www.disneyanimation.com/library/ptex/ptex-teaser-big.png"><img border=0 src="ptex-teaser.png" alt=""></a>
+<a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptex-teaser-big.png"><img border=0 src="ptex-teaser.png" alt=""></a>
 
 <br> Model with 2694 faces rendered with Ptex.  No explicit UV
 assignment was used.  The largest texture layer, the fine-scale
 displacements, has 836 million texels stored in a single Ptex file
 with individual face resolutions ranging from 64 x 64 to 2048 x 2048
 texels.  No seams are visible across faces, even under <a
-href="http://www.disneyanimation.com/library/ptex/ptex-teaser-big.png">close
+href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptex-teaser-big.png">close
 magnification</a>.<br>(&copy; Walt Disney Animation Studios)
 
 <h2>Motivation</h2>
@@ -108,7 +108,7 @@ documentation='''
 <ul>
     <li>See the <a href="ptexpaper.html">paper</a>, 
 <i>Ptex: Per-Face Texture Mapping for Production Rendering</i>, Brent Burley and Dylan Lacewell, Eurographics Symposium on Rendering 2008.
-    <li>View the slides from the Eurographics presentation as <a href="http://www.disneyanimation.com/library/ptex/ptex.ppt">Powerpoint</a> or <a href="http://www.disneyanimation.com/library/ptex/ptex-slides.pdf">pdf</a>.</li>
+    <li>View the slides from the Eurographics presentation as <a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptex.ppt">Powerpoint</a> or <a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptex-slides.pdf">pdf</a>.</li>
 </ul>
 
 <h2>Workflow</h2>
@@ -218,7 +218,7 @@ sampleitems=[
     ]
 samples='''
 Download a Quicktime movie showing
-<a href="http://www.disneyanimation.com/library/ptex/ptexTurntables.mov">production
+<a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptexTurntables.mov">production
 models</a> painted and rendered with Ptex (69M, JPEG encoding).<p>
 
 Download sample Ptex projects below.  Each sample project includes a geometry obj
