@@ -54,7 +54,13 @@ class PtexSeparableFilter : public PtexFilter, public Ptex
 	_tx(tx), _options(opts), _result(0), _weight(0), 
 	_firstChanOffset(0), _nchan(0), _ntxchan(_tx->numChannels()),
 	_dt(tx->dataType()), _uMode(tx->uBorderMode()), _vMode(tx->vBorderMode()), 
-        _efm(tx->edgeFilterMode()) {}
+        _efm(tx->edgeFilterMode())
+    {
+        // if caller was compiled with older version of struct, set default for new opts
+        if (_options.__structSize < (char*)&_options.noedgeblend - (char*)&_options) {
+            _options.noedgeblend = 0;
+        }
+    }
     virtual ~PtexSeparableFilter() {}
 
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,

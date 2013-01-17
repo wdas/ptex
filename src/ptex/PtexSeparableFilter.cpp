@@ -42,8 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexUtils.h"
 
 
-//#define NOEDGEBLEND // uncomment to disable filtering across edges (for debugging)
-
 void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
 			       int faceid, float u, float v, 
 			       float uw1, float vw1, float uw2, float vw2,
@@ -131,13 +129,15 @@ void PtexSeparableFilter::splitAndApply(PtexSeparableKernel& k, int faceid, cons
     bool splitR = (k.u+k.uw > k.res.u()), splitL = (k.u < 0);
     bool splitT = (k.v+k.vw > k.res.v()), splitB = (k.v < 0);
 
-#ifdef NOEDGEBLEND
-    // for debugging only
-    if (splitR) k.mergeR(_uMode);
-    if (splitL) k.mergeL(_uMode);
-    if (splitT) k.mergeT(_vMode);
-    if (splitB) k.mergeB(_vMode);
-#else
+    if (_options.noedgeblend) {
+        if (splitR) k.mergeR(_uMode);
+        if (splitL) k.mergeL(_uMode);
+        if (splitT) k.mergeT(_vMode);
+        if (splitB) k.mergeB(_vMode);
+        apply(k, faceid, f);
+        return;
+    }
+
     if (splitR || splitL || splitT || splitB) { 
 	PtexSeparableKernel ka, kc;
 	if (splitR) {
@@ -197,7 +197,6 @@ void PtexSeparableFilter::splitAndApply(PtexSeparableKernel& k, int faceid, cons
 	    else k.mergeB(_vMode);
 	}
     }
-#endif
 
     // do local face
     apply(k, faceid, f); 
