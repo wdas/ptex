@@ -253,8 +253,8 @@ struct Ptex {
 	}
 
 	/// Constructor.
-	FaceInfo(Res res_, int adjfaces_[4], int adjedges_[4], bool isSubface=false)
-	    : res(res_), flags(isSubface ? flag_subface : 0)
+	FaceInfo(Res res_, int adjfaces_[4], int adjedges_[4], bool isSubface_=false)
+	    : res(res_), flags(isSubface_ ? flag_subface : 0)
 	{
 	    setadjfaces(adjfaces_[0], adjfaces_[1], adjfaces_[2], adjfaces_[3]);
 	    setadjedges(adjedges_[0], adjedges_[1], adjedges_[2], adjedges_[3]);
