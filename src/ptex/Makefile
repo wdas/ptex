@@ -1,27 +1,4 @@
-# use compiler from CXX env var if present, otherwise default to g++
-ifndef CXX
-CXX      = g++
-LINK     = g++
-else
-LINK = $(CXX)
-endif
-
-# DEBUG = -g -DDEBUG
-DEBUG    = -O2 -DNDEBUG
-INCPATH  = -I.
-DEFINES  = 
-
-ifdef PRMAN_15_COMPATIBLE_PTEX
-DEFINES += -DPTEX_NO_LARGE_METADATA_BLOCKS
-endif
-
-ifdef PTEX_STATIC
-DEFINES += -DPTEX_STATIC
-endif
-
-CXXFLAGS = -Wall -pedantic -W -std=c++98 $(DEBUG) $(INCPATH) $(DEFINES) -fPIC
-LFLAGS   = 
-LIBS     = -lm -lz -lpthread
+include ../etc/common.mak
 
 SRCS = \
 	PtexCache.cpp \
@@ -50,8 +27,8 @@ INSTALL = \
 ALL = libPtex.a 
 
 ifndef PTEX_STATIC
-ALL += libPtex.so
-INSTALL += $(LIBDIR)/libPtex.so
+ALL += libPtex.$(DSOEXT)
+INSTALL += $(LIBDIR)/libPtex.$(DSOEXT)
 endif
 
 $(INSTALLDIR)/$(LIBDIR)/% : %
@@ -73,14 +50,24 @@ all: $(ALL)
 clean:
 	rm -f *.o $(ALL)
 
+
+ifeq ($(SYSTEM),Darwin)
+STATIC_DEPS = $(OBJECTS)
+STATIC_ARCHIVE = libtool -o $@ -static $^
+else
+STATIC_DEPS = libPtex.a($(OBJECTS))
+STATIC_ARCHIVE =
+endif
+
 ifdef PTEX_STATIC
-libPtex.a : libPtex.a($(OBJECTS))
-	ar -r $@
+libPtex.a : $(STATIC_DEPS)
+	$(STATIC_ARCHIVE)
 
 else
-libPtex.a : libPtex.a($(OBJECTS))
+libPtex.a : $(STATIC_DEPS)
+	$(STATIC_ARCHIVE)
 
-libPtex.so: $(OBJECTS)
+libPtex.$(DSOEXT): $(OBJECTS)
 	$(LINK) $(LFLAGS) -shared -o $@ $(OBJECTS) $(LIBS)
 endif
 
