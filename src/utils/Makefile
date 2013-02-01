@@ -38,7 +38,7 @@ all: install $(ALL)
 clean:
 	rm -f $(ALL) $(INSTALLPATHS)
 
-PTEX_SHA = $(shell git rev-list --max-count=1 HEAD)
+PTEX_SHA = $(shell git rev-parse HEAD)
 PTEX_VER = $(shell git describe $(PTEX_SHA)) ($(PTEX_SHA))
 
 ptxinfo: ptxinfo.cpp $(PTEX)
