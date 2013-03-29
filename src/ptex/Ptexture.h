@@ -184,7 +184,7 @@ struct Ptex {
 	uint16_t& val() { return *(uint16_t*)this; }
 
 	/// Resolution as a single 16-bit integer value.
-	const uint16_t& val() const { return *(uint16_t*)this; }
+	const uint16_t& val() const { return *(const uint16_t*)this; }
 
 	/// Total size of specified texture in texels (u * v).
 	int size() const { return u() * v(); }
