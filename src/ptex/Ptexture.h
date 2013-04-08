@@ -135,14 +135,14 @@ struct Ptex {
     }
 
     /** Look up value of given data type that corresponds to the normalized value of 1.0. */
-    static double OneValue(DataType dt) {
-	static const double one[] = { 255.0, 65535.0, 1.0, 1.0 };
+    static float OneValue(DataType dt) {
+	static const float one[] = { 255.0, 65535.0, 1.0, 1.0 };
 	return one[dt]; 
     }
 
     /** Lookup up inverse value of given data type that corresponds to the normalized value of 1.0. */
-    static double OneValueInv(DataType dt) {
-	static const double one[] = { 1.0/255.0, 1.0/65535.0, 1.0, 1.0 };
+    static float OneValueInv(DataType dt) {
+	static const float one[] = { 1.0/255.0, 1.0/65535.0, 1.0, 1.0 };
 	return one[dt]; 
     }
 
@@ -166,7 +166,7 @@ struct Ptex {
 	Res() : ulog2(0), vlog2(0) {}
 
 	/// Constructor.
-	Res(int8_t ulog2, int8_t vlog2) : ulog2(ulog2), vlog2(vlog2) {}
+	Res(int8_t ulog2_, int8_t vlog2_) : ulog2(ulog2_), vlog2(vlog2_) {}
 
 	/// Constructor from 16-bit integer
 	Res(uint16_t value) {
@@ -184,7 +184,7 @@ struct Ptex {
 	uint16_t& val() { return *(uint16_t*)this; }
 
 	/// Resolution as a single 16-bit integer value.
-	const uint16_t& val() const { return *(uint16_t*)this; }
+	const uint16_t& val() const { return *(const uint16_t*)this; }
 
 	/// Total size of specified texture in texels (u * v).
 	int size() const { return u() * v(); }
@@ -247,17 +247,17 @@ struct Ptex {
 	}
 
 	/// Constructor.
-	FaceInfo(Res res) : res(res), adjedges(0), flags(0) 
+	FaceInfo(Res res_) : res(res_), adjedges(0), flags(0) 
 	{ 
 	    adjfaces[0] = adjfaces[1] = adjfaces[2] = adjfaces[3] = -1; 
 	}
 
 	/// Constructor.
-	FaceInfo(Res res, int adjfaces[4], int adjedges[4], bool isSubface=false)
-	    : res(res), flags(isSubface ? flag_subface : 0)
+	FaceInfo(Res res_, int adjfaces_[4], int adjedges_[4], bool isSubface_=false)
+	    : res(res_), flags(isSubface_ ? flag_subface : 0)
 	{
-	    setadjfaces(adjfaces[0], adjfaces[1], adjfaces[2], adjfaces[3]);
-	    setadjedges(adjedges[0], adjedges[1], adjedges[2], adjedges[3]);
+	    setadjfaces(adjfaces_[0], adjfaces_[1], adjfaces_[2], adjfaces_[3]);
+	    setadjedges(adjedges_[0], adjedges_[1], adjedges_[2], adjedges_[3]);
 	}
 
 	/// Access an adjacent edge id.  The eid value must be 0..3.
@@ -883,9 +883,9 @@ class PtexFilter {
 	float sharpness;	///< Filter sharpness, 0..1 (for general bi-cubic filter only).
 
 	/// Constructor - sets defaults
-	Options(FilterType filter=f_box, bool lerp=0, float sharpness=0) :
+	Options(FilterType filter_=f_box, bool lerp_=0, float sharpness_=0) :
 	    __structSize(sizeof(Options)),
-	    filter(filter), lerp(lerp), sharpness(sharpness) {}
+	    filter(filter_), lerp(lerp_), sharpness(sharpness_) {}
     };
 
     /* Construct a filter for the given texture.
@@ -975,6 +975,12 @@ template <class T> class PtexPtr {
 	T* tmp = p._ptr;
 	p._ptr = _ptr;
 	_ptr = tmp;
+    }
+
+    /// Deallocate object pointed to, and optionally set to new value.
+    void reset(T* ptr=0) {
+        if (_ptr) _ptr->release();
+        _ptr = ptr;
     }
 
  private:

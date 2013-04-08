@@ -71,18 +71,18 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     }
 
     // find filter width as bounding box of vectors w1 and w2
-    float uw = fabs(uw1) + fabs(uw2), vw = fabs(vw1) + fabs(vw2);
+    float uw = fabsf(uw1) + fabsf(uw2), vw = fabsf(vw1) + fabsf(vw2);
 
     // handle border modes
     switch (_uMode) {
     case m_clamp: u = PtexUtils::clamp(u, 0.0f, 1.0f); break;
-    case m_periodic: u = u-floor(u); break;
+    case m_periodic: u = u-floorf(u); break;
     case m_black: break; // do nothing
     }
 
     switch (_vMode) {
     case m_clamp: v = PtexUtils::clamp(v, 0.0f, 1.0f); break;
-    case m_periodic: v = v-floor(v);
+    case m_periodic: v = v-floorf(v);
     case m_black: break; // do nothing
     }
 
@@ -90,9 +90,9 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     PtexSeparableKernel k;
     if (f.isSubface()) {
 	// for a subface, build the kernel as if it were on a main face and then downres
-	uw = uw * width + blur * 2;
-	vw = vw * width + blur * 2;
-	buildKernel(k, u*.5, v*.5, uw*.5, vw*.5, f.res);
+	uw = uw * width + blur * 2.0f;
+	vw = vw * width + blur * 2.0f;
+	buildKernel(k, u*.5f, v*.5f, uw*.5f, vw*.5f, Ptex::Res(f.res.ulog2+1,f.res.vlog2+1));
 	if (k.res.ulog2 == 0) k.upresU();
 	if (k.res.vlog2 == 0) k.upresV();
 	k.res.ulog2--; k.res.vlog2--;
@@ -109,16 +109,16 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     assert(k.uw <= PtexSeparableKernel::kmax && k.vw <= PtexSeparableKernel::kmax);
     _weight = k.weight();
 
-    // allocate temporary double-precision result
-    _result = (double*) alloca(sizeof(double)*_nchan);
-    memset(_result, 0, sizeof(double)*_nchan);
+    // allocate temporary result
+    _result = (float*) alloca(sizeof(float)*_nchan);
+    memset(_result, 0, sizeof(float)*_nchan);
 
     // apply to faces
     splitAndApply(k, faceid, f);
 
     // normalize (both for data type and cumulative kernel weight applied)
     // and output result
-    double scale = 1.0 / (_weight * OneValue(_dt));
+    float scale = 1.0f / (_weight * OneValue(_dt));
     for (int i = 0; i < _nchan; i++) result[i] = float(_result[i] * scale);
 
     // clear temp result
@@ -305,8 +305,8 @@ void PtexSeparableFilter::applyToCorner(PtexSeparableKernel& k, int faceid,
 	// valence 5+, make kernel symmetric and apply equally to each face
 	// first, rotate to standard orientation, u=v=0
 	k.rotate(eid + 2);
-        double initialWeight = k.weight();
-        double newWeight = k.makeSymmetric(initialWeight);
+        float initialWeight = k.weight();
+        float newWeight = k.makeSymmetric(initialWeight);
 	for (int i = 1; i <= numCorners; i++) {
 	    PtexSeparableKernel kc = k;
 	    applyToCornerFace(kc, f, 2, cfaceId[i], *cface[i], cedgeId[i]);

@@ -1,0 +1,30 @@
+Building with make (Linux):
+> cd src
+> make
+
+This will build, install to a local 'install' directory, and
+run regression tests.
+
+Contents of install directory:
+install/bin:
+ptxinfo
+
+install/include:
+PtexHalf.h  PtexInt.h  Ptexture.h  PtexUtils.h
+
+install/lib:
+libPtex.a  libPtex.so
+
+
+
+Building with cmake:
+mkdir build
+cd build
+cmake ../src
+make
+make test
+make install
+make doc
+
+Note: docs will be generated into local 'install' directory.
+(TODO: generate in build directory.)
