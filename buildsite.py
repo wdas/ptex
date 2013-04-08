@@ -188,6 +188,7 @@ releases = [
     ['v2.0.29', 'May 2, 2011', 'Minor bug fixes. API change: added PtexPtr::reset method.'],
     ['v2.0.30', 'May 9, 2011', 'Critical bug fix: threading crash when using multiple caches.'],
     ['v2.0.33', 'Dec 14, 2011', 'Fixed crash when rendering triangle textures that have no stored mipmaps.'],
+    ['v2.0.37', 'Apr 8, 2013', 'Cmake support, compiler warnings, WIN32 export control.'],
     ['master', '', 'Latest commit']]
 
 download='''
@@ -200,9 +201,8 @@ Download the source:<br>
 <col width=80> <col width=120> <col>
 %s
 </table>
-''' % ('\n'.join(['<tr><td><a href="http://github.com/wdas/ptex/archives/%s">%s</a></td><td>%s</td><td>%s</td></tr>'
+''' % ('\n'.join(['<tr><td><a href="http://github.com/wdas/ptex/archive/%s.zip">%s</a></td><td>%s</td><td>%s</td></tr>'
                   % (v,v,d,c) for v,d,c in releases]))
-
 mailinglists='''
 Two mailing lists have been set up for Ptex on Google Groups:
 <ul>
