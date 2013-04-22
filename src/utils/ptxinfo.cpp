@@ -88,7 +88,7 @@ void DumpData(PtexTexture* r, int faceid, bool dumpall)
 {
     int levels = 1;
     if (dumpall) {
-	PtexReader* R = dynamic_cast<PtexReader*> (r);
+	PtexReader* R = static_cast<PtexReader*> (r);
 	if (R) levels = R->header().nlevels;
     }
 
@@ -167,11 +167,7 @@ void DumpMetaData(PtexMetaData* meta)
 
 void DumpInternal(PtexTexture* tx)
 {
-    PtexReader* r = dynamic_cast<PtexReader*> (tx);
-    if (!r) {
-	std::cout << "Internal error - PtexReader cast failed\n";
-	return;
-    }
+    PtexReader* r = static_cast<PtexReader*> (tx);
 
     const PtexIO::Header& h = r->header();
     const PtexIO::ExtHeader& eh = r->extheader();

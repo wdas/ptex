@@ -50,7 +50,8 @@ PtexTexture* PtexTexture::open(const char* path, Ptex::String& error, bool premu
     PtexTexture* file = cache->get(path, error);
 
     // make reader own the cache (so it will delete it later)
-    PtexReader* reader = dynamic_cast<PtexReader*> (file);
+    // Note: we know that we have a PtexReader because it came from the cache
+    PtexReader* reader = static_cast<PtexReader*> (file);
     if (reader) reader->setOwnsCache();
 
     // and purge cache so cache doesn't try to hold reader open
@@ -906,7 +907,7 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 	    return 0;
 	}
 	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res(res.ulog2+1, res.vlog2+1)) );
-	FaceData* src = dynamic_cast<FaceData*>(psrc.get());
+	FaceData* src = static_cast<FaceData*>(psrc.get());
 	assert(src);
 	if (src) src->reduce(face, this, res, PtexUtils::reduceTri);
 	return face;
@@ -923,14 +924,14 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
     if (blendu) {
 	// get next-higher u-res and reduce in u
 	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res(res.ulog2+1, res.vlog2)) );
-	FaceData* src = dynamic_cast<FaceData*>(psrc.get());
+	FaceData* src = static_cast<FaceData*>(psrc.get());
 	assert(src);
 	if (src) src->reduce(face, this, res, PtexUtils::reduceu);
     }
     else {
 	// get next-higher v-res and reduce in v
 	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res(res.ulog2, res.vlog2+1)) );
-	FaceData* src = dynamic_cast<FaceData*>(psrc.get());
+	FaceData* src = static_cast<FaceData*>(psrc.get());
 	assert(src);
 	if (src) src->reduce(face, this, res, PtexUtils::reducev);
     }
