@@ -235,11 +235,10 @@ int CheckAdjacency(PtexTexture* tx)
                     continue;
                 
                 // subface case
-                if (finfo.isSubface()) {
-                    if (e==0 and oppfid == finfo.adjface(1))
-                        continue;
-                    else if (e==3 and oppfid == finfo.adjface(2))
-                        continue;
+                if (finfo.isSubface() && !adjf.isSubface()) {
+                    // neighbor face might be pointing to "other" subface
+                    if (oppfid == finfo.adjface((e+1)%4)) 
+                        continue;                
                 }
                 
                 std::cerr << "face " << fid << " edge " << e 
