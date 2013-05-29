@@ -244,7 +244,10 @@ public:
 
     virtual void purge(PtexTexture* texture)
     {
-	PtexReader* reader = dynamic_cast<PtexReader*>(texture);
+        // Note: we're assuming here that the texture was created from this cache
+        // and is therefore a PtexReader instance.  dynamic_cast would be safer
+        // but we don't want to require rtti.
+	PtexReader* reader = static_cast<PtexReader*>(texture);
 	if (!reader) return;
 	purge(reader->path());
     }

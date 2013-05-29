@@ -754,12 +754,8 @@ PtexMainWriter::PtexMainWriter(const char* path, PtexTexture* tex,
 
     if (tex) {
 	// access reader implementation
-	_reader = dynamic_cast<PtexReader*>(tex);
-	if (!_reader) {
-	    setError("Internal error: dynamic_cast<PtexReader*> failed");
-	    tex->release();
-	    return;
-	}
+        // Note: we can assume we have a PtexReader because we opened the tex from the cache
+	_reader = static_cast<PtexReader*>(tex);
 
 	// copy border modes
 	setBorderModes(tex->uBorderMode(), tex->vBorderMode());

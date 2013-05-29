@@ -36,27 +36,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexPlatform.h"
 #include <iostream>
 #include <sstream>
-#include <errno.h>
 #include <stdio.h>
 
 #include "Ptexture.h"
 #include "PtexUtils.h"
 #include "PtexReader.h"
-
-
-namespace {
-    class DefaultInputHandler : public PtexInputHandler
-    {
-     public:
-	virtual Handle open(const char* path) { return (Handle) fopen(path, "rb"); }
-	virtual void seek(Handle handle, int64_t pos) { fseeko((FILE*)handle, pos, SEEK_SET); }
-	virtual size_t read(void* buffer, size_t size, Handle handle) {
-	    return fread(buffer, size, 1, (FILE*)handle) == 1 ? size : 0;
-	}
-	virtual bool close(Handle handle) { return fclose((FILE*)handle); }
-	virtual const char* lastError() { return strerror(errno); }
-    } defaultInputHandler;
-}
 
 
 PtexTexture* PtexTexture::open(const char* path, Ptex::String& error, bool premultiply)
@@ -66,7 +50,8 @@ PtexTexture* PtexTexture::open(const char* path, Ptex::String& error, bool premu
     PtexTexture* file = cache->get(path, error);
 
     // make reader own the cache (so it will delete it later)
-    PtexReader* reader = dynamic_cast<PtexReader*> (file);
+    // Note: we know that we have a PtexReader because it came from the cache
+    PtexReader* reader = static_cast<PtexReader*> (file);
     if (reader) reader->setOwnsCache();
 
     // and purge cache so cache doesn't try to hold reader open
@@ -142,7 +127,7 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 PtexReader::PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply,
 		       PtexInputHandler* io)
     : PtexCachedFile(parent, cache),
-      _io(io ? io : &defaultInputHandler),
+      _io(io ? io : &_defaultIo),
       _premultiply(premultiply),
       _ownsCache(false),
       _ok(true),
@@ -922,7 +907,7 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 	    return 0;
 	}
 	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res(res.ulog2+1, res.vlog2+1)) );
-	FaceData* src = dynamic_cast<FaceData*>(psrc.get());
+	FaceData* src = static_cast<FaceData*>(psrc.get());
 	assert(src);
 	if (src) src->reduce(face, this, res, PtexUtils::reduceTri);
 	return face;
@@ -939,14 +924,14 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
     if (blendu) {
 	// get next-higher u-res and reduce in u
 	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res(res.ulog2+1, res.vlog2)) );
-	FaceData* src = dynamic_cast<FaceData*>(psrc.get());
+	FaceData* src = static_cast<FaceData*>(psrc.get());
 	assert(src);
 	if (src) src->reduce(face, this, res, PtexUtils::reduceu);
     }
     else {
 	// get next-higher v-res and reduce in v
 	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res(res.ulog2, res.vlog2+1)) );
-	FaceData* src = dynamic_cast<FaceData*>(psrc.get());
+	FaceData* src = static_cast<FaceData*>(psrc.get());
 	assert(src);
 	if (src) src->reduce(face, this, res, PtexUtils::reducev);
     }
