@@ -9,18 +9,18 @@ Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
 
-  * Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
+* Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
 
-  * Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in
-    the documentation and/or other materials provided with the
-    distribution.
+* Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in
+the documentation and/or other materials provided with the
+distribution.
 
-  * The names "Disney", "Walt Disney Pictures", "Walt Disney Animation
-    Studios" or the names of its contributors may NOT be used to
-    endorse or promote products derived from this software without
-    specific prior written permission from Walt Disney Pictures.
+* The names "Disney", "Walt Disney Pictures", "Walt Disney Animation
+Studios" or the names of its contributors may NOT be used to
+endorse or promote products derived from this software without
+specific prior written permission from Walt Disney Pictures.
 
 Disclaimer: THIS SOFTWARE IS PROVIDED BY WALT DISNEY PICTURES AND
 CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
@@ -41,39 +41,39 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 /** For internal use only */
 namespace PtexInternal {
 #ifndef NDEBUG
-    template <class T>
-    class DebugLock : public T {
-     public:
-	DebugLock() : _locked(0) {}
-	void lock()   { T::lock(); _locked = 1; }
-	void unlock() { assert(_locked); _locked = 0; T::unlock(); }
-	bool locked() { return _locked != 0; }
-     private:
-	int _locked;
-    };
+	template <class T>
+	class DebugLock : public T {
+	public:
+		DebugLock() : _locked(0) {}
+		void lock()   { T::lock(); _locked = 1; }
+		void unlock() { assert(_locked); _locked = 0; T::unlock(); }
+		bool locked() { return _locked != 0; }
+	private:
+		int _locked;
+	};
 #endif
 
-    /** Automatically acquire and release lock within enclosing scope. */
-    template <class T>
-    class AutoLock {
-    public:
-	AutoLock(T& m) : _m(m) { _m.lock(); }
-	~AutoLock()            { _m.unlock(); }
-    private:
-	T& _m;
-    };
+	/** Automatically acquire and release lock within enclosing scope. */
+	template <class T>
+	class AutoLock {
+	public:
+		AutoLock(T& m) : _m(m) { _m.lock(); }
+		~AutoLock()            { _m.unlock(); }
+	private:
+		T& _m;
+	};
 
 #ifndef NDEBUG
-    // add debug wrappers to mutex and spinlock
-    typedef DebugLock<_Mutex> Mutex;
-    typedef DebugLock<_SpinLock> SpinLock;
+	// add debug wrappers to mutex and spinlock
+	typedef DebugLock<_Mutex> Mutex;
+	typedef DebugLock<_SpinLock> SpinLock;
 #else
-    typedef _Mutex Mutex;
-    typedef _SpinLock SpinLock;
+	typedef _Mutex Mutex;
+	typedef _SpinLock SpinLock;
 #endif
 
-    typedef AutoLock<Mutex> AutoMutex;
-    typedef AutoLock<SpinLock> AutoSpin;
+	typedef AutoLock<Mutex> AutoMutex;
+	typedef AutoLock<SpinLock> AutoSpin;
 }
 
 #endif
