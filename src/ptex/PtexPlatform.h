@@ -9,18 +9,18 @@ Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
 
-  * Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
+* Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
 
-  * Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in
-    the documentation and/or other materials provided with the
-    distribution.
+* Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in
+the documentation and/or other materials provided with the
+distribution.
 
-  * The names "Disney", "Walt Disney Pictures", "Walt Disney Animation
-    Studios" or the names of its contributors may NOT be used to
-    endorse or promote products derived from this software without
-    specific prior written permission from Walt Disney Pictures.
+* The names "Disney", "Walt Disney Pictures", "Walt Disney Animation
+Studios" or the names of its contributors may NOT be used to
+endorse or promote products derived from this software without
+specific prior written permission from Walt Disney Pictures.
 
 Disclaimer: THIS SOFTWARE IS PROVIDED BY WALT DISNEY PICTURES AND
 CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 */
 
 /** @file PtexPlatform.h
-    @brief Platform-specific classes, functions, and includes.
+@brief Platform-specific classes, functions, and includes.
 */
 
 // platform-specific includes
@@ -68,6 +68,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <libkern/OSAtomic.h>
 #include <sys/types.h>
 #endif
+
+#include "threads.h" // V-Ray SDK threading primitives
 #endif
 
 // general includes
@@ -84,77 +86,72 @@ typedef __int64 FilePos;
 #define ftello _ftelli64
 
 inline float log2f(float x) {
-    return logf(x) * 1.4426950408889634f; 
+	return logf(x) * 1.4426950408889634f; 
 }
 
 #else
 typedef off_t FilePos;
 #endif
-    
+
 
 namespace PtexInternal {
 
-    /*
-     * Mutex/SpinLock classes
-     */
+	/*
+	* Mutex/SpinLock classes
+	*/
 
 #ifdef WINDOWS
 
-    class _Mutex {
-    public:
-	_Mutex()       { _mutex = CreateMutex(NULL, FALSE, NULL); }
-	~_Mutex()      { CloseHandle(_mutex); }
-	void lock()   { WaitForSingleObject(_mutex, INFINITE); }
-	void unlock() { ReleaseMutex(_mutex); }
-    private:
-	HANDLE _mutex;
-    };
+	/* Windows mutex is way too slow; use critical section instead
+	class _Mutex {
+	public:
+		_Mutex()       { _mutex = CreateMutex(NULL, FALSE, NULL); }
+		~_Mutex()      { CloseHandle(_mutex); }
+		void lock()   { WaitForSingleObject(_mutex, INFINITE); }
+		void unlock() { ReleaseMutex(_mutex); }
+	private:
+		HANDLE _mutex;
+	};
+	*/
 
-    class _SpinLock {
-    public:
-	_SpinLock()    { InitializeCriticalSection(&_spinlock); }
-	~_SpinLock()   { DeleteCriticalSection(&_spinlock); }
-	void lock()   { EnterCriticalSection(&_spinlock); }
-	void unlock() { LeaveCriticalSection(&_spinlock); }
-    private:
-	CRITICAL_SECTION _spinlock;
-    };
+	class _SpinLock {
+	public:
+		_SpinLock()    { InitializeCriticalSection(&_spinlock); }
+		~_SpinLock()   { DeleteCriticalSection(&_spinlock); }
+		void lock()   { EnterCriticalSection(&_spinlock); }
+		void unlock() { LeaveCriticalSection(&_spinlock); }
+	private:
+		CRITICAL_SECTION _spinlock;
+	};
+
+	typedef _SpinLock _Mutex;
 
 #else
-    // assume linux/unix/posix
+	// assume linux/unix/posix
 
-    class _Mutex {
-     public:
-	_Mutex()      { pthread_mutex_init(&_mutex, 0); }
-	~_Mutex()     { pthread_mutex_destroy(&_mutex); }
-	void lock()   { pthread_mutex_lock(&_mutex); }
-	void unlock() { pthread_mutex_unlock(&_mutex); }
-    private:
-	pthread_mutex_t _mutex;
-    };
+	class _Mutex {
+	public:
+		_Mutex()      { pthread_mutex_init(&_mutex, 0); }
+		~_Mutex()     { pthread_mutex_destroy(&_mutex); }
+		void lock()   { pthread_mutex_lock(&_mutex); }
+		void unlock() { pthread_mutex_unlock(&_mutex); }
+	private:
+		pthread_mutex_t _mutex;
+	};
 
-#ifdef __APPLE__
-    class _SpinLock {
-    public:
-	_SpinLock()   { _spinlock = 0; }
-	~_SpinLock()  { }
-	void lock()   { OSSpinLockLock(&_spinlock); }
-	void unlock() { OSSpinLockUnlock(&_spinlock); }
-    private:
-	OSSpinLock _spinlock;
-    };
-#else
-    class _SpinLock {
-    public:
-	_SpinLock()   { pthread_spin_init(&_spinlock, PTHREAD_PROCESS_PRIVATE); }
-	~_SpinLock()  { pthread_spin_destroy(&_spinlock); }
-	void lock()   { pthread_spin_lock(&_spinlock); }
-	void unlock() { pthread_spin_unlock(&_spinlock); }
-    private:
-	pthread_spinlock_t _spinlock;
-    };
-#endif // __APPLE__
+	// We need a recursive spin lock, so use
+	// VUtils::SpinLock (native Linux spin lock is not recursive).
+	class _SpinLock {
+	public:
+		_SpinLock()   { }
+		~_SpinLock()  { }
+		void lock()   { _spinlock.enter(); }
+		void unlock() { _spinlock.leave(); }
+	private:
+		VUtils::SpinLock _spinlock;
+	};
 #endif
+
 }
 
 #endif // PtexPlatform_h
