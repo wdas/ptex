@@ -56,7 +56,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #    define PTEXAPI
 #  endif
 #endif
-
 #include "PtexInt.h"
 
 /**
@@ -85,9 +84,20 @@ struct PtexHalf {
 	uint16_t bits;
 
 	/// Default constructor, value is undefined
-	PtexHalf() {}
-	PtexHalf(float val) : bits(fromFloat(val)) {}
-	PtexHalf(double val) : bits(fromFloat(float(val))) {}
+	PtexHalf() {
+		init();
+	}
+
+	PtexHalf(float val) {
+		init();
+		bits = fromFloat(val);
+	}
+
+	PtexHalf(double val) {
+		init();
+		bits = fromFloat(float(val));
+	}
+
 	operator float() const { return toFloat(bits); }
 	PtexHalf& operator=(float val) { bits = fromFloat(val); return *this; }
 
@@ -107,6 +117,9 @@ struct PtexHalf {
 		if (e) return e + (((u.i&0x7fffff) + 0x1000) >> 13);
 		return fromFloat_except(u.i);
 	}
+
+	static bool initialized;
+	static void init();
 
 private:
 	PTEXAPI static uint16_t fromFloat_except(uint32_t val);

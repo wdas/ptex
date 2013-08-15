@@ -38,10 +38,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 uint16_t PtexHalf::f2hTable[512];
 uint32_t PtexHalf::h2fTable[65536];
+bool PtexHalf::initialized = false;
 
 /** Table initializations. */
-static bool PtexHalfInit()
+void PtexHalf::init()
 {
+	if(initialized) return;
+
 	union { int i; float f; } u;
 
 	for (int h = 0; h < 65536; h++) {
@@ -62,7 +65,7 @@ static bool PtexHalfInit()
 			// inf/nan, preserve low bits of m for nan code
 			u.i = s|0x7f800000|(m<<13);
 		}
-		PtexHalf::h2fTable[h] = u.i;
+		h2fTable[h] = u.i;
 	}
 
 	for (int i = 0; i < 512; i++) {
@@ -73,15 +76,12 @@ static bool PtexHalfInit()
 			int s = ((f>>16) & 0x8000);
 			int m = f & 0x7fe000;
 			// add bit 12 to round
-			PtexHalf::f2hTable[i] = (s|((e|m)>>13))+((f>>12)&1);
+			f2hTable[i] = (s|((e|m)>>13))+((f>>12)&1);
 		}
 	}
 
-	return 1;
+	initialized = true;
 }
-
-static bool PtexHalfInitialized = PtexHalfInit();
-
 
 /** Handle exceptional cases for half-to-float conversion */
 uint16_t PtexHalf::fromFloat_except(uint32_t i)
