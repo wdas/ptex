@@ -43,10 +43,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexReader.h"
 
 
-PtexTexture* PtexTexture::open(const char* path, Ptex::String& error, bool premultiply)
+PtexTexture* PtexTexture::open(const char* path, Ptex::String& error, bool premultiply, uint64_t cacheSize)
 {
+	if(cacheSize < 1024 * 1024) cacheSize = 1024 * 1024;
+
 	// create a private cache and use it to open the file
-	PtexCache* cache = PtexCache::create(1, 1024*1024, premultiply);
+	PtexCache* cache = PtexCache::create(1, cacheSize, premultiply);
 	PtexTexture* file = cache->get(path, error);
 
 	// make reader own the cache (so it will delete it later)
@@ -125,8 +127,8 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 
 
 PtexReader::PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply,
-	PtexInputHandler* io)
-	: PtexCachedFile(parent, cache),
+	PtexInputHandler* io, PtexLruItem *parentPtr)
+	 : PtexCachedFile(parent, cache, parentPtr),
 	_io(io ? io : &_defaultIo),
 	_premultiply(premultiply),
 	_ownsCache(false),
@@ -135,7 +137,7 @@ PtexReader::PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply,
 	_pos(0),
 	_pixelsize(0),
 	_constdata(0),
-	_metadata(0),
+	_tmetadata(0),
 	_hasEdits(false)
 {
 	memset(&_header, 0, sizeof(_header));
@@ -152,14 +154,14 @@ PtexReader::~PtexReader()
 	if (_constdata) free(_constdata);
 
 	// the rest must be orphaned since there may still be references outstanding
-	orphanList(_levels);
-	for (ReductionMap::iterator i = _reductions.begin(); i != _reductions.end(); i++) {
+	orphanList(_tlevels, this);
+	for (ReductionMap::iterator i = _treductions.begin(); i != _treductions.end(); i++) {
 		FaceData* f = (*i).second;
 		if (f) f->orphan();
 	}
-	if (_metadata) {
-		_metadata->orphan();
-		_metadata = 0;
+	if (_tmetadata) {
+		_tmetadata->orphan();
+		_tmetadata = 0;
 	}
 
 	inflateEnd(&_zstream);
@@ -173,7 +175,7 @@ void PtexReader::release()
 	PtexCacheImpl* cache = _cache;
 	{
 		// create local scope for cache lock
-		AutoLockCache lock(cache->cachelock);
+		// AutoLockCache lock(cache->cachelock);
 		unref();
 	}
 	// If this reader owns the cache, then releasing it may cause deletion of the
@@ -227,13 +229,15 @@ void PtexReader::readLevelInfo()
 		readBlock(&_levelinfo[0], LevelInfoSize*_header.nlevels);
 
 		// initialize related data
-		_levels.resize(_header.nlevels);
+		rwLock.lockWrite();
+		_tlevels.resize(_header.nlevels);
 		_levelpos.resize(_header.nlevels);
 		FilePos pos = _leveldatapos;
 		for (int i = 0; i < _header.nlevels; i++) {
 			_levelpos[i] = pos;
 			pos += _levelinfo[i].leveldatasize;
 		}
+		rwLock.unlockWrite();
 	}
 }
 
@@ -255,18 +259,18 @@ void PtexReader::readConstData()
 
 PtexMetaData* PtexReader::getMetaData()
 {
-	AutoLockCache locker(_cache->cachelock);
-	if (_metadata) _metadata->ref();
+	// AutoLockCache locker(_cache->cachelock);
+	if (_tmetadata) _tmetadata->ref();
 	else readMetaData();
-	return _metadata;
+	return _tmetadata;
 }
 
-
+// Assume the cache is locked for reading
 PtexReader::MetaData::Entry*
-	PtexReader::MetaData::getEntry(const char* key)
+PtexReader::MetaData::_tgetEntry(const char* key)
 {
-	MetaMap::iterator iter = _map.find(key);
-	if (iter == _map.end()) {
+	MetaMap::iterator iter = _tmap.find(key);
+	if (iter == _tmap.end()) {
 		// not found
 		return 0;
 	}
@@ -278,41 +282,60 @@ PtexReader::MetaData::Entry*
 	}
 
 	// large meta data - may not be read in yet
-	AutoLockCache lock(_cache->cachelock);
+	// AutoLockCache lock(_cache->cachelock);
 	if (e->lmdData) {
 		// already in memory, add a ref
 		e->lmdData->ref();
-		_lmdRefs.push_back(e->lmdData);
+
+		rwLock.unlockRead();
+		rwLock.lockWrite();
+
+		_tlmdRefs.push_back(e->lmdData);
+
+		rwLock.unlockWrite();
+		rwLock.lockRead();
 		return e;
 	}
 	else {
 		// not present, must read from file
 		// temporarily release cache lock so other threads can proceed
-		_cache->cachelock.unlock();
+		// _cache->cachelock.unlock();
+		rwLock.unlockRead();
 
 		// get read lock and make sure we still need to read
 		AutoMutex locker(_reader->readlock);
 		if (e->lmdData) {
 			// another thread must have read it while we were waiting
-			_cache->cachelock.lock();
+			// _cache->cachelock.lock();
+			rwLock.lockWrite();
 
 			// make sure it's still there now that we have the lock
 			if (e->lmdData) {
 				e->data = e->lmdData->data();
-				_lmdRefs.push_back(e->lmdData);
+
+				_tlmdRefs.push_back(e->lmdData);
 				e->lmdData->ref();
+
+				rwLock.unlockWrite();
+				rwLock.lockRead();
+
 				return e;
 			}
 		}
+
 		// go ahead and read, keep local until finished
 		LargeMetaData*& parent = e->lmdData;
-		LargeMetaData* volatile lmdData = new LargeMetaData((void**)&parent, _cache, e->datasize);
+		LargeMetaData* volatile lmdData = new LargeMetaData((void**)&parent, _cache, e->datasize, _reader);
+		lmdData->setCacheLock();
 		e->data = lmdData->data();
 		_reader->seek(e->lmdPos);
 		_reader->readZipBlock(e->data, e->lmdZipSize, e->datasize);
 		// reacquire cache lock and update entry
-		_cache->cachelock.lock();
+		// _cache->cachelock.lock();
+		rwLock.lockWrite();
 		e->lmdData = lmdData;
+		rwLock.unlockWrite();
+		rwLock.lockRead();
 		return e;
 	}
 }
@@ -321,19 +344,19 @@ PtexReader::MetaData::Entry*
 void PtexReader::readMetaData()
 {
 	// temporarily release cache lock so other threads can proceed
-	_cache->cachelock.unlock();
+	// _cache->cachelock.unlock();
 
 	// get read lock and make sure we still need to read
 	AutoMutex locker(readlock);
-	if (_metadata) {
+	if (_tmetadata) {
 		// another thread must have read it while we were waiting
-		_cache->cachelock.lock();
+		// _cache->cachelock.lock();
 		// make sure it's still there now that we have the lock
-		if (_metadata) {
-			_metadata->ref();
+		if (_tmetadata) {
+			_tmetadata->ref();
 			return;
 		}
-		_cache->cachelock.unlock();
+		// _cache->cachelock.unlock();
 	}
 
 
@@ -343,7 +366,8 @@ void PtexReader::readMetaData()
 		totalsize += _metaedits[i].memsize;
 
 	// allocate new meta data (keep local until fully initialized)
-	MetaData* volatile newmeta = new MetaData(&_metadata, _cache, totalsize, this);
+	MetaData* volatile newmeta = new MetaData(&_tmetadata, _cache, totalsize, this, this);
+	newmeta->setCacheLock();
 
 	// read primary meta data blocks
 	if (_header.metadatamemsize)
@@ -361,11 +385,12 @@ void PtexReader::readMetaData()
 		_metaedits[i].zipsize, _metaedits[i].memsize);
 
 	// store meta data
-	_cache->cachelock.lock();
-	_metadata = newmeta;
+	// _cache->cachelock.lock();
+	_tmetadata = newmeta;
 
 	// clean up unused data
-	_cache->purgeData();
+	// _cache->purgeData();
+	setPurgeFlag();
 }
 
 
@@ -448,8 +473,8 @@ void PtexReader::readEditData()
 		_hasEdits = true;
 		pos = tell() + editsize;
 		switch (edittype) {
-		case et_editfacedata:   readEditFaceData(); break;
-		case et_editmetadata:   readEditMetaData(); break;
+	case et_editfacedata:   readEditFaceData(); break;
+	case et_editmetadata:   readEditMetaData(); break;
 		}
 	}
 }
@@ -546,29 +571,33 @@ bool PtexReader::readZipBlock(void* data, int zipsize, int unzipsize)
 void PtexReader::readLevel(int levelid, Level*& level)
 {
 	// temporarily release cache lock so other threads can proceed
-	_cache->cachelock.unlock();
+	// _cache->cachelock.unlock();
 
 	// get read lock and make sure we still need to read
-	AutoMutex locker(readlock);
 	if (level) {
 		// another thread must have read it while we were waiting
-		_cache->cachelock.lock();
+		// _cache->cachelock.lock();
 		// make sure it's still there now that we have the lock
 		if (level) {
 			level->ref();
 			return;
 		}
-		_cache->cachelock.unlock();
+		// _cache->cachelock.unlock();
 	}
 
 	// go ahead and read the level
 	LevelInfo& l = _levelinfo[levelid];
 
 	// keep new level local until finished
-	Level* volatile newlevel = new Level((void**)&level, _cache, l.nfaces);
-	seek(_levelpos[levelid]);
-	readZipBlock(&newlevel->fdh[0], l.levelheadersize, FaceDataHeaderSize * l.nfaces);
-	computeOffsets(tell(), l.nfaces, &newlevel->fdh[0], &newlevel->offsets[0]);
+	Level* volatile newlevel = new Level((void**)&level, _cache, l.nfaces, this);
+	newlevel->setCacheLock();
+
+	{
+		AutoMutex locker(readlock);
+		seek(_levelpos[levelid]);
+		readZipBlock(&newlevel->fdh[0], l.levelheadersize, FaceDataHeaderSize * l.nfaces);
+		computeOffsets(tell(), l.nfaces, &newlevel->fdh[0], &newlevel->offsets[0]);
+	}
 
 	// apply edits (if any) to level 0
 	if (levelid == 0) {
@@ -580,32 +609,36 @@ void PtexReader::readLevel(int levelid, Level*& level)
 	}
 
 	// don't assign to result until level data is fully initialized
-	_cache->cachelock.lock();
+	// _cache->cachelock.lock();
 	level = newlevel;
 
 	// clean up unused data
-	_cache->purgeData();
+	setPurgeFlag();
+	// _cache->purgeData();
 }
 
 
 void PtexReader::readFace(int levelid, Level* level, int faceid)
 {
 	// temporarily release cache lock so other threads can proceed
-	_cache->cachelock.unlock();
+	// _cache->cachelock.unlock();
+
+	level->rwLock.unlockWrite();
+	AutoMutex locker(readlock);
+	level->rwLock.lockWrite();
 
 	// get read lock and make sure we still need to read
-	FaceData*& face = level->faces[faceid];
-	AutoMutex locker(readlock);
+	FaceData*& face = level->tfaces[faceid];
 
 	if (face) {
 		// another thread must have read it while we were waiting
-		_cache->cachelock.lock();
+		// _cache->cachelock.lock();
 		// make sure it's still there now that we have the lock
 		if (face) {
 			face->ref();
 			return;
 		}
-		_cache->cachelock.unlock();
+		// _cache->cachelock.unlock();
 	}
 
 	// Go ahead and read the face, and read nearby faces if
@@ -629,7 +662,7 @@ void PtexReader::readFace(int levelid, Level* level, int faceid)
 		int nfaces = int(level->fdh.size());
 		while (1) {
 			int f = first-1;
-			if (f < 0 || level->faces[f]) break;
+			if (f < 0 || level->tfaces[f]) break;
 			fdh = level->fdh[f];
 			if (fdh.encoding() == enc_tiled) break;
 			int size = totalsize + unpackedSize(fdh, levelid, f);
@@ -639,7 +672,7 @@ void PtexReader::readFace(int levelid, Level* level, int faceid)
 		}
 		while (1) {
 			int f = last+1;
-			if (f >= nfaces || level->faces[f]) break;
+			if (f >= nfaces || level->tfaces[f]) break;
 			fdh = level->fdh[f];
 			if (fdh.encoding() == enc_tiled) break;
 			int size = totalsize + unpackedSize(fdh, levelid, f);
@@ -658,48 +691,55 @@ void PtexReader::readFace(int levelid, Level* level, int faceid)
 		fdh = level->fdh[i];
 		// skip faces with zero size (which is true for level-0 constant faces)
 		if (fdh.blocksize()) {
-			FaceData*& face = level->faces[i];
-			readFaceData(level->offsets[i], fdh, getRes(levelid, i), levelid, face);
+			FaceData*& face = level->tfaces[i];
+			readFaceData(level->offsets[i], fdh, getRes(levelid, i), levelid, face, level);
 			if (i != faceid) extraFaces.push_back(face);
 		}
 	}
 
 	// reacquire cache lock, then unref extra faces to add them to the cache
-	_cache->cachelock.lock();
+	// _cache->cachelock.lock();
 	for (size_t i = 0, size = extraFaces.size(); i < size; i++)
 		extraFaces[i]->unref();
 }
 
 
-void PtexReader::TiledFace::readTile(int tile, FaceData*& data)
+void PtexReader::TiledFace::readTile(int tile, FaceData*& data, PtexLruItem *parentPtr)
 {
 	// temporarily release cache lock so other threads can proceed
-	_cache->cachelock.unlock();
+	// _cache->cachelock.unlock();
 
 	// get read lock and make sure we still need to read
+	/*
+	parentPtr->rwLock.unlockWrite();
 	AutoMutex locker(_reader->readlock);
+	parentPtr->rwLock.lockWrite();
 	if (data) {
 		// another thread must have read it while we were waiting
-		_cache->cachelock.lock();
+		// _cache->cachelock.lock();
 		// make sure it's still there now that we have the lock
 		if (data) {
 			data->ref();
 			return;
 		}
-		_cache->cachelock.unlock();
-	}
+		// _cache->cachelock.unlock();
+	}*/
 
 	// go ahead and read the face data
-	_reader->readFaceData(_offsets[tile], _fdh[tile], _tileres, _levelid, data);
-	_cache->cachelock.lock();
+	{
+		AutoMutex locker(_reader->readlock);
+		_reader->readFaceData(_offsets[tile], _fdh[tile], _tileres, _levelid, data, parentPtr);
+	}
+	// _cache->cachelock.lock();
 
 	// clean up unused data
-	_cache->purgeData();
+	_reader->setPurgeFlag();
+	// _cache->purgeData();
 }
 
 
 void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int levelid,
-	FaceData*& face)
+							  FaceData*& face, PtexLruItem *parentPtr)
 {
 	// keep new face local until fully initialized
 	FaceData* volatile newface = 0;
@@ -708,7 +748,8 @@ void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int leve
 	switch (fdh.encoding()) {
 	case enc_constant:
 		{
-			ConstantFace* pf = new ConstantFace((void**)&face, _cache, _pixelsize);
+			ConstantFace* pf = new ConstantFace((void**)&face, _cache, _pixelsize, parentPtr);
+			pf->setCacheLock();
 			readBlock(pf->data(), _pixelsize);
 			if (levelid==0 && _premultiply && _header.hasAlpha())
 				PtexUtils::multalpha(pf->data(), 1, _header.datatype,
@@ -722,7 +763,8 @@ void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int leve
 			readBlock(&tileres, sizeof(tileres));
 			uint32_t tileheadersize;
 			readBlock(&tileheadersize, sizeof(tileheadersize));
-			TiledFace* tf = new TiledFace((void**)&face, _cache, res, tileres, levelid, this);
+			TiledFace* tf = new TiledFace((void**)&face, _cache, res, tileres, levelid, this, parentPtr);
+			tf->setCacheLock();
 			readZipBlock(&tf->_fdh[0], tileheadersize, FaceDataHeaderSize * tf->_ntiles);
 			computeOffsets(tell(), tf->_ntiles, &tf->_fdh[0], &tf->_offsets[0]);
 			newface = tf;
@@ -734,8 +776,8 @@ void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int leve
 			int uw = res.u(), vw = res.v();
 			int npixels = uw * vw;
 			int unpackedSize = _pixelsize * npixels;
-			PackedFace* pf = new PackedFace((void**)&face, _cache,
-				res, _pixelsize, unpackedSize);
+			PackedFace* pf = new PackedFace((void**)&face, _cache, res, _pixelsize, unpackedSize, parentPtr);
+			pf->setCacheLock();
 			bool useMalloc = unpackedSize > AllocaMax;
 			void* tmp = useMalloc ? malloc(unpackedSize) : alloca(unpackedSize);
 			readZipBlock(tmp, fdh.blocksize(), unpackedSize);
@@ -756,6 +798,16 @@ void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int leve
 	face = newface;
 }
 
+void PtexReader::tryPurge(void) {
+	if (_cache->getPurgeFlag() && _cache->needsPurge()) {
+		_cache->getPurgeLock().lockWrite();
+		if (_cache->getPurgeFlag() && _cache->needsPurge()) {
+			_cache->purgeData();
+			_cache->clearPurgeFlag();
+		}
+		_cache->getPurgeLock().unlockWrite();
+	}
+}
 
 void PtexReader::getData(int faceid, void* buffer, int stride)
 {
@@ -764,8 +816,14 @@ void PtexReader::getData(int faceid, void* buffer, int stride)
 	getData(faceid, buffer, stride, f.res);
 }
 
+void PtexReader::getData(int faceid, void* buffer, int stride, Res res) {
+	_cache->getPurgeLock().lockRead();
+	_getData(faceid, buffer, stride, res);
+	_cache->getPurgeLock().unlockRead();
+	tryPurge();
+}
 
-void PtexReader::getData(int faceid, void* buffer, int stride, Res res)
+void PtexReader::_getData(int faceid, void* buffer, int stride, Res res)
 {
 	if (!_ok) return;
 
@@ -774,7 +832,7 @@ void PtexReader::getData(int faceid, void* buffer, int stride, Res res)
 	int rowlen = _pixelsize * resu;
 	if (stride == 0) stride = rowlen;
 
-	PtexPtr<PtexFaceData> d ( getData(faceid, res) );
+	PtexPtr<PtexFaceDataBase> d ( _getData(faceid, res) );
 	if (!d) return;
 	if (d->isConstant()) {
 		// fill dest buffer with pixel value
@@ -794,7 +852,7 @@ void PtexReader::getData(int faceid, void* buffer, int stride, Res res)
 		for (int i = 0; i < ntilesv; i++) {
 			char* dsttile = dsttilerow;
 			for (int j = 0; j < ntilesu; j++) {
-				PtexPtr<PtexFaceData> t ( d->getTile(tile++) );
+				PtexPtr<PtexFaceDataBase> t ( d->_getTile(tile++) );
 				if (!t) { i = ntilesv; break; }
 				if (t->isConstant())
 					PtexUtils::fill(t->getData(), dsttile, stride,
@@ -812,8 +870,16 @@ void PtexReader::getData(int faceid, void* buffer, int stride, Res res)
 	}
 }
 
-
 PtexFaceData* PtexReader::getData(int faceid)
+{
+	_cache->getPurgeLock().lockRead();
+	PtexFaceDataBase *res=_getData(faceid);
+	_cache->getPurgeLock().unlockRead();
+	tryPurge();
+	return res;
+}
+
+PtexFaceDataBase* PtexReader::_getData(int faceid)
 {
 	if (faceid < 0 || size_t(faceid) >= _header.nfaces) return 0;
 	if (!_ok) return 0;
@@ -824,15 +890,23 @@ PtexFaceData* PtexReader::getData(int faceid)
 	}
 
 	// get level zero (full) res face
-	AutoLockCache locker(_cache->cachelock);
+	// AutoLockCache locker(_cache->cachelock);
 	Level* level = getLevel(0);
 	FaceData* face = getFace(0, level, faceid);
 	level->unref();
 	return face;
 }
 
+PtexFaceData* PtexReader::getData(int faceid, Res res) {
+	_cache->getPurgeLock().lockRead();
+	PtexFaceDataBase *fd=_getData(faceid, res);
+	_cache->getPurgeLock().unlockRead();
+	tryPurge();
+	return fd;
+}
 
-PtexFaceData* PtexReader::getData(int faceid, Res res)
+
+PtexFaceDataBase* PtexReader::_getData(int faceid, Res res)
 {
 	if (!_ok) return 0;
 	if (faceid < 0 || size_t(faceid) >= _header.nfaces) return 0;
@@ -843,7 +917,7 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 	}
 
 	// lock cache (can't autolock since we might need to unlock early)
-	_cache->cachelock.lock();
+	// _cache->cachelock.lock();
 
 
 	// determine how many reduction levels are needed
@@ -854,7 +928,7 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 		Level* level = getLevel(0);
 		FaceData* face = getFace(0, level, faceid);
 		level->unref();
-		_cache->cachelock.unlock();
+		// _cache->cachelock.unlock();
 		return face;
 	}
 
@@ -862,7 +936,8 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 		// reduction is symmetric and non-negative
 		// and face has no edits => access data from reduction level (if present)
 		int levelid = redu;
-		if (size_t(levelid) < _levels.size()) {
+		
+		if (size_t(levelid) < _tlevels.size()) {
 			Level* level = getLevel(levelid);
 
 			// get reduction face id
@@ -870,28 +945,42 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 
 			// get the face data (if present)
 			FaceData* face = 0;
-			if (size_t(rfaceid) < level->faces.size())
+			if (size_t(rfaceid) < level->tfaces.size()) {
 				face = getFace(levelid, level, rfaceid);
+			}
 			level->unref();
 			if (face) {
-				_cache->cachelock.unlock();
+				// _cache->cachelock.unlock();
 				return face;
 			}
 		}
 	}
 
 	// dynamic reduction required - look in dynamic reduction cache
-	FaceData*& face = _reductions[ReductionKey(faceid, res)];
+	ReductionKey key(faceid, res);
+
+	rwLock.lockRead();
+	if (_treductions.find(key)!=_treductions.end()) {
+		// We found the key; just read the data
+	} else {
+		// Key not found, must insert it
+		rwLock.unlockRead();
+		rwLock.lockWrite();
+		_treductions[key];
+		rwLock.unlockWrite();
+		rwLock.lockRead();
+	}
+
+	FaceData *face=_treductions[key];
+
 	if (face) {
-		face->ref();
-		_cache->cachelock.unlock();
-		return face;
+		(face)->ref();
+		rwLock.unlockRead();
+		// _cache->cachelock.unlock();
+		return (face);
 	}
 
 	// not found,  generate new reduction
-	// unlock cache - getData and reduce will handle their own locking
-	_cache->cachelock.unlock();
-
 	if (res.ulog2 < 0 || res.vlog2 < 0) {
 		std::cerr << "PtexReader::getData - reductions below 1 pixel not supported" << std::endl;
 		return 0;
@@ -900,17 +989,28 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 		std::cerr << "PtexReader::getData - enlargements not supported" << std::endl;
 		return 0;
 	}
+
+	// unlock cache - getData and reduce will handle their own locking
+	// _cache->cachelock.unlock();
+	rwLock.unlockRead();
+	rwLock.lockWrite();
+
 	if (_header.meshtype == mt_triangle)
 	{
 		if (redu != redv) {
 			std::cerr << "PtexReader::getData - anisotropic reductions not supported for triangle mesh" << std::endl;
+			rwLock.unlockWrite();
 			return 0;
 		}
-		PtexPtr<PtexFaceData> psrc ( getData(faceid, Res(res.ulog2+1, res.vlog2+1)) );
+		rwLock.unlockWrite();
+		PtexPtr<PtexFaceDataBase> psrc ( _getData(faceid, Res(res.ulog2+1, res.vlog2+1)) );
 		FaceData* src = static_cast<FaceData*>(psrc.get());
 		assert(src);
-		if (src) src->reduce(face, this, res, PtexUtils::reduceTri);
-		return face;
+		rwLock.lockWrite();
+		if (src) src->reduce(_treductions[key], this, res, PtexUtils::reduceTri, this);
+		face=_treductions[key];
+		rwLock.unlockWrite();
+		return (face);
 	}
 
 	// determine which direction to blend
@@ -923,24 +1023,31 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 
 	if (blendu) {
 		// get next-higher u-res and reduce in u
-		PtexPtr<PtexFaceData> psrc ( getData(faceid, Res(res.ulog2+1, res.vlog2)) );
+		rwLock.unlockWrite();
+		PtexPtr<PtexFaceDataBase> psrc ( _getData(faceid, Res(res.ulog2+1, res.vlog2)) );
 		FaceData* src = static_cast<FaceData*>(psrc.get());
 		assert(src);
-		if (src) src->reduce(face, this, res, PtexUtils::reduceu);
+		rwLock.lockWrite();
+		if (src) src->reduce(_treductions[key], this, res, PtexUtils::reduceu, this);
+		face=_treductions[key];
 	}
 	else {
 		// get next-higher v-res and reduce in v
-		PtexPtr<PtexFaceData> psrc ( getData(faceid, Res(res.ulog2, res.vlog2+1)) );
+		rwLock.unlockWrite();
+		PtexPtr<PtexFaceDataBase> psrc ( _getData(faceid, Res(res.ulog2, res.vlog2+1)) );
 		FaceData* src = static_cast<FaceData*>(psrc.get());
 		assert(src);
-		if (src) src->reduce(face, this, res, PtexUtils::reducev);
+		rwLock.lockWrite();
+		if (src) src->reduce(_treductions[key], this, res, PtexUtils::reducev, this);
+		face=_treductions[key];
 	}
 
+	rwLock.unlockWrite();
 	return face;
 }
 
 
-void PtexReader::blendFaces(FaceData*& face, int faceid, Res res, bool blendu)
+void PtexReader::blendFaces(FaceData*& face, int faceid, Res res, bool blendu, PtexLruItem *parentPtr)
 {
 	Res pres;   // parent res, 1 higher in blend direction
 	int length; // length of blend edge (1xN or Nx1)
@@ -994,11 +1101,13 @@ void PtexReader::blendFaces(FaceData*& face, int faceid, Res res, bool blendu)
 	}
 
 	// get reduce lock and make sure we still need to reduce
-	AutoMutex rlocker(reducelock);
+	// AutoMutex rlocker(reducelock);
+	parentPtr->rwLock.lockWrite();
 	if (face) {
 		// another thread must have generated it while we were waiting
-		AutoLockCache locker(_cache->cachelock);
+		// AutoLockCache locker(_cache->cachelock);
 		// make sure it's still there now that we have the lock
+		parentPtr->rwLock.unlockWrite();
 		if (face) {
 			face->ref();
 			// release parent data
@@ -1011,8 +1120,8 @@ void PtexReader::blendFaces(FaceData*& face, int faceid, Res res, bool blendu)
 	DataType dt = datatype();
 	int nchan = nchannels();
 	int size = _pixelsize * length;
-	PackedFace* pf = new PackedFace((void**)&face, _cache, res,
-		_pixelsize, size);
+	PackedFace* pf = new PackedFace((void**)&face, _cache, res, _pixelsize, size, parentPtr);
+	pf->setCacheLock();
 	void* data = pf->getData();
 	if (nf == 1) {
 		// no neighbors - just copy face
@@ -1027,11 +1136,14 @@ void PtexReader::blendFaces(FaceData*& face, int faceid, Res res, bool blendu)
 	}
 
 	{
-		AutoLockCache clocker(_cache->cachelock);
+		// AutoLockCache clocker(_cache->cachelock);
 		face = pf;
 
 		// clean up unused data
-		_cache->purgeData();
+		setPurgeFlag();
+		// _cache->purgeData();
+
+		parentPtr->rwLock.unlockWrite();
 	}
 
 	// release parent data
@@ -1040,7 +1152,7 @@ void PtexReader::blendFaces(FaceData*& face, int faceid, Res res, bool blendu)
 
 
 void PtexReader::getPixel(int faceid, int u, int v,
-	float* result, int firstchan, int nchannels)
+						  float* result, int firstchan, int nchannels)
 {
 	memset(result, 0, nchannels);
 
@@ -1069,8 +1181,8 @@ void PtexReader::getPixel(int faceid, int u, int v,
 
 
 void PtexReader::getPixel(int faceid, int u, int v,
-	float* result, int firstchan, int nchannels,
-	Ptex::Res res)
+						  float* result, int firstchan, int nchannels,
+						  Ptex::Res res)
 {
 	memset(result, 0, nchannels);
 
@@ -1099,13 +1211,13 @@ void PtexReader::getPixel(int faceid, int u, int v,
 
 
 void PtexReader::PackedFace::reduce(FaceData*& face, PtexReader* r,
-	Res newres, PtexUtils::ReduceFn reducefn)
+									Res newres, PtexUtils::ReduceFn reducefn, PtexLruItem *parentPtr)
 {
 	// get reduce lock and make sure we still need to reduce
-	AutoMutex rlocker(r->reducelock);
+	// AutoMutex rlocker(r->reducelock);
 	if (face) {
 		// another thread must have generated it while we were waiting
-		AutoLockCache clocker(_cache->cachelock);
+		// AutoLockCache clocker(_cache->cachelock);
 		// make sure it's still there now that we have the lock
 		if (face) {
 			face->ref();
@@ -1116,43 +1228,45 @@ void PtexReader::PackedFace::reduce(FaceData*& face, PtexReader* r,
 	// allocate a new face and reduce image
 	DataType dt = r->datatype();
 	int nchan = r->nchannels();
-	PackedFace* pf = new PackedFace((void**)&face, _cache, newres,
-		_pixelsize, _pixelsize * newres.size());
+	PackedFace* pf = new PackedFace((void**)&face, _cache, newres, _pixelsize, _pixelsize * newres.size(), parentPtr);
+	pf->setCacheLock();
 	// reduce and copy into new face
 	reducefn(_data, _pixelsize * _res.u(), _res.u(), _res.v(),
 		pf->_data, _pixelsize * newres.u(), dt, nchan);
-	AutoLockCache clocker(_cache->cachelock);
+	// AutoLockCache clocker(_cache->cachelock);
 	face = pf;
 
 	// clean up unused data
-	_cache->purgeData();
+	r->setPurgeFlag();
+	// _cache->purgeData();
 }
 
 
 
-void PtexReader::ConstantFace::reduce(FaceData*& face, PtexReader*,
-	Res, PtexUtils::ReduceFn)
+void PtexReader::ConstantFace::reduce(FaceData*& face, PtexReader *r,
+									  Res, PtexUtils::ReduceFn, PtexLruItem *parentPtr)
 {
 	// get cache lock (just to protect the ref count)
-	AutoLockCache locker(_cache->cachelock);
+	// AutoLockCache locker(_cache->cachelock);
 
 	// must make a new constant face (even though it's identical to this one)
 	// because it will be owned by a different reduction level
 	// and will therefore have a different parent
-	ConstantFace* pf = new ConstantFace((void**)&face, _cache, _pixelsize);
+	ConstantFace* pf = new ConstantFace((void**)&face, _cache, _pixelsize, parentPtr);
+	pf->setCacheLock();
 	memcpy(pf->_data, _data, _pixelsize);
 	face = pf;
 }
 
 
 void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
-	Res newres, PtexUtils::ReduceFn reducefn)
+									   Res newres, PtexUtils::ReduceFn reducefn, PtexLruItem *parentPtr)
 {
 	// get reduce lock and make sure we still need to reduce
-	AutoMutex rlocker(r->reducelock);
+	// AutoMutex rlocker(r->reducelock);
 	if (face) {
 		// another thread must have generated it while we were waiting
-		AutoLockCache clocker(_cache->cachelock);
+		// AutoLockCache clocker(_cache->cachelock);
 		// make sure it's still there now that we have the lock
 		if (face) {
 			face->ref();
@@ -1200,14 +1314,15 @@ void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
 		PtexFaceData** tiles = (PtexFaceData**) alloca(_ntiles * sizeof(PtexFaceData*));
 		bool allConstant = true;
 		for (int i = 0; i < _ntiles; i++) {
-			PtexFaceData* tile = tiles[i] = getTile(i);
+			PtexFaceData* tile = tiles[i] = _getTile(i);
 			allConstant = (allConstant && tile->isConstant() &&
 				(i == 0 || (0 == memcmp(tiles[0]->getData(), tile->getData(),
 				_pixelsize))));
 		}
 		if (allConstant) {
 			// allocate a new constant face
-			newface = new ConstantFace((void**)&face, _cache, _pixelsize);
+			newface = new ConstantFace((void**)&face, _cache, _pixelsize, parentPtr);
+			newface->setCacheLock();
 			memcpy(newface->getData(), tiles[0]->getData(), _pixelsize);
 		}
 		else if (isTriangle) {
@@ -1234,7 +1349,7 @@ void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
 
 			// allocate a new packed face
 			newface = new PackedFace((void**)&face, _cache, newres,
-				_pixelsize, _pixelsize * newres.size());
+				_pixelsize, _pixelsize * newres.size(), parentPtr);
 			// reduce and copy into new face
 			reducefn(tmp, _pixelsize * _res.u(), _res.u(), _res.v(),
 				newface->getData(), _pixelsize * newres.u(), _dt, _nchan);
@@ -1243,8 +1358,8 @@ void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
 		}
 		else {
 			// allocate a new packed face
-			newface = new PackedFace((void**)&face, _cache, newres,
-				_pixelsize, _pixelsize*newres.size());
+			newface = new PackedFace((void**)&face, _cache, newres, _pixelsize, _pixelsize*newres.size(), parentPtr);
+			newface->setCacheLock();
 
 			int tileures = _tileres.u();
 			int tilevres = _tileres.v();
@@ -1272,14 +1387,15 @@ void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
 	}
 	else {
 		// otherwise, tile the reduced face
-		newface = new TiledReducedFace((void**)&face, _cache, newres, newtileres,
-			_dt, _nchan, this, reducefn);
+		newface = new TiledReducedFace((void**)&face, _cache, newres, newtileres, _dt, _nchan, this, reducefn, r, parentPtr);
+		newface->setCacheLock();
 	}
-	AutoLockCache clocker(_cache->cachelock);
+	// AutoLockCache clocker(_cache->cachelock);
 	face = newface;
 
 	// clean up unused data
-	_cache->purgeData();
+	r->setPurgeFlag();
+	// _cache->purgeData();
 }
 
 
@@ -1294,15 +1410,19 @@ void PtexReader::TiledFaceBase::getPixel(int ui, int vi, void* result)
 
 
 
-PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
+PtexFaceDataBase* PtexReader::TiledReducedFace::_getTile(int tile)
 {
-	_cache->cachelock.lock();
-	FaceData*& face = _tiles[tile];
+	// _cache->cachelock.lock();
+	rwLock.lockRead();
+	FaceData* face = _ttiles[tile];
 	if (face) {
 		face->ref();
-		_cache->cachelock.unlock();
+		// _cache->cachelock.unlock();
+		rwLock.unlockRead();
 		return face;
 	}
+
+	rwLock.unlockRead();
 
 	// first, get all parent tiles for this tile
 	// and check if they are constant (with the same value)
@@ -1317,9 +1437,9 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
 	int ptile = (tile/_ntilesu) * nv * pntilesu + (tile%_ntilesu) * nu;
 	for (int i = 0; i < ntiles;) {
 		// temporarily release cache lock while we get parent tile
-		_cache->cachelock.unlock();
-		PtexFaceData* tile = tiles[i] = _parentface->getTile(ptile);
-		_cache->cachelock.lock();
+		// _cache->cachelock.unlock();
+		PtexFaceData* tile = tiles[i] = _parentface->_getTile(ptile);
+		// _cache->cachelock.lock();
 		allConstant = (allConstant && tile->isConstant() &&
 			(i==0 || (0 == memcmp(tiles[0]->getData(), tile->getData(),
 			_pixelsize))));
@@ -1327,10 +1447,14 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
 		ptile += i%nu? 1 : pntilesu - nu + 1;
 	}
 
+	rwLock.lockWrite();
+	face = _ttiles[tile];
+
 	// make sure another thread didn't make the tile while we were checking
 	if (face) {
 		face->ref();
-		_cache->cachelock.unlock();
+		// _cache->cachelock.unlock();
+		rwLock.unlockWrite();
 		// release the tiles
 		for (int i = 0; i < ntiles; i++) tiles[i]->release();
 		return face;
@@ -1338,13 +1462,14 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
 
 	if (allConstant) {
 		// allocate a new constant face
-		face = new ConstantFace((void**)&face, _cache, _pixelsize);
+		face = new ConstantFace((void**) &_ttiles[tile], _cache, _pixelsize, this);
+		face->setCacheLock();
 		memcpy(face->getData(), tiles[0]->getData(), _pixelsize);
 	}
 	else {
 		// allocate a new packed face for the tile
-		face = new PackedFace((void**)&face, _cache, _tileres,
-			_pixelsize, _pixelsize*_tileres.size());
+		face = new PackedFace((void**) &_ttiles[tile], _cache, _tileres, _pixelsize, _pixelsize*_tileres.size(), this);
+		face->setCacheLock();
 
 		// generate reduction from parent tiles
 		int ptileures = _parentface->tileres().u();
@@ -1369,7 +1494,10 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
 		}
 	}
 
-	_cache->cachelock.unlock();
+	_ttiles[tile]=face;
+	rwLock.unlockWrite();
+
+	// _cache->cachelock.unlock();
 
 	// release the tiles
 	for (int i = 0; i < ntiles; i++) tiles[i]->release();

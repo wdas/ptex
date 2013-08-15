@@ -68,6 +68,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <libkern/OSAtomic.h>
 #include <sys/types.h>
 #endif
+
+#include "threads.h" // V-Ray SDK threading primitives
 #endif
 
 // general includes
@@ -100,6 +102,7 @@ namespace PtexInternal {
 
 #ifdef WINDOWS
 
+	/* Windows mutex is way too slow; use critical section instead
 	class _Mutex {
 	public:
 		_Mutex()       { _mutex = CreateMutex(NULL, FALSE, NULL); }
@@ -109,6 +112,7 @@ namespace PtexInternal {
 	private:
 		HANDLE _mutex;
 	};
+	*/
 
 	class _SpinLock {
 	public:
@@ -119,6 +123,8 @@ namespace PtexInternal {
 	private:
 		CRITICAL_SECTION _spinlock;
 	};
+
+	typedef _SpinLock _Mutex;
 
 #else
 	// assume linux/unix/posix
@@ -133,28 +139,19 @@ namespace PtexInternal {
 		pthread_mutex_t _mutex;
 	};
 
-#ifdef __APPLE__
+	// We need a recursive spin lock, so use
+	// VUtils::SpinLock (native Linux spin lock is not recursive).
 	class _SpinLock {
 	public:
-		_SpinLock()   { _spinlock = 0; }
+		_SpinLock()   { }
 		~_SpinLock()  { }
-		void lock()   { OSSpinLockLock(&_spinlock); }
-		void unlock() { OSSpinLockUnlock(&_spinlock); }
+		void lock()   { _spinlock.enter(); }
+		void unlock() { _spinlock.leave(); }
 	private:
-		OSSpinLock _spinlock;
+		VUtils::SpinLock _spinlock;
 	};
-#else
-	class _SpinLock {
-	public:
-		_SpinLock()   { pthread_spin_init(&_spinlock, PTHREAD_PROCESS_PRIVATE); }
-		~_SpinLock()  { pthread_spin_destroy(&_spinlock); }
-		void lock()   { pthread_spin_lock(&_spinlock); }
-		void unlock() { pthread_spin_unlock(&_spinlock); }
-	private:
-		pthread_spinlock_t _spinlock;
-	};
-#endif // __APPLE__
 #endif
+
 }
 
 #endif // PtexPlatform_h

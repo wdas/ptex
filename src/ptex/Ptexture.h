@@ -452,7 +452,7 @@ public:
 	to be unmultiplied.  Reductions (both stored mip-maps and dynamically generated reductions) are
 	always premultiplied with alpha.  See PtexWriter for more information about alpha channels.
 	*/
-	PTEXAPI static PtexTexture* open(const char* path, Ptex::String& error, bool premultiply=0);
+	PTEXAPI static PtexTexture* open(const char* path, Ptex::String& error, bool premultiply=0, uint64_t cacheSize = 1024 * 1024);
 
 
 	/// Release resources held by this pointer (pointer becomes invalid).
@@ -652,7 +652,7 @@ public:
 	be directed through the handler.
 	*/
 	PTEXAPI static PtexCache* create(int maxFiles=0,
-		int maxMem=0,
+		uint64_t maxMem=0,
 		bool premultiply=false,
 		PtexInputHandler* handler=0);
 

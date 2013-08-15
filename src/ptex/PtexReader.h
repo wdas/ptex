@@ -69,10 +69,19 @@ public:
 #define safevector std::vector
 #endif
 
+class PtexFaceDataBase: public PtexFaceData {
+public:
+	virtual PtexFaceDataBase* _getTile(int)=0;
+};
+
 class PtexReader : public PtexCachedFile, public PtexTexture, public PtexIO {
+	void _getData(int faceid, void* buffer, int stride, Res res);
+	PtexFaceDataBase* _getData(int faceid);
+	PtexFaceDataBase* _getData(int faceid, Res res);
+	void tryPurge(void);
 public:
 	PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply,
-		PtexInputHandler* handler);
+		PtexInputHandler* handler, PtexLruItem *parentPtr);
 	bool open(const char* path, Ptex::String& error);
 
 	void setOwnsCache() { _ownsCache = true; }
@@ -107,111 +116,141 @@ public:
 	const ExtHeader& extheader() const { return _extheader; }
 	const LevelInfo& levelinfo(int level) const { return _levelinfo[level]; }
 
+	void setPurgeFlag(void) { _cache->setPurgeFlag(); }
+	int getPurgeFlag(void) { return _cache->getPurgeFlag(); }
+	RWSpinLock& getPurgeLock(void) { return _cache->getPurgeLock(); }
+
 	class MetaData : public PtexCachedData, public PtexMetaData {
 	public:
-		MetaData(MetaData** parent, PtexCacheImpl* cache, int size, PtexReader* reader)
-			: PtexCachedData((void**)parent, cache, sizeof(*this) + size),
+		MetaData(MetaData** parent, PtexCacheImpl* cache, int size, PtexReader* reader, PtexLruItem *parentPtr)
+			: PtexCachedData((void**)parent, cache, sizeof(*this) + size, parentPtr),
 			_reader(reader) {}
 		virtual void release() {
-			AutoLockCache lock(_cache->cachelock);
+			rwLock.lockWrite();
 			// first, unref all lmdData refs
-			for (int i = 0, n = _lmdRefs.size(); i < n; i++)
-				_lmdRefs[i]->unref();
-			_lmdRefs.resize(0);
+			for (int i = 0, n = _tlmdRefs.size(); i < n; i++)
+				_tlmdRefs[i]->unref();
+			_tlmdRefs.resize(0);
+			rwLock.unlockWrite();
 
 			// finally, unref self
 			unref();
 		}
 
-		virtual int numKeys() { return int(_entries.size()); }
+		virtual int numKeys() {
+			rwLock.lockRead();
+			int res=(int) _tentries.size();
+			rwLock.unlockRead();
+			return res;
+		}
 		virtual void getKey(int n, const char*& key, MetaDataType& type)
 		{
-			Entry* e = _entries[n];
+			rwLock.lockRead();
+			Entry* e = _tentries[n];
 			key = e->key;
 			type = e->type;
+			rwLock.unlockRead();
 		}
 
 		virtual void getValue(const char* key, const char*& value)
 		{
-			Entry* e = getEntry(key);
+			rwLock.lockRead();
+			Entry* e = _tgetEntry(key);
 			if (e) value = (const char*) e->data;
 			else value = 0;
+			rwLock.unlockRead();
 		}
 
 		virtual void getValue(const char* key, const int8_t*& value, int& count)
 		{
-			Entry* e = getEntry(key);
+			rwLock.lockRead();
+			Entry* e = _tgetEntry(key);
 			if (e) { value = (const int8_t*) e->data; count = e->datasize; }
 			else { value = 0; count = 0; }
+			rwLock.unlockRead();
 		}
 
 		virtual void getValue(const char* key, const int16_t*& value, int& count)
 		{
-			Entry* e = getEntry(key);
+			rwLock.lockRead();
+			Entry* e = _tgetEntry(key);
 			if (e) {
 				value = (const int16_t*) e->data;
 				count = int(e->datasize/sizeof(int16_t));
 			}
 			else { value = 0; count = 0; }
+			rwLock.unlockRead();
 		}
 
 		virtual void getValue(const char* key, const int32_t*& value, int& count)
 		{
-			Entry* e = getEntry(key);
+			rwLock.lockRead();
+			Entry* e = _tgetEntry(key);
 			if (e) {
 				value = (const int32_t*) e->data;
 				count = int(e->datasize/sizeof(int32_t));
 			}
 			else { value = 0; count = 0; }
+			rwLock.unlockRead();
 		}
 
 		virtual void getValue(const char* key, const float*& value, int& count)
 		{
-			Entry* e = getEntry(key);
+			rwLock.lockRead();
+			Entry* e = _tgetEntry(key);
 			if (e) {
 				value = (const float*) e->data;
 				count = int(e->datasize/sizeof(float));
 			}
 			else { value = 0; count = 0; }
+			rwLock.unlockRead();
 		}
 
 		virtual void getValue(const char* key, const double*& value, int& count)
 		{
-			Entry* e = getEntry(key);
+			rwLock.lockRead();
+			Entry* e = _tgetEntry(key);
 			if (e) {
 				value = (const double*) e->data;
 				count = int(e->datasize/sizeof(double));
 			}
 			else { value = 0; count = 0; }
+			rwLock.unlockRead();
 		}
 
 		void addEntry(uint8_t keysize, const char* key, uint8_t datatype,
 			uint32_t datasize, void* data)
 		{
-			Entry* e = newEntry(keysize, key, datatype, datasize);
+			rwLock.lockWrite();
+			Entry* e = _tnewEntry(keysize, key, datatype, datasize);
 			e->data = malloc(datasize);
 			memcpy(e->data, data, datasize);
+			rwLock.unlockWrite();
 		}
 
 		void addLmdEntry(uint8_t keysize, const char* key, uint8_t datatype,
 			uint32_t datasize, FilePos filepos, uint32_t zipsize)
 		{
-			Entry* e = newEntry(keysize, key, datatype, datasize);
+			rwLock.lockWrite();
+			Entry* e = _tnewEntry(keysize, key, datatype, datasize);
 			e->isLmd = true;
 			e->lmdData = 0;
 			e->lmdPos = filepos;
 			e->lmdZipSize = zipsize;
+			rwLock.unlockWrite();
 		}
 
 	protected:
 		class LargeMetaData : public PtexCachedData
 		{
 		public:
-			LargeMetaData(void** parent, PtexCacheImpl* cache, int size)
-				: PtexCachedData(parent, cache, size), _data(malloc(size)) {}
+			LargeMetaData(void** parent, PtexCacheImpl* cache, int size, PtexLruItem *parentPtr)
+				: PtexCachedData(parent, cache, size, parentPtr), _data(malloc(size)) {}
 			void* data() { return _data; }
 		private:
-			virtual ~LargeMetaData() { free(_data); }
+			virtual ~LargeMetaData() {
+				free(_data);
+			}
 			void* _data;
 		};
 
@@ -243,13 +282,14 @@ public:
 			}
 		};
 
-		Entry* newEntry(uint8_t keysize, const char* key, uint8_t datatype, uint32_t datasize)
+		// Assume _mapLock is locked for writing
+		Entry* _tnewEntry(uint8_t keysize, const char* key, uint8_t datatype, uint32_t datasize)
 		{
 			std::pair<MetaMap::iterator,bool> result =
-				_map.insert(std::make_pair(std::string(key, keysize), Entry()));
+				_tmap.insert(std::make_pair(std::string(key, keysize), Entry()));
 			Entry* e = &result.first->second;
 			bool newEntry = result.second;
-			if (newEntry) _entries.push_back(e);
+			if (newEntry) _tentries.push_back(e);
 			else e->clear();
 			e->key = result.first->first.c_str();
 			e->type = MetaDataType(datatype);
@@ -257,17 +297,18 @@ public:
 			return e;
 		}
 
-		Entry* getEntry(const char* key);
+		// Assume _mapLock is lockd for reading
+		Entry* _tgetEntry(const char* key);
 
 		PtexReader* _reader;
+
 		typedef std::map<std::string, Entry> MetaMap;
-		MetaMap _map;
-		safevector<Entry*> _entries;
-		std::vector<LargeMetaData*> _lmdRefs;
+		MetaMap _tmap;
+		safevector<Entry*> _tentries;
+		std::vector<LargeMetaData*> _tlmdRefs;
 	};
 
-
-	class ConstDataPtr : public PtexFaceData {
+	class ConstDataPtr : public PtexFaceDataBase {
 	public:
 		ConstDataPtr(void* data, int pixelsize)
 			: _data(data), _pixelsize(pixelsize) {}
@@ -280,6 +321,7 @@ public:
 		virtual bool isTiled() { return false; }
 		virtual Ptex::Res tileRes() { return 0; }
 		virtual PtexFaceData* getTile(int) { return 0; }
+		virtual PtexFaceDataBase* _getTile(int) { return 0; }
 
 	protected:
 		void* _data;
@@ -287,22 +329,25 @@ public:
 	};
 
 
-	class FaceData : public PtexCachedData, public PtexFaceData {
+	class FaceData : public PtexCachedData, public PtexFaceDataBase {
 	public:
-		FaceData(void** parent, PtexCacheImpl* cache, Res res, int size)
-			: PtexCachedData(parent, cache, size), _res(res) {}
-		virtual void release() { AutoLockCache lock(_cache->cachelock); unref(); }
+		FaceData(void** parent, PtexCacheImpl* cache, Res res, int size, PtexLruItem *parentPtr)
+			: PtexCachedData(parent, cache, size, parentPtr), _res(res) {}
+		virtual void release() {
+			// AutoLockCache lock(*getCacheLock());
+			unref();
+		}
 		virtual Ptex::Res res() { return _res; }
 		virtual void reduce(FaceData*&, PtexReader*,
-			Res newres, PtexUtils::ReduceFn) = 0;
+			Res newres, PtexUtils::ReduceFn, PtexLruItem *parentPtr) = 0;
 	protected:
 		Res _res;
 	};
 
 	class PackedFace : public FaceData {
 	public:
-		PackedFace(void** parent, PtexCacheImpl* cache, Res res, int pixelsize, int size)
-			: FaceData(parent, cache, res, sizeof(*this)+size),
+		PackedFace(void** parent, PtexCacheImpl* cache, Res res, int pixelsize, int size, PtexLruItem *parentPtr)
+			: FaceData(parent, cache, res, sizeof(*this)+size, parentPtr),
 			_pixelsize(pixelsize), _data(malloc(size)) {}
 		void* data() { return _data; }
 		virtual bool isConstant() { return false; }
@@ -314,8 +359,9 @@ public:
 		virtual bool isTiled() { return false; }
 		virtual Ptex::Res tileRes() { return _res; }
 		virtual PtexFaceData* getTile(int) { return 0; }
+		virtual PtexFaceDataBase* _getTile(int) { return 0; }
 		virtual void reduce(FaceData*&, PtexReader*,
-			Res newres, PtexUtils::ReduceFn);
+			Res newres, PtexUtils::ReduceFn, PtexLruItem *parentPtr);
 
 	protected:
 		virtual ~PackedFace() { free(_data); }
@@ -326,20 +372,20 @@ public:
 
 	class ConstantFace : public PackedFace {
 	public:
-		ConstantFace(void** parent, PtexCacheImpl* cache, int pixelsize)
-			: PackedFace(parent, cache, 0, pixelsize, pixelsize) {}
+		ConstantFace(void** parent, PtexCacheImpl* cache, int pixelsize, PtexLruItem *parentPtr)
+			: PackedFace(parent, cache, 0, pixelsize, pixelsize, parentPtr) {}
 		virtual bool isConstant() { return true; }
 		virtual void getPixel(int, int, void* result) { memcpy(result, _data, _pixelsize); }
 		virtual void reduce(FaceData*&, PtexReader*,
-			Res newres, PtexUtils::ReduceFn);
+			Res newres, PtexUtils::ReduceFn, PtexLruItem *parentPtr);
 	};
 
 
 	class TiledFaceBase : public FaceData {
 	public:
 		TiledFaceBase(void** parent, PtexCacheImpl* cache, Res res,
-			Res tileres, DataType dt, int nchan)
-			: FaceData(parent, cache, res, sizeof(*this)),
+			Res tileres, DataType dt, int nchan, PtexLruItem *parentPtr)
+			: FaceData(parent, cache, res, sizeof(*this), parentPtr),
 			_tileres(tileres),
 			_dt(dt),
 			_nchan(nchan),
@@ -348,7 +394,7 @@ public:
 			_ntilesu = _res.ntilesu(tileres);
 			_ntilesv = _res.ntilesv(tileres);
 			_ntiles = _ntilesu*_ntilesv;
-			_tiles.resize(_ntiles);
+			_ttiles.resize(_ntiles);
 			incSize(sizeof(FaceData*)*_ntiles);
 		}
 
@@ -368,14 +414,14 @@ public:
 		virtual bool isTiled() { return true; }
 		virtual Ptex::Res tileRes() { return _tileres; }
 		virtual void reduce(FaceData*&, PtexReader*,
-			Res newres, PtexUtils::ReduceFn);
+			Res newres, PtexUtils::ReduceFn, PtexLruItem *parentPtr);
 		Res tileres() const { return _tileres; }
 		int ntilesu() const { return _ntilesu; }
 		int ntilesv() const { return _ntilesv; }
 		int ntiles() const { return _ntiles; }
 
 	protected:
-		virtual ~TiledFaceBase() { orphanList(_tiles); }
+		virtual ~TiledFaceBase() { orphanList(_ttiles, this); }
 
 		Res _tileres;
 		DataType _dt;
@@ -384,16 +430,16 @@ public:
 		int _ntilesv;
 		int _ntiles;
 		int _pixelsize;
-		safevector<FaceData*> _tiles;
+		safevector<FaceData*> _ttiles;
 	};
 
 
 	class TiledFace : public TiledFaceBase {
 	public:
 		TiledFace(void** parent, PtexCacheImpl* cache, Res res, Res tileres,
-			int levelid, PtexReader* reader)
+			int levelid, PtexReader* reader, PtexLruItem *parentPtr)
 			: TiledFaceBase(parent, cache, res, tileres,
-			reader->datatype(), reader->nchannels()),
+			reader->datatype(), reader->nchannels(), parentPtr),
 			_reader(reader),
 			_levelid(levelid)
 		{
@@ -401,15 +447,37 @@ public:
 				_offsets.resize(_ntiles);
 			incSize((sizeof(FaceDataHeader)+sizeof(FilePos))*_ntiles);
 		}
-		virtual PtexFaceData* getTile(int tile)
+		virtual PtexFaceData* getTile(int tile) {
+			_cache->getPurgeLock().lockRead();
+			PtexFaceDataBase *res=_getTile(tile);
+			_cache->getPurgeLock().unlockRead();
+			return res;
+		}
+
+		PtexFaceDataBase* _getTile(int tile)
 		{
-			AutoLockCache locker(_cache->cachelock);
-			FaceData*& f = _tiles[tile];
-			if (!f) readTile(tile, f);
-			else f->ref();
+			// AutoLockCacheRead locker(_cache->getDataLock());
+			rwLock.lockRead();
+			FaceData *f=_ttiles[tile];
+			if (!f) {
+				rwLock.unlockRead();
+				rwLock.lockWrite();
+				f=_ttiles[tile];
+				if (!f) {
+					readTile(tile, _ttiles[tile], this);
+					f=_ttiles[tile];
+				} else {
+					f->ref();
+				}
+				rwLock.unlockWrite();
+			}
+			else {
+				f->ref();
+				rwLock.unlockRead();
+			}
 			return f;
 		}
-		void readTile(int tile, FaceData*& data);
+		void readTile(int tile, FaceData*& data, PtexLruItem *parentPtr);
 
 	protected:
 		friend class PtexReader;
@@ -424,23 +492,33 @@ public:
 	public:
 		TiledReducedFace(void** parent, PtexCacheImpl* cache, Res res,
 			Res tileres, DataType dt, int nchan,
-			TiledFaceBase* parentface, PtexUtils::ReduceFn reducefn)
-			: TiledFaceBase(parent, cache, res, tileres, dt, nchan),
+			TiledFaceBase* parentface, PtexUtils::ReduceFn reducefn, PtexReader *reader, PtexLruItem *parentPtr)
+			: TiledFaceBase(parent, cache, res, tileres, dt, nchan, parentPtr),
 			_parentface(parentface),
-			_reducefn(reducefn)
+			_reducefn(reducefn),
+			_reader(reader)
 		{
-			AutoLockCache locker(_cache->cachelock);
+			// AutoLockCache locker(_cache->cachelock);
 			_parentface->ref();
 		}
 		~TiledReducedFace()
 		{
 			_parentface->unref();
 		}
-		virtual PtexFaceData* getTile(int tile);
+
+		virtual PtexFaceData* getTile(int tile) {
+			_cache->getPurgeLock().lockRead();
+			PtexFaceDataBase *res=_getTile(tile);
+			_cache->getPurgeLock().unlockRead();
+			return res;
+		}
+
+		PtexFaceDataBase* _getTile(int tile);
 
 	protected:
 		TiledFaceBase* _parentface;
 		PtexUtils::ReduceFn* _reducefn;
+		PtexReader *_reader;
 	};
 
 
@@ -448,18 +526,18 @@ public:
 	public:
 		safevector<FaceDataHeader> fdh;
 		safevector<FilePos> offsets;
-		safevector<FaceData*> faces;
+		safevector<FaceData*> tfaces;
 
-		Level(void** parent, PtexCacheImpl* cache, int nfaces)
+		Level(void** parent, PtexCacheImpl* cache, int nfaces, PtexLruItem *parentPtr)
 			: PtexCachedData(parent, cache,
 			sizeof(*this) + nfaces * (sizeof(FaceDataHeader) +
 			sizeof(FilePos) +
-			sizeof(FaceData*))),
+			sizeof(FaceData*)), parentPtr),
 			fdh(nfaces),
 			offsets(nfaces),
-			faces(nfaces) {}
+			tfaces(nfaces) {}
 	protected:
-		virtual ~Level() { orphanList(faces); }
+		virtual ~Level() { orphanList(tfaces, this); }
 	};
 
 	Mutex readlock;
@@ -479,7 +557,9 @@ protected:
 		if (pos != _pos) {
 			_io->seek(_fp, pos);
 			_pos = pos;
-			STATS_INC(nseeks);
+#ifdef GATHER_STATS
+			stats.nseeks++;
+#endif
 		}
 	}
 
@@ -487,18 +567,48 @@ protected:
 	bool readZipBlock(void* data, int zipsize, int unzipsize);
 	Level* getLevel(int levelid)
 	{
-		Level*& level = _levels[levelid];
-		if (!level) readLevel(levelid, level);
-		else level->ref();
+		rwLock.lockRead();
+		Level *level = _tlevels[levelid];
+		if (NULL==level) {
+			rwLock.unlockRead();
+			rwLock.lockWrite();
+			level=_tlevels[levelid];
+			if (NULL==level) {
+				readLevel(levelid, _tlevels[levelid]);
+				level=_tlevels[levelid];
+			} else {
+				level->ref();
+			}
+			rwLock.unlockWrite();
+		}
+		else {
+			level->ref();
+			rwLock.unlockRead();
+		}
 		return level;
 	}
 
 	uint8_t* getConstData() { if (!_constdata) readConstData(); return _constdata; }
 	FaceData* getFace(int levelid, Level* level, int faceid)
 	{
-		FaceData*& face = level->faces[faceid];
-		if (!face) readFace(levelid, level, faceid);
-		else face->ref();
+		level->rwLock.lockRead();
+		FaceData *face = level->tfaces[faceid];
+		if (!face) {
+			level->rwLock.unlockRead();
+			level->rwLock.lockWrite();
+			face=level->tfaces[faceid];
+			if (!face) {
+				readFace(levelid, level, faceid);
+				face=level->tfaces[faceid];
+			} else {
+				face->ref();
+			}
+			level->rwLock.unlockWrite();
+		}
+		else {
+			face->ref();
+			level->rwLock.unlockRead();
+		}
 		return face;
 	}
 
@@ -527,7 +637,7 @@ protected:
 	void readConstData();
 	void readLevel(int levelid, Level*& level);
 	void readFace(int levelid, Level* level, int faceid);
-	void readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int levelid, FaceData*& face);
+	void readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int levelid, FaceData*& face, PtexLruItem *parentPtr);
 	void readMetaData();
 	void readMetaDataBlock(MetaData* metadata, FilePos pos, int zipsize, int memsize);
 	void readLargeMetaDataHeaders(MetaData* metadata, FilePos pos, int zipsize, int memsize);
@@ -540,7 +650,7 @@ protected:
 		FilePos* end = offsets + noffsets;
 		while (offsets != end) { *offsets++ = pos; pos += fdh->blocksize(); fdh++; }
 	}
-	void blendFaces(FaceData*& face, int faceid, Res res, bool blendu);
+	void blendFaces(FaceData*& face, int faceid, Res res, bool blendu, PtexLruItem *parentPtr);
 
 	class DefaultInputHandler : public PtexInputHandler
 	{
@@ -589,7 +699,7 @@ protected:
 	FilePos _editdatapos;
 	int _pixelsize;		      // size of a pixel in bytes
 	uint8_t* _constdata;	      // constant pixel value per face
-	MetaData* _metadata;	      // meta data (read on demand)
+	MetaData* _tmetadata;	      // meta data (read on demand)
 	bool _hasEdits;		      // has edit blocks
 
 	safevector<FaceInfo> _faceinfo;   // per-face header info
@@ -597,7 +707,7 @@ protected:
 	safevector<Res> _res_r;	      // face res indexed by rfaceid
 	safevector<LevelInfo> _levelinfo; // per-level header info
 	safevector<FilePos> _levelpos;    // file position of each level's data
-	safevector<Level*> _levels;	      // level data (read on demand)
+	safevector<Level*> _tlevels;	      // level data (read on demand)
 
 	struct MetaEdit
 	{
@@ -633,7 +743,7 @@ protected:
 		};
 	};
 	typedef PtexHashMap<ReductionKey, FaceData*, ReductionKey::Hasher> ReductionMap;
-	ReductionMap _reductions;
+	ReductionMap _treductions;
 
 	z_stream_s _zstream;
 };
