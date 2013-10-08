@@ -65,9 +65,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexInt.h"
 #include <ostream>
 
-#define PtexAPIVersion 2
+#define PtexAPIVersion 3
 #define PtexFileMajorVersion 1
-#define PtexFileMinorVersion 3
+#define PtexFileMinorVersion 4
 
 /** Common data structures and enums used throughout the API. */
 struct Ptex {
@@ -85,6 +85,12 @@ struct Ptex {
 	dt_uint16,		///< Unsigned, 16-bit integer.
 	dt_half,		///< Half-precision (16-bit) floating point.
 	dt_float		///< Single-precision (32-bit) floating point.
+    };
+
+    /** How to handle transformation across edges when filtering */
+    enum EdgeFilterMode {
+	efm_none,		///< Don't do anything with the values.
+	efm_tanvec		///< Values are vectors in tangent space; rotate values.
     };
 
     /** How to handle mesh border when filtering. */
@@ -121,6 +127,9 @@ struct Ptex {
 
     /** Look up name of given border mode. */
     PTEXAPI static const char* BorderModeName(BorderMode m);
+
+    /** Look up name of given edge filter mode. */
+    PTEXAPI static const char* EdgeFilterModeName(EdgeFilterMode m);
 
     /** Look up name of given edge ID. */
     PTEXAPI static const char* EdgeIdName(EdgeId eid);
@@ -476,6 +485,9 @@ class PtexTexture {
     /** Mode for filtering texture access beyond mesh border. */
     virtual Ptex::BorderMode vBorderMode() = 0;
 
+    /** Mode for filtering textures across edges. */
+    virtual Ptex::EdgeFilterMode edgeFilterMode() = 0;
+
     /** Index of alpha channel (if any).  One channel in the file can be flagged to be the alpha channel.
 	If no channel is acting as the alpha channel, -1 is returned.
 	See PtexWriter for more details.  */
@@ -795,6 +807,9 @@ class PtexWriter {
     
     /** Set border modes */
     virtual void setBorderModes(Ptex::BorderMode uBorderMode, Ptex::BorderMode vBorderMode) = 0;
+
+    /** Set edge filter mode */
+    virtual void setEdgeFilterMode(Ptex::EdgeFilterMode edgeFilterMode) = 0;
 
     /** Write a string as meta data.  Both the key and string params must be null-terminated strings. */
     virtual void writeMeta(const char* key, const char* string) = 0;

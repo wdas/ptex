@@ -67,6 +67,7 @@ struct PtexIO : public Ptex {
 	uint64_t lmddatasize;
 	uint64_t editdatasize;
 	uint64_t editdatapos;
+	EdgeFilterMode edgefiltermode;
     };
     struct LevelInfo {
 	uint64_t leveldatasize;

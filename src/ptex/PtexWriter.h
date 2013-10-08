@@ -53,6 +53,10 @@ public:
 	_extheader.ubordermode = uBorderMode;
 	_extheader.vbordermode = vBorderMode;
     }
+    virtual void setEdgeFilterMode(Ptex::EdgeFilterMode edgeFilterMode)
+    {
+	    _extheader.edgefiltermode = edgeFilterMode;
+    }
     virtual void writeMeta(const char* key, const char* value);
     virtual void writeMeta(const char* key, const int8_t* value, int count);
     virtual void writeMeta(const char* key, const int16_t* value, int count);

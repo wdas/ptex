@@ -53,25 +53,26 @@ class PtexSeparableKernel : public Ptex {
     static const int kmax = 10;	// max kernel width
     float kubuff[kmax];
     float kvbuff[kmax];
+    int rot;
     
     PtexSeparableKernel()
-	: res(0), u(0), v(0), uw(0), vw(0), ku(kubuff), kv(kvbuff) {}
+	: res(0), u(0), v(0), uw(0), vw(0), ku(kubuff), kv(kvbuff), rot(0) {}
 
     PtexSeparableKernel(const PtexSeparableKernel& k)
     {
-	set(k.res, k.u, k.v, k.uw, k.vw, k.ku, k.kv);
+	set(k.res, k.u, k.v, k.uw, k.vw, k.ku, k.kv, k.rot);
     }
     
     PtexSeparableKernel& operator= (const PtexSeparableKernel& k)
     {
-	set(k.res, k.u, k.v, k.uw, k.vw, k.ku, k.kv);
+	set(k.res, k.u, k.v, k.uw, k.vw, k.ku, k.kv, k.rot);
 	return *this;
     }
 
     void set(Res resVal,
 	     int uVal, int vVal,
 	     int uwVal, int vwVal,
-	     const float* kuVal, const float* kvVal)
+	     const float* kuVal, const float* kvVal, int rotVal=0)
     {
 	assert(uwVal <= kmax && vwVal <= kmax);
 	res = resVal;
@@ -83,6 +84,7 @@ class PtexSeparableKernel : public Ptex {
 	memcpy(kvbuff, kvVal, sizeof(*kv)*vw);
 	ku = kubuff;
 	kv = kvbuff;
+	rot = rotVal;
     }
 
     void stripZeros()
@@ -243,15 +245,16 @@ class PtexSeparableKernel : public Ptex {
 	std::swap(ku, kv);
     }
 
-    void rotate(int rot)
+    void rotate(int rotVal)
     {
 	// rotate kernel 'rot' steps ccw
-	switch (rot & 3) {
+	switch (rotVal & 3) {
 	default: return;
 	case 1: flipU(); swapUV(); break;
 	case 2: flipU(); flipV(); break;
 	case 3: flipV(); swapUV(); break;
 	}
+	rot = (rot + rotVal)&3;
     }
 
     bool adjustMainToSubface(int eid)
@@ -445,21 +448,26 @@ class PtexSeparableKernel : public Ptex {
         return newWeight;
     }
 
-    void apply(float* dst, void* data, DataType dt, int nChan, int nTxChan)
+    void apply(float* dst, void* data, DataType dt, EdgeFilterMode efm, int nChan, int nTxChan)
     {
 	// dispatch specialized apply function
+	if (efm == efm_none)
+	    rot = 0;
 	ApplyFn fn = applyFunctions[(nChan!=nTxChan)*20 + ((unsigned)nChan<=4)*nChan*4 + dt];
 	fn(*this, dst, data, nChan, nTxChan);
     }
 
-    void applyConst(float* dst, void* data, DataType dt, int nChan)
+    void applyConst(float* dst, void* data, DataType dt, EdgeFilterMode efm, int nChan)
     {
-	PtexUtils::applyConst(weight(), dst, data, dt, nChan);
+	if (efm == efm_none)
+	    rot = 0;
+	ApplyConstFn fn = applyConstFunctions[((unsigned)nChan<=4)*nChan*4 + dt];
+	fn(weight(), dst, data, nChan, rot);
     }
 
  private:
     typedef void (*ApplyFn)(PtexSeparableKernel& k, float* dst, void* data, int nChan, int nTxChan);
-    typedef void (*ApplyConstFn)(float weight, float* dst, void* data, int nChan);
+    typedef void (*ApplyConstFn)(float weight, float* dst, void* data, int nChan, int rot);
     static ApplyFn applyFunctions[40];
     static ApplyConstFn applyConstFunctions[20];
     static inline float accumulate(const float* p, int n)

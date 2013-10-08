@@ -760,6 +760,9 @@ PtexMainWriter::PtexMainWriter(const char* path, PtexTexture* tex,
 	// copy border modes
 	setBorderModes(tex->uBorderMode(), tex->vBorderMode());
 
+	// copy edge filter mode
+	setEdgeFilterMode(tex->edgeFilterMode());
+
 	// copy meta data from existing file
 	PtexPtr<PtexMetaData> meta ( _reader->getMetaData() );
 	writeMeta(meta);
