@@ -54,6 +54,7 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     if (faceid < 0 || faceid >= _tx->numFaces()) return;
     _ntxchan = _tx->numChannels();
     _dt = _tx->dataType();
+    _efm = _tx->edgeFilterMode();
     _firstChanOffset = firstChan*DataSize(_dt);
     _nchan = PtexUtils::min(nChannels, _ntxchan-firstChan);
 
@@ -354,7 +355,7 @@ void PtexSeparableFilter::apply(PtexSeparableKernel& k, int faceid, const Ptex::
     if (!dh) return;
 
     if (dh->isConstant()) {
-	k.applyConst(_result, (char*)dh->getData()+_firstChanOffset, _dt, _nchan);
+	k.applyConst(_result, (char*)dh->getData()+_firstChanOffset, _dt, _efm, _nchan);
     }
     else if (dh->isTiled()) {
 	Ptex::Res tileres = dh->tileRes();
@@ -376,14 +377,14 @@ void PtexSeparableFilter::apply(PtexSeparableKernel& k, int faceid, const Ptex::
 		PtexPtr<PtexFaceData> th ( dh->getTile(tilev * ntilesu + tileu) );
 		if (th) {
 		    if (th->isConstant())
-			kt.applyConst(_result, (char*)th->getData()+_firstChanOffset, _dt, _nchan);
+			kt.applyConst(_result, (char*)th->getData()+_firstChanOffset, _dt, _efm, _nchan);
 		    else
-			kt.apply(_result, (char*)th->getData()+_firstChanOffset, _dt, _nchan, _ntxchan);
+			kt.apply(_result, (char*)th->getData()+_firstChanOffset, _dt, _efm, _nchan, _ntxchan);
 		}
 	    }
 	}
     }
     else {
-	k.apply(_result, (char*)dh->getData()+_firstChanOffset, _dt, _nchan, _ntxchan);
+	k.apply(_result, (char*)dh->getData()+_firstChanOffset, _dt, _efm, _nchan, _ntxchan);
     }
 }

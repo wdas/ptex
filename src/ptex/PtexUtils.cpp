@@ -68,6 +68,14 @@ const char* Ptex::BorderModeName(BorderMode m)
     return names[m];
 }
 
+const char* Ptex::EdgeFilterModeName(EdgeFilterMode m)
+{
+    static const char* names[] = { "none", "tanvec" };
+    if (m < 0 || m >= int(sizeof(names)/sizeof(const char*)))
+	return "(invalid edge filter mode)";
+    return names[m];
+}
+
 
 const char* Ptex::EdgeIdName(EdgeId eid)
 {

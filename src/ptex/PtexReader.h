@@ -82,6 +82,7 @@ public:
     virtual Ptex::DataType dataType() { return DataType(_header.datatype); }
     virtual Ptex::BorderMode uBorderMode() { return BorderMode(_extheader.ubordermode); }
     virtual Ptex::BorderMode vBorderMode() { return BorderMode(_extheader.vbordermode); }
+    virtual Ptex::EdgeFilterMode edgeFilterMode() { return EdgeFilterMode(_extheader.edgefiltermode); }
     virtual int alphaChannel() { return _header.alphachan; }
     virtual int numChannels() { return _header.nchannels; }
     virtual int numFaces() { return _header.nfaces; }
