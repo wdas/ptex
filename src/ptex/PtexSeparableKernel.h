@@ -410,7 +410,7 @@ class PtexSeparableKernel : public Ptex {
         newWeight *= newWeight; // equivalent to k.weight() ( = sum(ku)*sum(kv) )
 
 	// compute scale factor to compensate for weight change
-	float scale = newWeight == 0 ? 1.0 : initialWeight / newWeight;
+	float scale = newWeight == 0 ? 1.f : initialWeight / newWeight;
 
         // Note: a sharpening kernel (like Mitchell) can produce
         // negative weights which may cancel out when adding the two

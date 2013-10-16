@@ -56,8 +56,8 @@ class PtexPointFilter : public PtexFilter, public Ptex
 	if (faceid < 0 || faceid >= _tx->numFaces()) return;
 	const FaceInfo& f = _tx->getFaceInfo(faceid);
 	int resu = f.res.u(), resv = f.res.v();
-	int ui = PtexUtils::clamp(int(u*resu), 0, resu-1);
-	int vi = PtexUtils::clamp(int(v*resv), 0, resv-1);
+	int ui = PtexUtils::clamp(int(u*(float)resu), 0, resu-1);
+	int vi = PtexUtils::clamp(int(v*(float)resv), 0, resv-1);
 	_tx->getPixel(faceid, ui, vi, result, firstchan, nchannels);
     }
     
@@ -82,10 +82,10 @@ class PtexPointFilterTri : public PtexFilter, public Ptex
 	const FaceInfo& f = _tx->getFaceInfo(faceid);
 	int res = f.res.u();
 	int resm1 = res - 1;
-	float ut = u * res, vt = v * res;
+	float ut = u * (float)res, vt = v * (float)res;
 	int ui = PtexUtils::clamp(int(ut), 0, resm1);
 	int vi = PtexUtils::clamp(int(vt), 0, resm1);
-	float uf = ut - ui, vf = vt - vi;
+	float uf = ut - (float)ui, vf = vt - (float)vi;
 	
 	if (uf + vf <= 1.0f) {
 	    // "even" triangles are stored in lower-left half-texture
@@ -144,12 +144,12 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	// build 1 axis (note: "u" labels may repesent either u or v axis)
 
 	// clamp filter width to no smaller than a texel
-	uw = PtexUtils::max(uw, 1.0f/(1<<f_ureslog2));
+	uw = PtexUtils::max(uw, 1.0f/(float)(1<<f_ureslog2));
 
 	// compute desired texture res based on filter width
-	k_ureslog2 = int(ceilf(log2f(1.0f/uw)));
+	k_ureslog2 = uint8_t(ceilf(log2f(1.0f/uw)));
 	int resu = 1 << k_ureslog2;
-	float uwlo = 1.0f/resu;         // smallest filter width for this res
+	float uwlo = 1.0f/(float)resu; // smallest filter width for this res
 
 	// compute lerp weights (amount to blend towards next-lower res)
 	float lerp2 = _options.lerp ? (uw-uwlo)/uwlo : 0;
@@ -165,9 +165,9 @@ class PtexWidth4Filter : public PtexSeparableFilter
 		u2 = (u2 + 1) & ~1; // round up to even pair
 		k_u = u1;
 		k_uw = u2-u1;
-		float x1 = u1-upix;
+		float x1 = (float)u1-upix;
 		for (int i = 0; i < k_uw; i+=2) {
-		    float xa = x1 + i, xb = xa + 1.0f, xc = (xa+xb)*0.25f;
+		    float xa = x1 + (float)i, xb = xa + 1.0f, xc = (xa+xb)*0.25f;
 		    // spread the filter gradually to approach the next-lower-res width
 		    // at uw = .5, s = 1.0; at uw = 1, s = 0.8
 		    float s = 1.0f/(uw + .75f);
@@ -182,9 +182,9 @@ class PtexWidth4Filter : public PtexSeparableFilter
 		float upix = u * 2.0f - 0.5f;
 		k_u = int(floorf(u - .5f))*2;
 		k_uw = 4;
-		float x1 = k_u-upix;
+		float x1 = (float)k_u-upix;
 		for (int i = 0; i < k_uw; i+=2) {
-		    float xa = x1 + i, xb = xa + 1.0f, xc = (xa+xb)*0.5f;
+		    float xa = x1 + (float)i, xb = xa + 1.0f, xc = (xa+xb)*0.5f;
 		    // spread the filter gradually to approach the next-lower-res width
 		    // at uw = .5, s = .8; at uw = 1, s = 0.5
 		    float s = 1.0f/(uw*1.5f + .5f);
@@ -209,8 +209,8 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	}
 
 	// convert from normalized coords to pixel coords
-	float upix = u * resu - 0.5f;
-	float uwpix = uw * resu;
+	float upix = u * (float)resu - 0.5f;
+	float uwpix = uw * (float)resu;
 
 	// find integer pixel extent: [u,v] +/- [2*uw,2*vw]
 	// (kernel width is 4 times filter width)
@@ -226,9 +226,9 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	    k_uw = u2-u1;
 
 	    // compute kernel weights
-	    float step = 1.0f/uwpix, x1 = (u1-upix)*step;
+	    float step = 1.0f/uwpix, x1 = ((float)u1-upix)*(float)step;
 	    for (int i = 0; i < k_uw; i+=2) {
-		float xa = x1 + i*step, xb = xa + step, xc = (xa+xb)*0.5f;
+		float xa = x1 + (float)i*step, xb = xa + step, xc = (xa+xb)*0.5f;
 		float ka = _k(xa, _c), kb = _k(xb, _c), kc = _k(xc, _c);
 		ku[i] = ka * lerp1 + kc * lerp2;
 		ku[i+1] = kb * lerp1 + kc * lerp2;
@@ -238,8 +238,8 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	    k_u = u1;
 	    k_uw = u2-u1;
 	    // compute kernel weights
-	    float x1 = (u1-upix)/uwpix, step = 1.0f/uwpix;
-	    for (int i = 0; i < k_uw; i++) ku[i] = _k(x1 + i*step, _c);
+	    float x1 = ((float)u1-upix)/uwpix, step = 1.0f/uwpix;
+	    for (int i = 0; i < k_uw; i++) ku[i] = _k(x1 + (float)i*step, _c);
 	}
     }
 
@@ -298,7 +298,7 @@ class PtexGaussianFilter : public PtexWidth4Filter
  private:
     static float kernelFn(float x, const float*)
     {
-	return exp(-2.0f*x*x);
+	return (float)exp(-2.0f*x*x);
     }
 };
 
@@ -323,20 +323,20 @@ class PtexBoxFilter : public PtexSeparableFilter
 	vw = PtexUtils::min(vw, 1.0f);
 
 	// clamp filter width to no smaller than a texel
-	uw = PtexUtils::max(uw, 1.0f/(faceRes.u()));
-	vw = PtexUtils::max(vw, 1.0f/(faceRes.v()));
+	uw = PtexUtils::max(uw, 1.0f/((float)faceRes.u()));
+	vw = PtexUtils::max(vw, 1.0f/((float)faceRes.v()));
 
 	// compute desired texture res based on filter width
-	int ureslog2 = int(ceilf(log2f(1.0f/uw))),
-	    vreslog2 = int(ceilf(log2f(1.0f/vw)));
+	uint8_t ureslog2 = uint8_t(ceilf(log2f(1.0f/uw))),
+	    vreslog2 = uint8_t(ceilf(log2f(1.0f/vw)));
 	Res res(ureslog2, vreslog2);
 	k.res = res;
 	
 	// convert from normalized coords to pixel coords
-	u = u * k.res.u();
-	v = v * k.res.v();
-	uw *= k.res.u();
-	vw *= k.res.v();
+	u = u * (float)k.res.u();
+	v = v * (float)k.res.v();
+	uw *= (float)k.res.u();
+	vw *= (float)k.res.v();
 
 	// find integer pixel extent: [u,v] +/- [uw/2,vw/2]
 	// (box is 1 unit wide for a 1 unit filter period)
@@ -387,17 +387,17 @@ class PtexBilinearFilter : public PtexSeparableFilter
 	vw = PtexUtils::min(vw, 1.0f);
 
 	// clamp filter width to no smaller than a texel
-	uw = PtexUtils::max(uw, 1.0f/(faceRes.u()));
-	vw = PtexUtils::max(vw, 1.0f/(faceRes.v()));
+	uw = PtexUtils::max(uw, 1.0f/((float)faceRes.u()));
+	vw = PtexUtils::max(vw, 1.0f/((float)faceRes.v()));
 
-	int ureslog2 = int(ceilf(log2f(1.0f/uw)));
-	int vreslog2 = int(ceilf(log2f(1.0f/vw)));
+	uint8_t ureslog2 = uint8_t(ceilf(log2f(1.0f/uw)));
+	uint8_t vreslog2 = uint8_t(ceilf(log2f(1.0f/vw)));
 	Res res(ureslog2, vreslog2);
 	k.res = res;
 	
 	// convert from normalized coords to pixel coords
-	float upix = u * k.res.u() - 0.5f;
-	float vpix = v * k.res.v() - 0.5f;
+	float upix = u * (float)k.res.u() - 0.5f;
+	float vpix = v * (float)k.res.v() - 0.5f;
 
 	float ufloor = floorf(upix);
 	float vfloor = floorf(vpix);
@@ -429,9 +429,9 @@ PtexFilter* PtexFilter::getFilter(PtexTexture* tex, const PtexFilter::Options& o
 	case f_box:         return new PtexBoxFilter(tex, opts);
 	case f_gaussian:    return new PtexGaussianFilter(tex, opts);
 	case f_bicubic:     return new PtexBicubicFilter(tex, opts, opts.sharpness);
-	case f_bspline:     return new PtexBicubicFilter(tex, opts, 0.0);
-	case f_catmullrom:  return new PtexBicubicFilter(tex, opts, 1.0);
-	case f_mitchell:    return new PtexBicubicFilter(tex, opts, 2.0/3.0);
+	case f_bspline:     return new PtexBicubicFilter(tex, opts, 0.f);
+	case f_catmullrom:  return new PtexBicubicFilter(tex, opts, 1.f);
+	case f_mitchell:    return new PtexBicubicFilter(tex, opts, 2.f/3.f);
 	}
 	break;
 

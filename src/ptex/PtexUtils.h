@@ -97,7 +97,7 @@ struct PtexUtils : public Ptex {
     }
 
     template<typename T>
-    static T cond(bool c, T a, T b) { return c * a + (!c)*b; }
+    static T cond(bool c, T a, T b) { return (T)((T)c * a + (T)!c * b); }
 
     template<typename T>
     static T min(T a, T b) { return cond(a < b, a, b); }
@@ -146,7 +146,7 @@ struct PtexUtils : public Ptex {
 	VecAccum() {}
 	void operator()(float* dst, const T* val, float weight) 
 	{
-	    *dst += *val * weight;
+	    *dst += (float)*val * weight;
 	    // use template to unroll loop
 	    VecAccum<T,n-1>()(dst+1, val+1, weight);
 	}
@@ -159,7 +159,7 @@ struct PtexUtils : public Ptex {
     struct VecAccumN {
 	void operator()(float* dst, const T* val, int nchan, float weight) 
 	{
-	    for (int i = 0; i < nchan; i++) dst[i] += val[i] * weight;
+	    for (int i = 0; i < nchan; i++) dst[i] += (float)val[i] * weight;
 	}
     };
 
@@ -169,7 +169,7 @@ struct PtexUtils : public Ptex {
 	VecMult() {}
 	void operator()(float* dst, const T* val, float weight) 
 	{
-	    *dst = *val * weight;
+	    *dst = (float)*val * weight;
 	    // use template to unroll loop
 	    VecMult<T,n-1>()(dst+1, val+1, weight);
 	}
@@ -182,7 +182,7 @@ struct PtexUtils : public Ptex {
     struct VecMultN {
 	void operator()(float* dst, const T* val, int nchan, float weight) 
 	{
-	    for (int i = 0; i < nchan; i++) dst[i] = val[i] * weight;
+	    for (int i = 0; i < nchan; i++) dst[i] = (float)val[i] * weight;
 	}
     };
 

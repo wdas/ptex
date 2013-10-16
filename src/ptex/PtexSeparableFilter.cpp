@@ -92,7 +92,8 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
 	// for a subface, build the kernel as if it were on a main face and then downres
 	uw = uw * width + blur * 2.0f;
 	vw = vw * width + blur * 2.0f;
-	buildKernel(k, u*.5f, v*.5f, uw*.5f, vw*.5f, Ptex::Res(f.res.ulog2+1,f.res.vlog2+1));
+	buildKernel(k, u*.5f, v*.5f, uw*.5f, vw*.5f,
+	            Ptex::Res((int8_t)(f.res.ulog2+1),(int8_t)(f.res.vlog2+1)));
 	if (k.res.ulog2 == 0) k.upresU();
 	if (k.res.vlog2 == 0) k.upresV();
 	k.res.ulog2--; k.res.vlog2--;
@@ -312,7 +313,7 @@ void PtexSeparableFilter::applyToCorner(PtexSeparableKernel& k, int faceid,
 	    applyToCornerFace(kc, f, 2, cfaceId[i], *cface[i], cedgeId[i]);
 	}
         // adjust weight for symmetrification and for additional corners
-        _weight += newWeight * numCorners - initialWeight;
+        _weight += newWeight * (float)numCorners - initialWeight;
     }
     else {
 	// valence 2 or 3, ignore corner face (just adjust weight)
