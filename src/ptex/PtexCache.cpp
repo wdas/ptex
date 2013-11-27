@@ -213,24 +213,30 @@ public:
 	purgeAll();
     }
 
-    virtual void setSearchPath(const char* path) 
+    virtual void setSearchPath(const char* path)
     {
-	// get the open lock since the path is used during open operations
-	AutoMutex locker(openlock);
-	
-	// record path
-	_searchpath = path ? path : ""; 
+        // get the open lock since the path is used during open operations
+        AutoMutex locker(openlock);
 
-	// split into dirs
-	_searchdirs.clear();
-	char* buff = strdup(path);
-	char* pos = 0;
-	char* token = strtok_r(buff, ":", &pos);
-	while (token) {
-	    if (token[0]) _searchdirs.push_back(token);
-	    token = strtok_r(0, ":", &pos);
-	}
-	free(buff);
+        // record path
+        _searchpath = path ? path : "";
+
+        // split into dirs
+        _searchdirs.clear();
+
+        if (path) {
+            const char* cp = path;
+            while (1) {
+                const char* delim = strchr(cp, ':');
+                if (!delim) {
+                    if (*cp) _searchdirs.push_back(cp);
+                    break;
+                }
+                int len = delim-cp;
+                if (len) _searchdirs.push_back(std::string(cp, len));
+                cp = delim+1;
+            }
+        }
     }
 
     virtual const char* getSearchPath()
