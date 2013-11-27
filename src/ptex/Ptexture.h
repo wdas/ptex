@@ -136,13 +136,13 @@ struct Ptex {
 
     /** Look up value of given data type that corresponds to the normalized value of 1.0. */
     static float OneValue(DataType dt) {
-	static const float one[] = { 255.0, 65535.0, 1.0, 1.0 };
+	static const float one[] = { 255.f, 65535.f, 1.f, 1.f };
 	return one[dt]; 
     }
 
     /** Lookup up inverse value of given data type that corresponds to the normalized value of 1.0. */
     static float OneValueInv(DataType dt) {
-	static const float one[] = { 1.0/255.0, 1.0/65535.0, 1.0, 1.0 };
+	static const float one[] = { 1.f/255.f, 1.f/65535.f, 1.f, 1.f };
 	return one[dt]; 
     }
 
@@ -284,7 +284,7 @@ struct Ptex {
 
 	/// Set the adjedges data.
 	void setadjedges(int e0, int e1, int e2, int e3)
-	{ adjedges = (e0&3) | ((e1&3)<<2) | ((e2&3)<<4) | ((e3&3)<<6); }
+	{ adjedges = (uint8_t)((e0&3) | ((e1&3)<<2) | ((e2&3)<<4) | ((e3&3)<<6)); }
 
 	/// Flag bit values (for internal use).
 	enum { flag_constant = 1, flag_hasedits = 2, flag_nbconstant = 4, flag_subface = 8 };

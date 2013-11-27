@@ -23,6 +23,8 @@ CXXFLAGS = -Wall -pedantic -W -std=c++98 $(DEBUG) $(INCPATH) $(DEFINES) -fPIC
 LFLAGS   = 
 LIBS     = -lm -lz -lpthread
 
+-include ../config.mak
+
 SRCS = \
 	PtexCache.cpp \
 	PtexFilters.cpp \

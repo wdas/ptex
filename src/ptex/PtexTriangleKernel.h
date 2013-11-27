@@ -188,13 +188,13 @@ class PtexTriangleKernel : public Ptex {
 	int resu = res.u();
 
 	// normalize coefficients for texel units
-	float Finv = 1.0f/(resu*resu*(A*C - 0.25f * B * B));
+	float Finv = 1.0f/((float)resu*(float)resu*(A*C - 0.25f * B * B));
 	float Ak = A*Finv, Bk = B*Finv, Ck = C*Finv;
 
 	// build even iterator
 	ke.rowlen = resu;
-	ke.wscale = 1.0f/(resu*resu);
-	float scale = ke.rowlen;
+	ke.wscale = 1.0f/((float)resu*(float)resu);
+	float scale = (float)ke.rowlen;
 	ke.u = u * scale - float(1/3.0);
 	ke.v = v * scale - float(1/3.0);
 	ke.u1 = int(ceilf(u1 * scale - float(1/3.0)));

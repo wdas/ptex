@@ -99,16 +99,17 @@ namespace {
     template<typename DST, typename SRC>
     void ConvertArray(DST* dst, SRC* src, int numChannels, float scale, float round=0)
     {
-	for (int i = 0; i < numChannels; i++) dst[i] = DST(src[i] * scale + round);
+	for (int i = 0; i < numChannels; i++)
+		dst[i] = DST((float)src[i] * scale + round);
     }
 }
 
 void Ptex::ConvertToFloat(float* dst, const void* src, Ptex::DataType dt, int numChannels)
 {
     switch (dt) {
-    case dt_uint8:  ConvertArray(dst, (uint8_t*)src,  numChannels, 1/255.0); break;
-    case dt_uint16: ConvertArray(dst, (uint16_t*)src, numChannels, 1/65535.0); break;
-    case dt_half:   ConvertArray(dst, (PtexHalf*)src, numChannels, 1.0); break;
+    case dt_uint8:  ConvertArray(dst, (uint8_t*)src,  numChannels, 1.f/255.f); break;
+    case dt_uint16: ConvertArray(dst, (uint16_t*)src, numChannels, 1.f/65535.f); break;
+    case dt_half:   ConvertArray(dst, (PtexHalf*)src, numChannels, 1.f); break;
     case dt_float:  memcpy(dst, src, sizeof(float)*numChannels); break;
     }
 }
@@ -149,8 +150,8 @@ namespace {
     inline void interleave(const T* src, int sstride, int uw, int vw, 
 			   T* dst, int dstride, int nchan)
     {
-	sstride /= sizeof(T);
-	dstride /= sizeof(T);
+	sstride /= (int)sizeof(T);
+	dstride /= (int)sizeof(T);
 	// for each channel
 	for (T* dstend = dst + nchan; dst != dstend; dst++) {
 	    // for each row
@@ -186,8 +187,8 @@ namespace {
     inline void deinterleave(const T* src, int sstride, int uw, int vw, 
 			     T* dst, int dstride, int nchan)
     {
-	sstride /= sizeof(T);
-	dstride /= sizeof(T);
+	sstride /= (int)sizeof(T);
+	dstride /= (int)sizeof(T);
 	// for each channel
 	for (const T* srcend = src + nchan; src != srcend; src++) {
 	    // for each row
@@ -223,9 +224,9 @@ namespace {
     template<typename T>
     void encodeDifference(T* data, int size)
     {
-	size /= sizeof(T);
+	size /= (int)sizeof(T);
 	T* p = (T*) data, * end = p + size, tmp, prev = 0;
-	while (p != end) { tmp = prev; prev = *p; *p++ -= tmp; }
+	while (p != end) { tmp = prev; prev = *p; *p = T(*p + tmp); p++; }
     }
 }
 
@@ -243,9 +244,9 @@ namespace {
     template<typename T>
     void decodeDifference(T* data, int size)
     {
-	size /= sizeof(T);
+	size /= (int)sizeof(T);
 	T* p = (T*) data, * end = p + size, prev = 0;
-	while (p != end) { *p += prev; prev = *p++; }
+	while (p != end) { *p = T(*p + prev); prev = *p++; }
     }
 }
 
@@ -264,8 +265,8 @@ namespace {
     inline void reduce(const T* src, int sstride, int uw, int vw, 
 		       T* dst, int dstride, int nchan)
     {
-	sstride /= sizeof(T);
-	dstride /= sizeof(T);
+	sstride /= (int)sizeof(T);
+	dstride /= (int)sizeof(T);
 	int rowlen = uw*nchan;
 	int srowskip = 2*sstride - rowlen;
 	int drowskip = dstride - rowlen/2;
@@ -299,8 +300,8 @@ namespace {
     inline void reduceu(const T* src, int sstride, int uw, int vw, 
 			T* dst, int dstride, int nchan)
     {	
-	sstride /= sizeof(T);
-	dstride /= sizeof(T);
+	sstride /= (int)sizeof(T);
+	dstride /= (int)sizeof(T);
 	int rowlen = uw*nchan;
 	int srowskip = sstride - rowlen;
 	int drowskip = dstride - rowlen/2;
@@ -333,8 +334,8 @@ namespace {
     inline void reducev(const T* src, int sstride, int uw, int vw, 
 			T* dst, int dstride, int nchan)
     {
-	sstride /= sizeof(T);
-	dstride /= sizeof(T);
+	sstride /= (int)sizeof(T);
+	dstride /= (int)sizeof(T);
 	int rowlen = uw*nchan;
 	int srowskip = 2*sstride - rowlen;
 	int drowskip = dstride - rowlen;
@@ -369,8 +370,8 @@ namespace {
     inline void reduceTri(const T* src, int sstride, int w, int /*vw*/, 
 			  T* dst, int dstride, int nchan)
     {
-	sstride /= sizeof(T);
-	dstride /= sizeof(T);
+	sstride /= (int)sizeof(T);
+	dstride /= (int)sizeof(T);
 	int rowlen = w*nchan;
 	const T* src2 = src + (w-1) * sstride + rowlen - nchan;
 	int srowinc2 = -2*sstride - nchan;
@@ -442,7 +443,7 @@ namespace {
     inline void blend(const T* src, float weight, T* dst, int rowlen, int nchan)
     {
 	for (const T* end = src + rowlen * nchan; src != end; dst++)
-	    *dst = *dst + T(weight * *src++);
+	    *dst = T(*dst + T(weight * (float)*src++));
     }
 
     template<typename T>
@@ -450,8 +451,9 @@ namespace {
     {
 	dst += (rowlen-1) * nchan;
 	for (const T* end = src + rowlen * nchan; src != end;) {
-	    for (int i = 0; i < nchan; i++, dst++)
-		*dst = *dst + T(weight * *src++);
+	    for (int i = 0; i < nchan; i++, dst++) {
+		*dst = T(*dst + T(weight * (float)*src++));
+	    }
 	    dst -= nchan*2;
 	}
     }
@@ -489,13 +491,13 @@ namespace {
     {
 	float* buff = (float*) alloca(nchan*sizeof(float));
 	memset(buff, 0, nchan*sizeof(float));
-	sstride /= sizeof(T);
+	sstride /= (int)sizeof(T);
 	int rowlen = uw*nchan;
 	int rowskip = sstride - rowlen;
 	for (const T* end = src + vw*sstride; src != end; src += rowskip)
 	    for (const T* rowend = src + rowlen; src != rowend;)
-		for (int i = 0; i < nchan; i++) buff[i] += *src++;
-	float scale = 1.0f/(uw*vw);
+		for (int i = 0; i < nchan; i++) buff[i] += (float)*src++;
+	float scale = 1.0f/(float)(uw*vw);
 	for (int i = 0; i < nchan; i++) dst[i] = T(buff[i]*scale);
     }
 }
@@ -551,8 +553,8 @@ namespace {
 	}
 	
 	for (T* end = data + npixels*nchannels; data != end; data += nchannels) {
-	    float aval = scale * data[alphaoffset];
-	    for (int i = 0; i < nchanmult; i++)	data[i] = T(data[i] * aval);
+	    float aval = scale * (float)data[alphaoffset];
+	    for (int i = 0; i < nchanmult; i++)	data[i] = T((float)data[i] * aval);
 	}
     }
 }
@@ -590,8 +592,8 @@ namespace {
 	for (T* end = data + npixels*nchannels; data != end; data += nchannels) {
 	    T alpha = data[alphaoffset];
 	    if (!alpha) continue; // don't divide by zero!
-	    float aval = scale / alpha;
-	    for (int i = 0; i < nchandiv; i++)	data[i] = T(data[i] * aval);
+	    float aval = scale / (float)alpha;
+	    for (int i = 0; i < nchandiv; i++)	data[i] = T((float)data[i] * aval);
 	}
     }
 }

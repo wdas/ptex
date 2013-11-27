@@ -104,7 +104,7 @@ void PtexTriangleFilter::buildKernel(PtexTriangleKernel& k, float u, float v,
 				     float uw1, float vw1, float uw2, float vw2,
 				     float width, float blur, Res faceRes)
 {
-    const float sqrt3 = 1.7320508075688772;
+    const float sqrt3 = 1.7320508075688772f;
 
     // compute ellipse coefficients, A*u^2 + B*u*v + C*v^2 == AC - B^2/4
     float scaleAC = 0.25f * width*width;
@@ -126,7 +126,7 @@ void PtexTriangleFilter::buildKernel(PtexTriangleKernel& k, float u, float v,
 
     // compute min blur for texel clamping
     // (ensure that ellipse is no smaller than a texel)
-    float b_t = squared(0.5f / faceRes.u());
+    float b_t = squared(0.5f / (float)faceRes.u());
 
     // add blur
     float b_b = 0.25f * blur * blur;
@@ -158,7 +158,7 @@ void PtexTriangleFilter::buildKernel(PtexTriangleKernel& k, float u, float v,
 
     // init kernel
     float w = 1.0f - u - v;
-    k.set(Res(reslog2, reslog2), u, v, u-uw, v-vw, w-ww, u+uw, v+vw, w+ww, A, B, C);
+    k.set(Res((int8_t)reslog2, (int8_t)reslog2), u, v, u-uw, v-vw, w-ww, u+uw, v+vw, w+ww, A, B, C);
 }
 
 
@@ -231,13 +231,13 @@ void PtexTriangleFilter::applyIter(PtexTriangleKernelIter& k, PtexFaceData* dh)
 	int wOffsetBase = k.rowlen - tileresu;
 	for (int tilev = k.v1 / tileresv, tilevEnd = (k.v2-1) / tileresv; tilev <= tilevEnd; tilev++) {
 	    int vOffset = tilev * tileresv;
-	    kt.v = k.v - vOffset;
+	    kt.v = k.v - (float)vOffset;
 	    kt.v1 = PtexUtils::max(0, k.v1 - vOffset);
 	    kt.v2 = PtexUtils::min(k.v2 - vOffset, tileresv);
 	    for (int tileu = k.u1 / tileresu, tileuEnd = (k.u2-1) / tileresu; tileu <= tileuEnd; tileu++) {
 		int uOffset = tileu * tileresu;
 		int wOffset = wOffsetBase - uOffset - vOffset;
-		kt.u = k.u - uOffset;
+		kt.u = k.u - (float)uOffset;
 		kt.u1 = PtexUtils::max(0, k.u1 - uOffset);
 		kt.u2 = PtexUtils::min(k.u2 - uOffset, tileresu);
 		kt.w1 = k.w1 - wOffset;

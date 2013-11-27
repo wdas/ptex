@@ -274,7 +274,7 @@ PtexWriterBase::PtexWriterBase(const char* path,
     _header.meshtype = mt;
     _header.datatype = dt;
     _header.alphachan = alphachan;
-    _header.nchannels = nchannels;
+    _header.nchannels = (uint16_t)nchannels;
     _header.nfaces = nfaces;
     _header.nlevels = 0;
     _header.extheadersize = sizeof(_extheader);
@@ -355,7 +355,7 @@ bool PtexWriterBase::storeFaceInfo(int faceid, FaceInfo& f, const FaceInfo& src,
     }
 
     // set new flags
-    f.flags |= flags;
+    f.flags |= (uint8_t)flags;
     return 1;
 }
 
@@ -374,25 +374,25 @@ void PtexWriterBase::writeMeta(const char* key, const int8_t* value, int count)
 
 void PtexWriterBase::writeMeta(const char* key, const int16_t* value, int count)
 {
-    addMetaData(key, mdt_int16, value, count*sizeof(int16_t));
+    addMetaData(key, mdt_int16, value, count*(int)sizeof(int16_t));
 }
 
 
 void PtexWriterBase::writeMeta(const char* key, const int32_t* value, int count)
 {
-    addMetaData(key, mdt_int32, value, count*sizeof(int32_t));
+    addMetaData(key, mdt_int32, value, count*(int)sizeof(int32_t));
 }
 
 
 void PtexWriterBase::writeMeta(const char* key, const float* value, int count)
 {
-    addMetaData(key, mdt_float, value, count*sizeof(float));
+    addMetaData(key, mdt_float, value, count*(int)sizeof(float));
 }
 
 
 void PtexWriterBase::writeMeta(const char* key, const double* value, int count)
 {
-    addMetaData(key, mdt_double, value, count*sizeof(double));
+    addMetaData(key, mdt_double, value, count*(int)sizeof(double));
 }
 
 
@@ -474,7 +474,7 @@ void PtexWriterBase::addMetaData(const char* key, MetaDataType t,
     }
     else {
 	// allocate a new entry
-	index = _metadata.size();
+	index = (int)_metadata.size();
 	_metadata.resize(index+1);
 	_metamap[key] = index;
     }
@@ -534,7 +534,7 @@ int PtexWriterBase::writeZipBlock(FILE* fp, const void* data, int size, bool fin
 
     if (!finish) return 0;
 
-    int total = _zstream.total_out;
+    int total = (int)_zstream.total_out;
     deflateReset(&_zstream);
     return total;
 }
@@ -585,8 +585,8 @@ Ptex::Res PtexWriterBase::calcTileRes(Res faceres)
     // choose u and v sizes for roughly square result (u ~= v ~= n/2)
     // and make sure tile isn't larger than face
     Res tileres;
-    tileres.ulog2 = PtexUtils::min((n+1)/2, int(faceres.ulog2));
-    tileres.vlog2 = PtexUtils::min(n - tileres.ulog2, int(faceres.vlog2));
+    tileres.ulog2 = (int8_t)PtexUtils::min(int((n+1)/2), int(faceres.ulog2));
+    tileres.vlog2 = (int8_t)PtexUtils::min(int(n - tileres.ulog2), int(faceres.vlog2));
     return tileres;
 }
 
@@ -692,7 +692,7 @@ void PtexWriterBase::writeFaceData(FILE* fp, const void* data, int stride,
 void PtexWriterBase::writeReduction(FILE* fp, const void* data, int stride, Res res)
 {
     // reduce and write to file
-    Ptex::Res newres(res.ulog2-1, res.vlog2-1);
+    Ptex::Res newres((int8_t)(res.ulog2-1), (int8_t)(res.vlog2-1));
     int buffsize = newres.size() * _pixelSize;
     bool useMalloc = buffsize > AllocaMax;
     char* buff = useMalloc ? (char*) malloc(buffsize) : (char*)alloca(buffsize);
@@ -716,7 +716,7 @@ int PtexWriterBase::writeMetaDataBlock(FILE* fp, MetaEntry& val)
     writeZipBlock(fp, &datatype, sizeof(datatype), false);
     writeZipBlock(fp, &datasize, sizeof(datasize), false);
     writeZipBlock(fp, &val.data[0], datasize, false);
-    int memsize = (sizeof(keysize) + keysize + sizeof(datatype)
+    int memsize = int(sizeof(keysize) + (size_t)keysize + sizeof(datatype)
 		   + sizeof(datasize) + datasize);
     return memsize;
 }
@@ -944,7 +944,7 @@ void PtexMainWriter::finish()
 
     // write compressed face info block
     _header.faceinfosize = writeZipBlock(newfp, &_faceinfo[0],
-					 sizeof(FaceInfo)*_header.nfaces);
+					 (int)sizeof(FaceInfo)*_header.nfaces);
 
     // write compressed const data block
     _header.constdatasize = writeZipBlock(newfp, &_constdata[0], int(_constdata.size()));
@@ -963,7 +963,7 @@ void PtexMainWriter::finish()
 	info.nfaces = nfaces;
 	// output compressed level data header
 	info.levelheadersize = writeZipBlock(newfp, &level.fdh[0],
-					     sizeof(FaceDataHeader)*nfaces);
+					     (int)sizeof(FaceDataHeader)*nfaces);
 	info.leveldatasize = info.levelheadersize;
 	// copy level data from tmp file
 	for (int fi = 0; fi < nfaces; fi++)
@@ -1100,7 +1100,8 @@ void PtexMainWriter::generateReductions()
 	    // output current reduction for face (previously generated)
 	    int faceid = _faceids_r[rfaceid];
 	    Res res = _faceinfo[faceid].res;
-	    res.ulog2 -= i; res.vlog2 -= i;
+	    res.ulog2 = (int8_t)(res.ulog2 - i);
+	    res.vlog2 = (int8_t)(res.vlog2 - i);
 	    int stride = res.u() * _pixelSize;
 	    int blocksize = res.size() * _pixelSize;
 	    fseeko(_tmpfp, _rpos[faceid], SEEK_SET);
@@ -1131,7 +1132,7 @@ void PtexMainWriter::writeMetaData(FILE* fp)
     std::vector<MetaEntry*> lmdEntries; // large meta data items
 
     // write small meta data items in a single zip block
-    for (int i = 0, n = _metadata.size(); i < n; i++) {
+    for (int i = 0, n = (int)_metadata.size(); i < n; i++) {
 	MetaEntry& e = _metadata[i];
 #ifndef PTEX_NO_LARGE_METADATA_BLOCKS
 	if (int(e.data.size()) > MetaDataThreshold) {
@@ -1154,7 +1155,7 @@ void PtexMainWriter::writeMetaData(FILE* fp)
     writeBlank(fp, sizeof(uint64_t));
 
     // write large items as separate blocks
-    int nLmd = lmdEntries.size();
+    int nLmd = (int)lmdEntries.size();
     if (nLmd > 0) {
 	// write data records to tmp file and accumulate zip sizes for lmd header
 	std::vector<FilePos> lmdoffset(nLmd);
@@ -1162,7 +1163,7 @@ void PtexMainWriter::writeMetaData(FILE* fp)
 	for (int i = 0; i < nLmd; i++) {
 	    MetaEntry* e= lmdEntries[i];
 	    lmdoffset[i] = ftello(_tmpfp);
-	    lmdzipsize[i] = writeZipBlock(_tmpfp, &e->data[0], e->data.size());
+	    lmdzipsize[i] = writeZipBlock(_tmpfp, &e->data[0], (int)e->data.size());
 	}
 
 	// write lmd header records as single zip block
@@ -1170,7 +1171,7 @@ void PtexMainWriter::writeMetaData(FILE* fp)
 	    MetaEntry* e = lmdEntries[i];
 	    uint8_t keysize = uint8_t(e->key.size()+1);
 	    uint8_t datatype = e->datatype;
-	    uint32_t datasize = e->data.size();
+	    uint32_t datasize = (uint32_t)e->data.size();
 	    uint32_t zipsize = lmdzipsize[i];
 
 	    writeZipBlock(fp, &keysize, sizeof(keysize), false);
@@ -1179,7 +1180,8 @@ void PtexMainWriter::writeMetaData(FILE* fp)
 	    writeZipBlock(fp, &datasize, sizeof(datasize), false);
 	    writeZipBlock(fp, &zipsize, sizeof(zipsize), false);
 	    _extheader.lmdheadermemsize +=
-		sizeof(keysize) + keysize + sizeof(datatype) + sizeof(datasize) + sizeof(zipsize);
+		(uint32_t)(sizeof(keysize) + (size_t)keysize + sizeof(datatype) +
+		           sizeof(datasize) + sizeof(zipsize));
 	}
 	_extheader.lmdheaderzipsize = writeZipBlock(fp, 0, 0, /*finish*/ true);
 
@@ -1301,7 +1303,7 @@ bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
     writeFaceData(_fp, data, stride, f.res, efdh.fdh);
 
     // update editsize in header
-    editsize = sizeof(efdh) + _pixelSize + efdh.fdh.blocksize();
+    editsize = (uint32_t)(sizeof(efdh) + (size_t)_pixelSize + efdh.fdh.blocksize());
 
     // rewind and write headers
     fseeko(_fp, pos, SEEK_SET);
@@ -1321,7 +1323,7 @@ bool PtexIncrWriter::writeConstantFace(int faceid, const FaceInfo& f, const void
     EditFaceDataHeader efdh;
     efdh.faceid = faceid;
     efdh.fdh.set(0, enc_constant);
-    editsize = sizeof(efdh) + _pixelSize;
+    editsize = (uint32_t)sizeof(efdh) + _pixelSize;
 
     // check and store face info
     if (!storeFaceInfo(faceid, efdh.faceinfo, f, FaceInfo::flag_constant))
@@ -1351,7 +1353,7 @@ void PtexIncrWriter::writeMetaDataEdit()
     writeBlank(_fp, sizeof(edittype) + sizeof(editsize) + sizeof(emdh));
 
     // write meta data
-    for (int i = 0, n = _metadata.size(); i < n; i++) {
+    for (size_t i = 0, n = _metadata.size(); i < n; i++) {
 	MetaEntry& e = _metadata[i];
 	emdh.metadatamemsize += writeMetaDataBlock(_fp, e);
     }
@@ -1359,7 +1361,7 @@ void PtexIncrWriter::writeMetaDataEdit()
     emdh.metadatazipsize = writeZipBlock(_fp, 0, 0, /*finish*/ true);
 
     // update headers
-    editsize = sizeof(emdh) + emdh.metadatazipsize;
+    editsize = (uint32_t)(sizeof(emdh) + emdh.metadatazipsize);
 
     // rewind and write headers
     fseeko(_fp, pos, SEEK_SET);
