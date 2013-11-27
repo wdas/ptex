@@ -77,8 +77,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 // missing functions on Windows
 #ifdef WINDOWS
-#define snprintf sprintf_s
-#define strtok_r strtok_s
 typedef __int64 FilePos;
 #define fseeko _fseeki64
 #define ftello _ftelli64

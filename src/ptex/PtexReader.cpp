@@ -81,11 +81,10 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 	return 0;
     }
     if (_header.version != 1) {
-	char ver[21]; snprintf(ver, 20, "%d", _header.version);
-	std::string errstr = "Unsupported ptex file version (";
-	errstr += ver; errstr += "): "; errstr += path;
-	error = errstr.c_str();
-	return 0;
+        std::stringstream s;
+        s << "Unsupported ptex file version ("<< _header.version << "): " << path;
+        error = s.str();
+        return 0;
     }
     _pixelsize = _header.pixelSize();
 
