@@ -308,6 +308,7 @@ struct Ptex {
 	PTEXAPI ~String();
 	PTEXAPI String& operator=(const char* str);
 	String& operator=(const String& str) { *this = str._str; return *this; }
+	String& operator=(const std::string& str) { *this = str.c_str(); return *this; }
 	const char* c_str() const { return _str ? _str : ""; }
 	bool empty() const { return _str == 0; }
 
