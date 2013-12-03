@@ -448,26 +448,21 @@ class PtexSeparableKernel : public Ptex {
         return newWeight;
     }
 
-    void apply(float* dst, void* data, DataType dt, EdgeFilterMode efm, int nChan, int nTxChan)
+    void apply(float* dst, void* data, DataType dt, int nChan, int nTxChan)
     {
 	// dispatch specialized apply function
-	if (efm == efm_none)
-	    rot = 0;
 	ApplyFn fn = applyFunctions[(nChan!=nTxChan)*20 + ((unsigned)nChan<=4)*nChan*4 + dt];
 	fn(*this, dst, data, nChan, nTxChan);
     }
 
-    void applyConst(float* dst, void* data, DataType dt, EdgeFilterMode efm, int nChan)
+    void applyConst(float* dst, void* data, DataType dt, int nChan)
     {
-	if (efm == efm_none)
-	    rot = 0;
-	ApplyConstFn fn = applyConstFunctions[((unsigned)nChan<=4)*nChan*4 + dt];
-	fn(weight(), dst, data, nChan, rot);
+	PtexUtils::applyConst(weight(), dst, data, dt, nChan);
     }
 
  private:
     typedef void (*ApplyFn)(PtexSeparableKernel& k, float* dst, void* data, int nChan, int nTxChan);
-    typedef void (*ApplyConstFn)(float weight, float* dst, void* data, int nChan, int rot);
+    typedef void (*ApplyConstFn)(float weight, float* dst, void* data, int nChan);
     static ApplyFn applyFunctions[40];
     static ApplyConstFn applyConstFunctions[20];
     static inline float accumulate(const float* p, int n)

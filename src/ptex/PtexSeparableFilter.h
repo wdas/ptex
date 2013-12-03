@@ -52,8 +52,8 @@ class PtexSeparableFilter : public PtexFilter, public Ptex
  protected:
     PtexSeparableFilter(PtexTexture* tx, const PtexFilter::Options& opts ) :
 	_tx(tx), _options(opts), _result(0), _weight(0), 
-	_firstChanOffset(0), _nchan(0), _ntxchan(0),
-	_dt((DataType)0), _uMode(tx->uBorderMode()), _vMode(tx->vBorderMode()), 
+	_firstChanOffset(0), _nchan(0), _ntxchan(_tx->numChannels()),
+	_dt(tx->dataType()), _uMode(tx->uBorderMode()), _vMode(tx->vBorderMode()), 
         _efm(tx->edgeFilterMode()) {}
     virtual ~PtexSeparableFilter() {}
 

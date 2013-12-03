@@ -52,9 +52,6 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     // init
     if (!_tx || nChannels <= 0) return;
     if (faceid < 0 || faceid >= _tx->numFaces()) return;
-    _ntxchan = _tx->numChannels();
-    _dt = _tx->dataType();
-    _efm = _tx->edgeFilterMode();
     _firstChanOffset = firstChan*DataSize(_dt);
     _nchan = PtexUtils::min(nChannels, _ntxchan-firstChan);
 
@@ -356,9 +353,16 @@ void PtexSeparableFilter::apply(PtexSeparableKernel& k, int faceid, const Ptex::
     if (!dh) return;
 
     if (dh->isConstant()) {
-	k.applyConst(_result, (char*)dh->getData()+_firstChanOffset, _dt, _efm, _nchan);
+	k.applyConst(_result, (char*)dh->getData()+_firstChanOffset, _dt, _nchan);
+        return;
     }
-    else if (dh->isTiled()) {
+
+    // allocate temporary result for tanvec mode (if needed)
+    bool tanvecMode = _efm == efm_tanvec && _nchan == 2 && k.rot > 0;
+    float* result = tanvecMode ? (float*) alloca(sizeof(float)*_nchan) : _result;
+    if (tanvecMode) memset(result, 0, sizeof(float)*_nchan);
+
+    if (dh->isTiled()) {
 	Ptex::Res tileres = dh->tileRes();
 	PtexSeparableKernel kt;
 	kt.res = tileres;
@@ -378,14 +382,36 @@ void PtexSeparableFilter::apply(PtexSeparableKernel& k, int faceid, const Ptex::
 		PtexPtr<PtexFaceData> th ( dh->getTile(tilev * ntilesu + tileu) );
 		if (th) {
 		    if (th->isConstant())
-			kt.applyConst(_result, (char*)th->getData()+_firstChanOffset, _dt, _efm, _nchan);
+			kt.applyConst(result, (char*)th->getData()+_firstChanOffset, _dt, _nchan);
 		    else
-			kt.apply(_result, (char*)th->getData()+_firstChanOffset, _dt, _efm, _nchan, _ntxchan);
+			kt.apply(result, (char*)th->getData()+_firstChanOffset, _dt, _nchan, _ntxchan);
 		}
 	    }
 	}
     }
     else {
-	k.apply(_result, (char*)dh->getData()+_firstChanOffset, _dt, _efm, _nchan, _ntxchan);
+	k.apply(result, (char*)dh->getData()+_firstChanOffset, _dt, _nchan, _ntxchan);
+    }
+
+    if (tanvecMode) {
+        // rotate tangent-space vector data and update main result
+        switch (k.rot) {
+            case 0: // rot==0 included for completeness, but tanvecMode should be false in this case
+                _result[0] += result[0];
+                _result[1] += result[1];
+                break;
+            case 1:
+                _result[0] -= result[1];
+                _result[1] += result[0];
+                break;
+            case 2:
+                _result[0] -= result[0];
+                _result[1] -= result[1];
+                break;
+            case 3:
+                _result[0] += result[1];
+                _result[1] -= result[0];
+                break;
+        }
     }
 }
