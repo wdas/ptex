@@ -93,7 +93,7 @@ bool PtexReader::open(const char* path, Ptex::String& error)
     readBlock(&_extheader, PtexUtils::min(uint32_t(ExtHeaderSize), _header.extheadersize));
 
     // compute offsets of various blocks
-    FilePos pos = tell();
+    FilePos pos = HeaderSize + _header.extheadersize;
     _faceinfopos = pos;   pos += _header.faceinfosize;
     _constdatapos = pos;  pos += _header.constdatasize;
     _levelinfopos = pos;  pos += _header.levelinfosize;
