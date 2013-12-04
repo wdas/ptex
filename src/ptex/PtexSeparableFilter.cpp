@@ -358,7 +358,7 @@ void PtexSeparableFilter::apply(PtexSeparableKernel& k, int faceid, const Ptex::
     }
 
     // allocate temporary result for tanvec mode (if needed)
-    bool tanvecMode = _efm == efm_tanvec && _nchan == 2 && k.rot > 0;
+    bool tanvecMode = (_efm == efm_tanvec) && (_nchan >= 2) && (k.rot > 0);
     float* result = tanvecMode ? (float*) alloca(sizeof(float)*_nchan) : _result;
     if (tanvecMode) memset(result, 0, sizeof(float)*_nchan);
 
@@ -413,5 +413,6 @@ void PtexSeparableFilter::apply(PtexSeparableKernel& k, int faceid, const Ptex::
                 _result[1] -= result[0];
                 break;
         }
+        for (int i = 2; i < _nchan; i++) _result[i] += result[i];
     }
 }
