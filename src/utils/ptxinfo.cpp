@@ -340,6 +340,7 @@ int main(int argc, char** argv)
     else std::cout << r->alphaChannel() << std::endl;
     std::cout << "uBorderMode: " << Ptex::BorderModeName(r->uBorderMode()) << std::endl;
     std::cout << "vBorderMode: " << Ptex::BorderModeName(r->vBorderMode()) << std::endl;
+    std::cout << "edgeFilterMode: " << Ptex::EdgeFilterModeName(r->edgeFilterMode()) << std::endl;
     std::cout << "numFaces: " << r->numFaces() << std::endl;
     std::cout << "hasEdits: " << (r->hasEdits() ? "yes" : "no") << std::endl;
     std::cout << "hasMipMaps: " << (r->hasMipMaps() ? "yes" : "no") << std::endl;
