@@ -92,12 +92,6 @@ bool PtexReader::open(const char* path, Ptex::String& error)
     memset(&_extheader, 0, sizeof(_extheader));
     readBlock(&_extheader, PtexUtils::min(uint32_t(ExtHeaderSize), _header.extheadersize));
 
-    // file version 1.4 added edgefiltermode into ExtHeader
-    // previous versions have behavior equivalent to edgefiltermode = efm_none
-    if (_header.version == 1 && _header.minorversion < 4) {
-	_extheader.edgefiltermode = efm_none;
-    }
-
     // compute offsets of various blocks
     FilePos pos = HeaderSize + _header.extheadersize;
     _faceinfopos = pos;   pos += _header.faceinfosize;
