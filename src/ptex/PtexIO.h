@@ -60,14 +60,15 @@ struct PtexIO : public Ptex {
 	bool hasAlpha() const { return alphachan >= 0 && alphachan < nchannels; }
     };
     struct ExtHeader {
-	BorderMode ubordermode:32;
-	BorderMode vbordermode:32;
+	BorderMode ubordermode:16;
+        uint16_t pad;
+	BorderMode vbordermode:16;
+	EdgeFilterMode edgefiltermode:16;
 	uint32_t lmdheaderzipsize;
 	uint32_t lmdheadermemsize;
 	uint64_t lmddatasize;
 	uint64_t editdatasize;
 	uint64_t editdatapos;
-	EdgeFilterMode edgefiltermode:32;
     };
     struct LevelInfo {
 	uint64_t leveldatasize;
