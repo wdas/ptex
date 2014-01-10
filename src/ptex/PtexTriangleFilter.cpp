@@ -138,7 +138,7 @@ void PtexTriangleFilter::buildKernel(PtexTriangleKernel& k, float u, float v,
     float m = sqrtf(2.0f*(Ac*Cc - 0.25f*Bc*Bc) / (Ac + Cc + X));
     
     // choose desired resolution
-    int reslog2 = PtexUtils::max(0, int(ceilf(log2f(0.5f/m))));
+    int reslog2 = PtexUtils::max(0, PtexUtils::calcResFromWidth(0.5f/m));
 
     // convert back to triangular domain
     A = float(4/3.0) * Ac;
