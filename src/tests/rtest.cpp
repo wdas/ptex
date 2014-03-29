@@ -142,6 +142,15 @@ int main(int /*argc*/, char** /*argv*/)
 	}
         r->getData(i, data, 0, Ptex::Res(0,0));
 	DumpData(res, r->dataType(), r->numChannels(), data, "  ");
+
+	// Read more channels than are available.
+	// This should wipe pixel with zeroes and nothing more.
+	float pixel[] = {-1.0f, -1.0f, -1.0f};
+	r->getPixel(i, 1, 1, pixel, 3, 3);
+	if (pixel[0] != 0.0f || pixel[1] != 0.0f || pixel[2] != 0.0f) {
+		std::cerr << "pixel should be zero" << std::endl;
+		return 1;
+	}
     }
 
     return 0;
