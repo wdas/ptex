@@ -1041,7 +1041,7 @@ void PtexReader::blendFaces(FaceData*& face, int faceid, Res res, bool blendu)
 void PtexReader::getPixel(int faceid, int u, int v,
 			  float* result, int firstchan, int nchannels)
 {
-    memset(result, 0, nchannels);
+    memset(result, 0, sizeof(*result)*nchannels);
 
     // clip nchannels against actual number available
     nchannels = PtexUtils::min(nchannels,

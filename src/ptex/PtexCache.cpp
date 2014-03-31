@@ -232,7 +232,7 @@ public:
                     if (*cp) _searchdirs.push_back(cp);
                     break;
                 }
-                int len = delim-cp;
+                int len = int(delim-cp);
                 if (len) _searchdirs.push_back(std::string(cp, len));
                 cp = delim+1;
             }
