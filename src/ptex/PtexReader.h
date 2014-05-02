@@ -514,15 +514,6 @@ protected:
 	}
     }
 
-    int unpackedSize(FaceDataHeader fdh, int levelid, int faceid)
-    {
-	if (fdh.encoding() == enc_constant)
-	    // level 0 constant faces are not stored
-	    return levelid == 0 ? 0 : _pixelsize;
-	else
-	    return getRes(levelid, faceid).size() * _pixelsize;
-    }
-
     void readFaceInfo();
     void readLevelInfo();
     void readConstData();

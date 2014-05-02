@@ -607,66 +607,10 @@ void PtexReader::readFace(int levelid, Level* level, int faceid)
 	_cache->cachelock.unlock();
     }
 
-    // Go ahead and read the face, and read nearby faces if
-    // possible. The goal is to coalesce small faces into single
-    // runs of consecutive reads to minimize seeking and take
-    // advantage of read-ahead buffering.
-
-    // Try to read as many faces as will fit in BlockSize.  Use the
-    // in-memory size rather than the on-disk size to prevent flooding
-    // the memory cache.  And don't coalesce w/ tiled faces as these
-    // are meant to be read individually.
-
-    // scan both backwards and forwards looking for unread faces
-    int first = faceid, last = faceid;
-    int totalsize = 0;
-
+    // Go ahead and read the face
     FaceDataHeader fdh = level->fdh[faceid];
-    if (fdh.encoding() != enc_tiled) {
-	totalsize += unpackedSize(fdh, levelid, faceid);
-
-	int nfaces = int(level->fdh.size());
-	while (1) {
-	    int f = first-1;
-	    if (f < 0 || level->faces[f]) break;
-	    fdh = level->fdh[f];
-	    if (fdh.encoding() == enc_tiled) break;
-	    int size = totalsize + unpackedSize(fdh, levelid, f);
-	    if (size > BlockSize) break;
-	    first = f;
-	    totalsize = size;
-	}
-	while (1) {
-	    int f = last+1;
-	    if (f >= nfaces || level->faces[f]) break;
-	    fdh = level->fdh[f];
-	    if (fdh.encoding() == enc_tiled) break;
-	    int size = totalsize + unpackedSize(fdh, levelid, f);
-	    if (size > BlockSize) break;
-	    last = f;
-	    totalsize = size;
-	}
-    }
-
-    // read all faces in range
-    // keep track of extra faces we read so we can add them to the cache later
-    std::vector<FaceData*> extraFaces;
-    extraFaces.reserve(last-first);
-
-    for (int i = first; i <= last; i++) {
-	fdh = level->fdh[i];
-	// skip faces with zero size (which is true for level-0 constant faces)
-	if (fdh.blocksize()) {
-	    FaceData*& face = level->faces[i];
-	    readFaceData(level->offsets[i], fdh, getRes(levelid, i), levelid, face);
-	    if (i != faceid) extraFaces.push_back(face);
-	}
-    }
-
-    // reacquire cache lock, then unref extra faces to add them to the cache
+    readFaceData(level->offsets[faceid], fdh, getRes(levelid, faceid), levelid, face);
     _cache->cachelock.lock();
-    for (size_t i = 0, size = extraFaces.size(); i < size; i++)
-	extraFaces[i]->unref();
 }
 
 
