@@ -207,11 +207,6 @@ void PtexReader::readFaceInfo()
 	std::vector<uint32_t> faceids_r(nfaces);
 	PtexUtils::genRfaceids(&_faceinfo[0], nfaces,
 			       &_rfaceids[0], &faceids_r[0]);
-
-	// store face res values indexed by rfaceid
-	_res_r.resize(nfaces);
-	for (int i = 0; i < nfaces; i++)
-	    _res_r[i] = _faceinfo[faceids_r[i]].res;
     }
 }
 
@@ -587,7 +582,7 @@ void PtexReader::readLevel(int levelid, Level*& level)
 }
 
 
-void PtexReader::readFace(int levelid, Level* level, int faceid)
+void PtexReader::readFace(int levelid, Level* level, int faceid, Ptex::Res res)
 {
     // temporarily release cache lock so other threads can proceed
     _cache->cachelock.unlock();
@@ -609,7 +604,7 @@ void PtexReader::readFace(int levelid, Level* level, int faceid)
 
     // Go ahead and read the face
     FaceDataHeader fdh = level->fdh[faceid];
-    readFaceData(level->offsets[faceid], fdh, getRes(levelid, faceid), levelid, face);
+    readFaceData(level->offsets[faceid], fdh, res, levelid, face);
     _cache->cachelock.lock();
 }
 
@@ -769,7 +764,7 @@ PtexFaceData* PtexReader::getData(int faceid)
     // get level zero (full) res face
     AutoLockCache locker(_cache->cachelock);
     Level* level = getLevel(0);
-    FaceData* face = getFace(0, level, faceid);
+    FaceData* face = getFace(0, level, faceid, fi.res);
     level->unref();
     return face;
 }
@@ -795,7 +790,7 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
     if (redu == 0 && redv == 0) {
 	// no reduction - get level zero (full) res face
 	Level* level = getLevel(0);
-	FaceData* face = getFace(0, level, faceid);
+	FaceData* face = getFace(0, level, faceid, res);
 	level->unref();
 	_cache->cachelock.unlock();
 	return face;
@@ -814,7 +809,7 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 	    // get the face data (if present)
 	    FaceData* face = 0;
 	    if (size_t(rfaceid) < level->faces.size())
-		face = getFace(levelid, level, rfaceid);
+		face = getFace(levelid, level, rfaceid, res);
 	    level->unref();
 	    if (face) {
 		_cache->cachelock.unlock();

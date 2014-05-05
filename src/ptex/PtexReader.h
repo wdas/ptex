@@ -495,30 +495,19 @@ protected:
     }
 
     uint8_t* getConstData() { if (!_constdata) readConstData(); return _constdata; }
-    FaceData* getFace(int levelid, Level* level, int faceid)
+    FaceData* getFace(int levelid, Level* level, int faceid, Res res)
     {
 	FaceData*& face = level->faces[faceid];
-	if (!face) readFace(levelid, level, faceid);
+	if (!face) readFace(levelid, level, faceid, res);
 	else face->ref();
 	return face;
-    }
-
-    Res getRes(int levelid, int faceid)
-    {
-	if (levelid == 0) return _faceinfo[faceid].res;
-	else {
-	    // for reduction level, look up res via rfaceid
-	    Res res = _res_r[faceid];
-	    // and adjust for number of reductions
-	    return Res((uint8_t)(res.ulog2 - levelid), (uint8_t)(res.vlog2 - levelid));
-	}
     }
 
     void readFaceInfo();
     void readLevelInfo();
     void readConstData();
     void readLevel(int levelid, Level*& level);
-    void readFace(int levelid, Level* level, int faceid);
+    void readFace(int levelid, Level* level, int faceid, Res res);
     void readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int levelid, FaceData*& face);
     void readMetaData();
     void readMetaDataBlock(MetaData* metadata, FilePos pos, int zipsize, int memsize);
@@ -586,7 +575,6 @@ protected:
 
     safevector<FaceInfo> _faceinfo;   // per-face header info
     safevector<uint32_t> _rfaceids;   // faceids sorted in reduction order
-    safevector<Res> _res_r;	      // face res indexed by rfaceid
     safevector<LevelInfo> _levelinfo; // per-level header info
     safevector<FilePos> _levelpos;    // file position of each level's data
     safevector<Level*> _levels;	      // level data (read on demand)
