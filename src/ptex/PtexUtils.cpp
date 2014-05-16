@@ -234,7 +234,7 @@ namespace {
     {
 	size /= (int)sizeof(T);
 	T* p = (T*) data, * end = p + size, tmp, prev = 0;
-	while (p != end) { tmp = prev; prev = *p; *p = T(*p + tmp); p++; }
+	while (p != end) { tmp = prev; prev = *p; *p = T(*p - tmp); p++; }
     }
 }
 

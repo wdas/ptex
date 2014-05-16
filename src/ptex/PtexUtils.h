@@ -79,6 +79,19 @@ struct PtexUtils : public Ptex {
 	return ones(x>>1) + !isPow2;
     }
 
+    static int calcResFromWidth(float w)
+    {
+        // read exponent directly from float32 representation
+        // equiv to ceil(log2(1.0/w)) but much faster and no error
+        union {
+            float wf;
+            int32_t wi;
+        };
+        wf = w;
+        int result = 127 - ((wi >> 23) & 0xff);
+        return result;
+    }
+
     static float smoothstep(float x, float a, float b)
     {
 	if ( x < a ) return 0;
