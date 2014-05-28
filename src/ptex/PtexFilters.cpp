@@ -147,7 +147,7 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	uw = PtexUtils::max(uw, 1.0f/(float)(1<<f_ureslog2));
 
 	// compute desired texture res based on filter width
-	k_ureslog2 = PtexUtils::calcResFromWidth(uw);
+	k_ureslog2 = (int8_t)PtexUtils::calcResFromWidth(uw);
 	int resu = 1 << k_ureslog2;
 	float uwlo = 1.0f/(float)resu; // smallest filter width for this res
 
@@ -327,8 +327,8 @@ class PtexBoxFilter : public PtexSeparableFilter
 	vw = PtexUtils::max(vw, 1.0f/((float)faceRes.v()));
 
 	// compute desired texture res based on filter width
-        uint8_t ureslog2 = PtexUtils::calcResFromWidth(uw);
-        uint8_t vreslog2 = PtexUtils::calcResFromWidth(vw);
+	uint8_t ureslog2 = (uint8_t)PtexUtils::calcResFromWidth(uw);
+	uint8_t vreslog2 = (uint8_t)PtexUtils::calcResFromWidth(vw);
 	Res res(ureslog2, vreslog2);
 	k.res = res;
 	
@@ -390,8 +390,8 @@ class PtexBilinearFilter : public PtexSeparableFilter
 	uw = PtexUtils::max(uw, 1.0f/((float)faceRes.u()));
 	vw = PtexUtils::max(vw, 1.0f/((float)faceRes.v()));
 
-	uint8_t ureslog2 = PtexUtils::calcResFromWidth(uw);
-	uint8_t vreslog2 = PtexUtils::calcResFromWidth(vw);
+	uint8_t ureslog2 = (uint8_t)PtexUtils::calcResFromWidth(uw);
+	uint8_t vreslog2 = (uint8_t)PtexUtils::calcResFromWidth(vw);
 	Res res(ureslog2, vreslog2);
 	k.res = res;
 	
