@@ -147,8 +147,6 @@ PtexCacheImpl::~PtexCacheImpl()
 {
     // explicitly pop all unused items so that they are 
     // destroyed while cache is still valid
-    AutoLockCache locker(cachelock);
-    while (_unusedData.pop()) continue;
     while (_unusedFiles.pop()) continue;
 }
 
@@ -172,30 +170,6 @@ void PtexCacheImpl::removeFile()
     _unusedFileCount--;
     STATS_INC(nfilesClosed);
 }
-
-void PtexCacheImpl::setDataInUse(PtexLruItem* data, int size)
-{
-    assert(cachelock.locked());
-    _unusedData.extract(data); 
-    _unusedDataCount--;
-    _unusedDataSize -= size;
-}
-
-void PtexCacheImpl::setDataUnused(PtexLruItem* data, int size)
-{
-    assert(cachelock.locked());
-    _unusedData.push(data);
-    _unusedDataCount++;
-    _unusedDataSize += size;
-}
-
-void PtexCacheImpl::removeData(int size) {
-    // cachelock should be locked, but might not be if cache is being deleted
-    _unusedDataCount--;
-    _unusedDataSize -= size;
-    STATS_INC(ndataFreed);
-}
-
 
 /** Cache for reading Ptex texture files */
 class PtexReaderCache : public PtexCacheImpl

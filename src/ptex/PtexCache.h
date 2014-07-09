@@ -194,20 +194,8 @@ public:
     PtexCacheImpl(int maxFiles, int maxMem)
 	: _pendingDelete(false),
 	  _maxFiles(maxFiles), _unusedFileCount(0),
-	  _maxDataSize(maxMem),
-	  _unusedDataSize(0), _unusedDataCount(0)
+	  _maxDataSize(maxMem)
     {
-	/* Allow for a minimum number of data blocks so cache doesn't
-	   thrash too much if there are any really big items in the
-	   cache pushing over the limit. It's better to go over the
-	   limit in this case and make sure there's room for at least
-	   a modest number of objects in the cache.
-	*/
-
-	// try to allow for at least 10 objects per file (up to 100 files)
-	_minDataCount = 10 * maxFiles;
-	// but no more than 1000
-	if (_minDataCount > 1000) _minDataCount = 1000;
     }
 
     virtual void release() { delete this; }
@@ -238,14 +226,7 @@ public:
 	}
     }
     void purgeData() {
-	while ((_unusedDataSize > _maxDataSize) &&
-	       (_unusedDataCount > _minDataCount))
-	{
-	    if (!_unusedData.pop()) break;
-	    // note: pop will destroy item and item destructor will
-	    // call removeData which will decrement _unusedDataSize
-	    // and _unusedDataCount
-	}
+        // TODO make this work again
     }
 
 protected:
@@ -253,11 +234,9 @@ protected:
 
 private:
     bool _pendingDelete;	             // flag set if delete is pending
-
     int _maxFiles, _unusedFileCount;	     // file limit, current unused file count
-    long int _maxDataSize, _unusedDataSize;  // data limit (bytes), current size
-    int _minDataCount, _unusedDataCount;     // min, current # of unused data blocks
-    PtexLruList _unusedFiles, _unusedData;   // lists of unused items
+    long int _maxDataSize;                   // data limit (bytes)
+    PtexLruList _unusedFiles;                // lists of unused items
 };
 
 
@@ -275,25 +254,6 @@ protected:
     PtexCacheImpl* _cache;
 private:
     int _refcount;
-};
-
-
-/** Cache entry for allocated memory block */
-class PtexCachedData : public PtexLruItem
-{
-public:
-    PtexCachedData(void** parent, PtexCacheImpl* cache, int size)
-	: PtexLruItem(parent), _cache(cache), _refcount(1), _size(size)
-    { _cache->addData(); }
-    void ref() { assert(_cache->cachelock.locked()); if (!_refcount++) _cache->setDataInUse(this, _size); }
-    void unref() { assert(_cache->cachelock.locked()); if (!--_refcount) _cache->setDataUnused(this, _size); }
-protected:
-    void incSize(int size) { _size += size; }
-    virtual ~PtexCachedData() { _cache->removeData(_size); }
-    PtexCacheImpl* _cache;
-private:
-    int _refcount;
-    int _size;
 };
 
 

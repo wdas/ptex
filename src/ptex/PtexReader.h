@@ -108,20 +108,16 @@ public:
     const ExtHeader& extheader() const { return _extheader; }
     const LevelInfo& levelinfo(int level) const { return _levelinfo[level]; }
 
-    class MetaData : public PtexCachedData, public PtexMetaData {
+    class MetaData : public PtexMetaData {
     public:
-	MetaData(MetaData** parent, PtexCacheImpl* cache, int size, PtexReader* reader)
-	    : PtexCachedData((void**)parent, cache, (int)sizeof(*this) + size),
-	      _reader(reader) {}
+	MetaData(PtexReader* reader)
+	    : _reader(reader) {}
+        ~MetaData() {
+            for (safevector<Entry*>::iterator i = _entries.begin(); i != _entries.end(); ++i) {
+                (*i)->clear();
+            }
+        }
 	virtual void release() {
-	    AutoLockCache lock(_cache->cachelock);
-	    // first, unref all lmdData refs
-	    for (size_t i = 0, n = _lmdRefs.size(); i < n; i++)
-		_lmdRefs[i]->unref();
-	    _lmdRefs.resize(0);
-
-	    // finally, unref self
-	    unref();
 	}
 
  	virtual int numKeys() { return int(_entries.size()); }
@@ -205,14 +201,14 @@ public:
 	}
 
     protected:
-	class LargeMetaData : public PtexCachedData
+	class LargeMetaData
 	{
 	 public:
-	    LargeMetaData(void** parent, PtexCacheImpl* cache, int size)
-		: PtexCachedData(parent, cache, size), _data(malloc(size)) {}
-	    void* data() { return _data; }
-	 private:
+	    LargeMetaData(int size)
+		: _data(malloc(size)) {}
 	    virtual ~LargeMetaData() { free(_data); }
+	    void* data() { return _data; }
+        private:
 	    void* _data;
 	};
 
@@ -233,7 +229,7 @@ public:
 	    void clear() {
 		if (isLmd) {
 		    isLmd = 0;
-		    if (lmdData) { lmdData->orphan(); lmdData = 0; }
+		    if (lmdData) { delete lmdData; lmdData = 0; }
 		    lmdPos = 0;
 		    lmdZipSize = 0;
 		}
@@ -288,11 +284,11 @@ public:
     };
 
 
-    class FaceData : public PtexCachedData, public PtexFaceData {
+    class FaceData : public PtexFaceData {
     public:
-	FaceData(void** parent, PtexCacheImpl* cache, Res res, int size)
-	    : PtexCachedData(parent, cache, size), _res(res) {}
-	virtual void release() { AutoLockCache lock(_cache->cachelock); unref(); }
+	FaceData(Res res)
+	    : _res(res) {}
+	virtual void release() { }
 	virtual Ptex::Res res() { return _res; }
 	virtual void reduce(FaceData*&, PtexReader*,
 			    Res newres, PtexUtils::ReduceFn) = 0;
@@ -302,8 +298,8 @@ public:
 
     class PackedFace : public FaceData {
     public:
-	PackedFace(void** parent, PtexCacheImpl* cache, Res res, int pixelsize, int size)
-	    : FaceData(parent, cache, res, (int)sizeof(*this)+size),
+	PackedFace(Res res, int pixelsize, int size)
+	    : FaceData(res),
 	      _pixelsize(pixelsize), _data(malloc(size)) {}
 	void* data() { return _data; }
 	virtual bool isConstant() { return false; }
@@ -327,8 +323,8 @@ public:
 
     class ConstantFace : public PackedFace {
     public:
-	ConstantFace(void** parent, PtexCacheImpl* cache, int pixelsize)
-	    : PackedFace(parent, cache, 0, pixelsize, pixelsize) {}
+	ConstantFace(int pixelsize)
+	    : PackedFace(0, pixelsize, pixelsize) {}
 	virtual bool isConstant() { return true; }
 	virtual void getPixel(int, int, void* result) { memcpy(result, _data, _pixelsize); }
 	virtual void reduce(FaceData*&, PtexReader*,
@@ -338,9 +334,8 @@ public:
 
     class TiledFaceBase : public FaceData {
     public:
-	TiledFaceBase(void** parent, PtexCacheImpl* cache, Res res,
-		      Res tileres, DataType dt, int nchan)
-	    : FaceData(parent, cache, res, sizeof(*this)),
+	TiledFaceBase(Res res, Res tileres, DataType dt, int nchan)
+	    : FaceData(res),
 	      _tileres(tileres),
 	      _dt(dt),
 	      _nchan(nchan),
@@ -350,19 +345,9 @@ public:
 	    _ntilesv = _res.ntilesv(tileres);
 	    _ntiles = _ntilesu*_ntilesv;
 	    _tiles.resize(_ntiles);
-	    incSize((int)sizeof(FaceData*)*_ntiles);
 	}
 
-	virtual void release() {
-	    // Tiled faces ref the reader (directly or indirectly) and
-	    // thus may trigger cache deletion on release.  Call cache
-	    // to check for pending delete.
-	    // Note: release() may delete "this", so save _cache in
-	    // local var.
-	    PtexCacheImpl* cache = _cache;
-	    FaceData::release();
-	    cache->handlePendingDelete();
-	}
+	virtual void release() { }
 	virtual bool isConstant() { return false; }
 	virtual void getPixel(int u, int v, void* result);
 	virtual void* getData() { return 0; }
@@ -376,7 +361,11 @@ public:
 	int ntiles() const { return _ntiles; }
 
     protected:
-	virtual ~TiledFaceBase() { orphanList(_tiles); }
+	virtual ~TiledFaceBase() {
+            for (safevector<FaceData*>::iterator i = _tiles.begin(); i != _tiles.end(); ++i) {
+                if (*i) delete *i;
+            }
+        }
 
 	Res _tileres;
 	DataType _dt;
@@ -391,23 +380,20 @@ public:
 
     class TiledFace : public TiledFaceBase {
     public:
-	TiledFace(void** parent, PtexCacheImpl* cache, Res res, Res tileres,
+	TiledFace(Res res, Res tileres,
 		  int levelid, PtexReader* reader)
-	    : TiledFaceBase(parent, cache, res, tileres,
+	    : TiledFaceBase(res, tileres,
 			    reader->datatype(), reader->nchannels()),
 	      _reader(reader),
 	      _levelid(levelid)
 	{
 	    _fdh.resize(_ntiles),
 	    _offsets.resize(_ntiles);
-	    incSize((int)(sizeof(FaceDataHeader)+sizeof(FilePos))*_ntiles);
 	}
 	virtual PtexFaceData* getTile(int tile)
 	{
-	    AutoLockCache locker(_cache->cachelock);
 	    FaceData*& f = _tiles[tile];
 	    if (!f) readTile(tile, f);
-	    else f->ref();
 	    return f;
 	}
 	void readTile(int tile, FaceData*& data);
@@ -423,19 +409,15 @@ public:
 
     class TiledReducedFace : public TiledFaceBase {
     public:
-	TiledReducedFace(void** parent, PtexCacheImpl* cache, Res res,
-			 Res tileres, DataType dt, int nchan,
+	TiledReducedFace(Res res, Res tileres, DataType dt, int nchan,
 			 TiledFaceBase* parentface, PtexUtils::ReduceFn reducefn)
-	    : TiledFaceBase(parent, cache, res, tileres, dt, nchan),
+	    : TiledFaceBase(res, tileres, dt, nchan),
 	      _parentface(parentface),
 	      _reducefn(reducefn)
 	{
-	    AutoLockCache locker(_cache->cachelock);
-	    _parentface->ref();
 	}
 	~TiledReducedFace()
 	{
-	    _parentface->unref();
 	}
 	virtual PtexFaceData* getTile(int tile);
 
@@ -445,22 +427,22 @@ public:
     };
 
 
-    class Level : public PtexCachedData {
+    class Level {
     public:
 	safevector<FaceDataHeader> fdh;
 	safevector<FilePos> offsets;
 	safevector<FaceData*> faces;
 
-	Level(void** parent, PtexCacheImpl* cache, int nfaces)
-	    : PtexCachedData(parent, cache,
-			     (int)(sizeof(*this) + (size_t)nfaces * (sizeof(FaceDataHeader) +
-						       sizeof(FilePos) +
-						       sizeof(FaceData*)))),
-	      fdh(nfaces),
+	Level(int nfaces)
+	    : fdh(nfaces),
 	      offsets(nfaces),
 	      faces(nfaces) {}
-    protected:
-	virtual ~Level() { orphanList(faces); }
+
+	virtual ~Level() {
+            for (safevector<FaceData*>::iterator i = faces.begin(); i != faces.end(); ++i) {
+                if (*i) delete *i;
+            }
+        }
     };
 
     Mutex readlock;
@@ -490,7 +472,6 @@ protected:
     {
 	Level*& level = _levels[levelid];
 	if (!level) readLevel(levelid, level);
-	else level->ref();
 	return level;
     }
 
@@ -499,7 +480,6 @@ protected:
     {
 	FaceData*& face = level->faces[faceid];
 	if (!face) readFace(levelid, level, faceid, res);
-	else face->ref();
 	return face;
     }
 
