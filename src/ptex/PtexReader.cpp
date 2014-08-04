@@ -582,7 +582,7 @@ void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int leve
 			      FaceData*& face)
 {
     // keep new face local until fully initialized
-    FaceData* volatile newface = 0;
+    FaceData* newface = 0;
 
     seek(pos);
     switch (fdh.encoding()) {
@@ -991,7 +991,7 @@ void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
     */
 
     // keep new face local until fully initialized
-    FaceData* volatile newface = 0;
+    FaceData* newface = 0;
 
     // don't tile if either dimension is 1 (rare, would complicate blendFaces too much)
     // also, don't tile triangle reductions (too complicated)
