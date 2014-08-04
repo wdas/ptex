@@ -150,7 +150,7 @@ PtexReader::~PtexReader()
     // we can free the const data directly since we own it (it doesn't go through the cache)
     if (_constdata) free(_constdata);
 
-    for (safevector<Level*>::iterator i = _levels.begin(); i != _levels.end(); ++i) {
+    for (std::vector<Level*>::iterator i = _levels.begin(); i != _levels.end(); ++i) {
         if (*i) delete *i;
     }
 

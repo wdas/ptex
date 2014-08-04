@@ -49,26 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexHashMap.h"
 using namespace PtexInternal;
 
-#ifndef NDEBUG
-#include <assert.h>
-template<typename T> class safevector : public std::vector<T>
-{
-public:
-    safevector() : std::vector<T>() {}
-    safevector(size_t n, const T& val = T()) : std::vector<T>(n, val) {}
-    const T& operator[] (size_t n) const {
-	assert(n < std::vector<T>::size());
-	return std::vector<T>::operator[](n);
-    }
-    T& operator[] (size_t n) {
-	assert(n < std::vector<T>::size());
-	return std::vector<T>::operator[](n);
-    }
-};
-#else
-#define safevector std::vector
-#endif
-
 class PtexReader : public PtexCachedFile, public PtexTexture, public PtexIO {
 public:
     PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply,
@@ -113,7 +93,7 @@ public:
 	MetaData(PtexReader* reader)
 	    : _reader(reader) {}
         ~MetaData() {
-            for (safevector<Entry*>::iterator i = _entries.begin(); i != _entries.end(); ++i) {
+            for (std::vector<Entry*>::iterator i = _entries.begin(); i != _entries.end(); ++i) {
                 (*i)->clear();
             }
         }
@@ -259,7 +239,7 @@ public:
 	PtexReader* _reader;
 	typedef std::map<std::string, Entry> MetaMap;
 	MetaMap _map;
-	safevector<Entry*> _entries;
+	std::vector<Entry*> _entries;
 	std::vector<LargeMetaData*> _lmdRefs;
     };
 
@@ -362,7 +342,7 @@ public:
 
     protected:
 	virtual ~TiledFaceBase() {
-            for (safevector<FaceData*>::iterator i = _tiles.begin(); i != _tiles.end(); ++i) {
+            for (std::vector<FaceData*>::iterator i = _tiles.begin(); i != _tiles.end(); ++i) {
                 if (*i) delete *i;
             }
         }
@@ -374,7 +354,7 @@ public:
 	int _ntilesv;
 	int _ntiles;
 	int _pixelsize;
-	safevector<FaceData*> _tiles;
+	std::vector<FaceData*> _tiles;
     };
 
 
@@ -402,8 +382,8 @@ public:
 	friend class PtexReader;
 	PtexReader* _reader;
 	int _levelid;
-	safevector<FaceDataHeader> _fdh;
-	safevector<FilePos> _offsets;
+	std::vector<FaceDataHeader> _fdh;
+	std::vector<FilePos> _offsets;
     };
 
 
@@ -429,9 +409,9 @@ public:
 
     class Level {
     public:
-	safevector<FaceDataHeader> fdh;
-	safevector<FilePos> offsets;
-	safevector<FaceData*> faces;
+	std::vector<FaceDataHeader> fdh;
+	std::vector<FilePos> offsets;
+	std::vector<FaceData*> faces;
 
 	Level(int nfaces)
 	    : fdh(nfaces),
@@ -439,7 +419,7 @@ public:
 	      faces(nfaces) {}
 
 	virtual ~Level() {
-            for (safevector<FaceData*>::iterator i = faces.begin(); i != faces.end(); ++i) {
+            for (std::vector<FaceData*>::iterator i = faces.begin(); i != faces.end(); ++i) {
                 if (*i) delete *i;
             }
         }
@@ -553,11 +533,11 @@ protected:
     MetaData* _metadata;	      // meta data (read on demand)
     bool _hasEdits;		      // has edit blocks
 
-    safevector<FaceInfo> _faceinfo;   // per-face header info
-    safevector<uint32_t> _rfaceids;   // faceids sorted in reduction order
-    safevector<LevelInfo> _levelinfo; // per-level header info
-    safevector<FilePos> _levelpos;    // file position of each level's data
-    safevector<Level*> _levels;	      // level data (read on demand)
+    std::vector<FaceInfo> _faceinfo;   // per-face header info
+    std::vector<uint32_t> _rfaceids;   // faceids sorted in reduction order
+    std::vector<LevelInfo> _levelinfo; // per-level header info
+    std::vector<FilePos> _levelpos;    // file position of each level's data
+    std::vector<Level*> _levels;	      // level data (read on demand)
 
     struct MetaEdit
     {
@@ -565,7 +545,7 @@ protected:
 	int zipsize;
 	int memsize;
     };
-    safevector<MetaEdit> _metaedits;
+    std::vector<MetaEdit> _metaedits;
 
     struct FaceEdit
     {
@@ -573,7 +553,7 @@ protected:
 	int faceid;
 	FaceDataHeader fdh;
     };
-    safevector<FaceEdit> _faceedits;
+    std::vector<FaceEdit> _faceedits;
 
     struct ReductionKey {
 	int faceid;
