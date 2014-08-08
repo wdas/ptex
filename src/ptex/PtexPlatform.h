@@ -3,7 +3,7 @@
 #define PtexPlatform_h
 /* 
 PTEX SOFTWARE
-Copyright 2009 Disney Enterprises, Inc.  All rights reserved
+Copyright 2014 Disney Enterprises, Inc.  All rights reserved
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -53,7 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <Windows.h>
 #include <malloc.h>
 #include <io.h>
-#include <tchar.h> 
+#include <tchar.h>
 #include <process.h>
 
 #else
@@ -63,7 +63,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <alloca.h>
 #include <string.h>
 #include <pthread.h>
-// OS for spinlock
+
 #ifdef __APPLE__
 #include <libkern/OSAtomic.h>
 #include <sys/types.h>
@@ -81,74 +81,97 @@ typedef __int64 FilePos;
 #define fseeko _fseeki64
 #define ftello _ftelli64
 
+inline float log2f(float x) {
+    return logf(x) * 1.4426950408889634f;
+}
+
 #else
 typedef off_t FilePos;
 #endif
-    
 
 namespace PtexInternal {
 
     /*
-     * Mutex/SpinLock classes
+     * Mutex
      */
 
 #ifdef WINDOWS
 
-    class _Mutex {
+    class Mutex {
     public:
-	_Mutex()       { _mutex = CreateMutex(NULL, FALSE, NULL); }
-	~_Mutex()      { CloseHandle(_mutex); }
-	void lock()   { WaitForSingleObject(_mutex, INFINITE); }
-	void unlock() { ReleaseMutex(_mutex); }
+        Mutex()       { _mutex = CreateMutex(NULL, FALSE, NULL); }
+        ~Mutex()      { CloseHandle(_mutex); }
+        void lock()   { WaitForSingleObject(_mutex, INFINITE); }
+        void unlock() { ReleaseMutex(_mutex); }
     private:
 	HANDLE _mutex;
-    };
-
-    class _SpinLock {
-    public:
-	_SpinLock()    { InitializeCriticalSection(&_spinlock); }
-	~_SpinLock()   { DeleteCriticalSection(&_spinlock); }
-	void lock()   { EnterCriticalSection(&_spinlock); }
-	void unlock() { LeaveCriticalSection(&_spinlock); }
-    private:
-	CRITICAL_SECTION _spinlock;
     };
 
 #else
     // assume linux/unix/posix
 
-    class _Mutex {
+    class Mutex {
      public:
-	_Mutex()      { pthread_mutex_init(&_mutex, 0); }
-	~_Mutex()     { pthread_mutex_destroy(&_mutex); }
-	void lock()   { pthread_mutex_lock(&_mutex); }
-	void unlock() { pthread_mutex_unlock(&_mutex); }
+        Mutex()      { pthread_mutex_init(&_mutex, 0); }
+        ~Mutex()     { pthread_mutex_destroy(&_mutex); }
+        void lock()   { pthread_mutex_lock(&_mutex); }
+        void unlock() { pthread_mutex_unlock(&_mutex); }
     private:
 	pthread_mutex_t _mutex;
     };
 
-#ifdef __APPLE__
-    class _SpinLock {
-    public:
-	_SpinLock()   { _spinlock = 0; }
-	~_SpinLock()  { }
-	void lock()   { OSSpinLockLock(&_spinlock); }
-	void unlock() { OSSpinLockUnlock(&_spinlock); }
-    private:
-	OSSpinLock _spinlock;
-    };
-#else
-    class _SpinLock {
-    public:
-	_SpinLock()   { pthread_spin_init(&_spinlock, PTHREAD_PROCESS_PRIVATE); }
-	~_SpinLock()  { pthread_spin_destroy(&_spinlock); }
-	void lock()   { pthread_spin_lock(&_spinlock); }
-	void unlock() { pthread_spin_unlock(&_spinlock); }
-    private:
-	pthread_spinlock_t _spinlock;
-    };
-#endif // __APPLE__
 #endif
+
+    /*
+     * Atomics
+     */
+
+#if defined(WINDOWS)
+    inline void AtomicIncrement(volatile uint32_t* target)
+    {
+        InterlockedIncrement(target);
+    }
+
+    inline void AtomicDecrement(volatile uint32_t* target)
+    {
+        InterlockedDecrement(target);
+    }
+
+    template <typename T>
+    inline T* AtomicExchangePtr(T* volatile* target, T* value)
+    {
+        return InterlockedExchangePointer(target, value);
+    }
+
+#elif defined(__APPLE__)
+    // TODO OSX atomics
+
+#else
+    // assume linux/unix/posix
+    template <typename T>
+    inline T* AtomicExchangePtr(T* volatile* target, T* value)
+    {
+        return __sync_lock_test_and_set(target, value);
+    }
+
+    inline void AtomicIncrement(volatile uint32_t* target)
+    {
+        __sync_fetch_and_add(target, 1);
+    }
+
+    inline void AtomicDecrement(volatile uint32_t* target)
+    {
+        __sync_fetch_and_sub(target, 1);
+    }
+
+    template <typename T>
+    inline bool AtomicCompareAndSwapPtr(T* volatile* target, T* oldvalue, T* newvalue)
+    {
+        return __sync_bool_compare_and_swap(target, oldvalue, newvalue);
+    }
+
+#endif
+
 }
 
 #endif // PtexPlatform_h
