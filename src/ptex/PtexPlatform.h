@@ -40,6 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
     @brief Platform-specific classes, functions, and includes.
 */
 
+#include <inttypes.h>
+
 // platform-specific includes
 #if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
 #ifndef WINDOWS
@@ -107,6 +109,16 @@ namespace PtexInternal {
 	HANDLE _mutex;
     };
 
+    class SpinLock {
+    public:
+	SpinLock()    { InitializeCriticalSection(&_spinlock); }
+	~SpinLock()   { DeleteCriticalSection(&_spinlock); }
+	void lock()   { EnterCriticalSection(&_spinlock); }
+	void unlock() { LeaveCriticalSection(&_spinlock); }
+    private:
+	CRITICAL_SECTION spinlock;
+    };
+
 #else
     // assume linux/unix/posix
 
@@ -120,6 +132,27 @@ namespace PtexInternal {
 	pthread_mutex_t _mutex;
     };
 
+#ifdef __APPLE__
+    class SpinLock {
+    public:
+	SpinLock()   { _spinlock = 0; }
+	~SpinLock()  { }
+	void lock()   { OSSpinLockLock(&_spinlock); }
+	void unlock() { OSSpinLockUnlock(&_spinlock); }
+    private:
+	OSSpinLock _spinlock;
+    };
+#else
+    class SpinLock {
+    public:
+	SpinLock()   { pthread_spin_init(&_spinlock, PTHREAD_PROCESS_PRIVATE); }
+	~SpinLock()  { pthread_spin_destroy(&_spinlock); }
+	void lock()   { pthread_spin_lock(&_spinlock); }
+	void unlock() { pthread_spin_unlock(&_spinlock); }
+    private:
+	pthread_spinlock_t _spinlock;
+    };
+#endif // __APPLE__
 #endif
 
     /*
@@ -168,6 +201,18 @@ namespace PtexInternal {
     inline bool AtomicCompareAndSwapPtr(T* volatile* target, T* oldvalue, T* newvalue)
     {
         return __sync_bool_compare_and_swap(target, oldvalue, newvalue);
+    }
+
+    template <typename T>
+    inline T AtomicLoad(volatile T* source)
+    {
+        return *source;
+    }
+
+    template <typename T>
+    inline void AtomicStore(volatile T* target, T value)
+    {
+        *target = value;
     }
 
 #endif

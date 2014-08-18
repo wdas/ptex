@@ -275,7 +275,11 @@ private:
     PtexInputHandler* _io;
     std::string _searchpath;
     std::vector<std::string> _searchdirs;
-    typedef PtexDict<PtexReader*> FileMap;
+    //typedef PtexDict<PtexReader*> FileMap;
+    struct StrHash {
+        operator()(const char* name) { 
+    };
+    typedef PtexHashMap<const char*,PtexReader*,StrHash> FileMap;
     FileMap _files;
     int _cleanupCount;
     bool _premultiply;

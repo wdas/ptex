@@ -49,130 +49,148 @@ namespace PtexInternal {
 template <typename Key, typename Value>
 class PtexHashMap
 {
+    class Entry {
+        Entry(const Entry&); // disallow
+        void operator=(const Entry&); // disallow
+    public:
+        Entry() : key(), value(0) {}
+        Key volatile key;
+        Value* volatile value;
+    };
+
     PtexHashMap(const PtexHashMap&); // disallow
-    bool operator=(const PtexHashMap&); // disallow
+    void operator=(const PtexHashMap&); // disallow
 
 public:
     PtexHashMap()
-        : _table(0), _numEntries(0), _inuse(0)
+        : _entries(0), _numEntries(16), _size(0), _inuse(0)
     {
-        _table = new Table(16384);
+        _entries = new Entry[_numEntries];
     }
 
     ~PtexHashMap()
     {
-        delete _table;
+        delete [] _entries;
     }
 
-    int32_t numEntries() const { return _numEntries; }
+    int32_t size() const { return _size; }
 
-    Value* operator[] (const Key& key) const
+    Value* get(Key& key)
     {
-        if (!_table) {
-            helpBuild();
+        Entry* entries = getEntries();
+        uint32_t mask = _numEntries-1;
+        uint32_t hash = key.hash();
+
+        Value* result = 0;
+        for (uint32_t i = hash;; ++i) {
+            Entry& e = entries[i & mask];
+            if (e.key.matches(key)) {
+                result = e.value;
+                break;
+            }
+            if (e.value == 0) {
+                break;
+            }
         }
 
-        AtomicIncrement(&_inuse);
+        releaseEntries(entries);
+        return result;
+    }
 
-        // access table locally (_table ptr may change)
-        Table* table;
-        if (!table) {
-            
-        }
-
-        Entry* entries = &table->entries[0];
-        uint32_t mask = table->mask, hash = key.hash();
+    Value* tryInsert(Key& key, Value* value)
+    {
+        Entry* entries = getEntriesAndGrowIfNeeded();
+        uint32_t mask = _numEntries-1;
+        uint32_t hash = key.hash();
 
         // open addressing w/ linear probing
         Value* result = 0;
         for (uint32_t i = hash;; ++i) {
-            const Entry& e = entries[i & mask];
-            if (e.key == key) {
-                result = e.value;
-                break;
-            }
-            if (e.value == 0) {
-                break;
-            }
-        }
-
-        AtomicDecrement(&_inuse);
-        return result;
-    }
-
-
-    Value* tryInsert (const Key& key, Value* value)
-    {
-        resize();
-
-        AtomicIncrement(&_inuse);
-
-        // access table locally (_table ptr may change)
-        Table* table = _table;
-        Entry* entries = &table->entries[0];
-        uint32_t mask = table->mask, hash = key.hash();
-
-        // open addressing w/ linear probing
-        Value* result = value;
-        for (uint32_t i = hash;; ++i) {
             Entry& e = entries[i & mask];
-            if (e.key == key) {
+            if (e.key.matches(key)) {
+                // entry already exists
                 result = e.value;
+                delete value;
                 break;
             }
             if (e.value == 0) {
-                // blank reached, entry not found
+                // blank reached, try to set entry
                 if (AtomicCompareAndSwapPtr(&e.value, (Value*)0, value)) {
-                    e.key = key;
-                    AtomicIncrement(&_numEntries);
+                    AtomicIncrement(&_size);
+                    e.key.copy(key);
+                    result = e.value;
                     break;
                 }
                 else {
-                    // another thread got there first, check again
-                    while (!e.key);
-                    if (e.key == key) {
-                        result = e.value;
-                        break;
-                    }
+                    // another thread got there first, recheck entry
+                    while (e.key.isEmpty()) ;
+                    --i;
                 }
             }
         }
-
-        if (result != value) delete value;
-        AtomicDecrement(&_inuse);
+        releaseEntries(entries);
         return result;
     }
 
 private:
-    void resize()
+    Entry* getEntries()
     {
-        // check size
-        // if too big, grow:
-        //   set rebuild state flag
-        //   wait for any inserts to finish (while _inuse > 0)
-        //   make new table (with ref to prev table)
-        //   move entries from old to new (concurrent)
-        // if cas into place
-        //   clear state
+        while (1) {
+            while (AtomicLoad(&_entries) == 0) ;  // check *before* ref counting so we don't livelock
+            AtomicIncrement(&_inuse);
+            Entry* entries = _entries;
+            if (entries) return entries;
+            AtomicDecrement(&_inuse);
+        }
     }
 
-    struct Entry {
-        Entry() : key(0), value(0) {}
-        Key key;
-        Value* volatile value;
-    };
-
-    struct Table {
-        uint32_t mask;
-        std::vector<Entry> entries;
-
-        Table(int size) : mask(size-1), entries(size)
-        {
+    Entry* getEntriesAndGrowIfNeeded()
+    {
+        while (_size*2 >= _numEntries) {
+            Entry* entries = _entries;
+            if (entries && AtomicCompareAndSwapPtr(&_entries, entries, (Entry*)0)) {
+                while (AtomicLoad(&_inuse)) ;
+                AtomicIncrement(&_inuse);
+                if (_size*2 >= _numEntries) {
+                    return grow(entries);
+                }
+                AtomicStore(&_entries, entries);
+                return entries;
+            }
         }
-    };
+        return getEntries();
+    }
 
-    Table* _table;
-    uint32_t _numEntries;
+    Entry* grow(Entry* oldEntries)
+    {
+        uint32_t numNewEntries = _numEntries*2;
+        Entry* entries = new Entry[numNewEntries];
+        uint32_t mask = numNewEntries-1;
+        for (uint32_t oldIndex = 0; oldIndex < _numEntries; ++oldIndex) {
+            Entry& oldEntry = oldEntries[oldIndex];
+            for (int newIndex = oldEntry.key.hash();; ++newIndex) {
+                Entry& newEntry = entries[newIndex&mask];
+                if (!newEntry.value) {
+                    newEntry.key.copy(oldEntry.key);
+                    newEntry.value = oldEntry.value;
+                    break;
+                }
+            }
+        }
+        std::cout << numNewEntries << '\n';
+        AtomicStore(&_numEntries, numNewEntries);
+        AtomicStore(&_entries, entries);
+        return entries;
+    }
+
+    void releaseEntries(Entry* /*entries*/)
+    {
+        AtomicDecrement(&_inuse);
+    }
+
+    Entry* volatile _entries;
+    uint32_t volatile _numEntries;
+    uint32_t volatile _size;
     uint32_t volatile _inuse;
 };
 

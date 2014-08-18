@@ -63,6 +63,7 @@ namespace PtexInternal {
 	T& _m;
     };
 
+#if 0
 #ifndef NDEBUG
     // add debug wrappers to mutex and spinlock
     typedef DebugLock<_Mutex> Mutex;
@@ -71,9 +72,10 @@ namespace PtexInternal {
     typedef _Mutex Mutex;
     typedef _SpinLock SpinLock;
 #endif
+#endif
 
     typedef AutoLock<Mutex> AutoMutex;
-    typedef AutoLock<SpinLock> AutoSpin;
+//    typedef AutoLock<SpinLock> AutoSpin;
 }
 
 #endif
