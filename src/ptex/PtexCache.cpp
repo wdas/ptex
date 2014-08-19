@@ -152,14 +152,12 @@ PtexCacheImpl::~PtexCacheImpl()
 
 void PtexCacheImpl::setFileInUse(PtexLruItem* file)
 {
-    assert(cachelock.locked());
     _unusedFiles.extract(file); 
     _unusedFileCount--;
 }
 
 void PtexCacheImpl::setFileUnused(PtexLruItem* file)
 {
-    assert(cachelock.locked());
     _unusedFiles.push(file);
     _unusedFileCount++;
 }
@@ -232,9 +230,10 @@ public:
 	purge(reader->path());
     }
 
-    virtual void purge(const char* filename)
+    virtual void purge(const char* /*filename*/)
     {
-	AutoLockCache locker(cachelock); 
+#if 0 // TODO
+	AutoLockCache locker(cachelock);
 	FileMap::iterator iter = _files.find(filename);
 	if (iter != _files.end()) {
 	    PtexReader* reader = iter->second;
@@ -244,11 +243,13 @@ public:
 	    }
 	    _files.erase(iter);
 	}
+#endif
     }
 
     virtual void purgeAll()
     {
-	AutoLockCache locker(cachelock); 
+#if 0 // TODO
+	AutoLockCache locker(cachelock);
 	FileMap::iterator iter = _files.begin();
 	while (iter != _files.end()) {
 	    PtexReader* reader = iter->second;
@@ -258,16 +259,19 @@ public:
 	    }
 	    iter = _files.erase(iter);
 	}
+#endif
     }
 
 
     void removeBlankEntries()
     {
+#if 0 // TODO
 	// remove blank file entries to keep map size in check
 	for (FileMap::iterator i = _files.begin(); i != _files.end();) {
 	    if (i->second == 0) i = _files.erase(i);
 	    else i++;
 	}
+#endif
     }
 
 
@@ -276,10 +280,7 @@ private:
     std::string _searchpath;
     std::vector<std::string> _searchdirs;
     //typedef PtexDict<PtexReader*> FileMap;
-    struct StrHash {
-        operator()(const char* name) { 
-    };
-    typedef PtexHashMap<const char*,PtexReader*,StrHash> FileMap;
+    typedef PtexHashMap<StringKey,PtexReader*> FileMap;
     FileMap _files;
     int _cleanupCount;
     bool _premultiply;
@@ -288,10 +289,9 @@ private:
 
 PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 {
-    AutoLockCache locker(cachelock); 
-
     // lookup reader in map
-    PtexReader* reader = _files[filename];
+    StringKey key(filename);
+    PtexReader* reader = _files.get(key);
     if (reader) {
 	// -1 means previous open attempt failed
 	if (intptr_t(reader) == -1) return 0;
@@ -301,27 +301,9 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
     else {
 	bool ok = true;
 
-	// get open lock and make sure we still need to open
-	// temporarily release cache lock while we open acquire open lock
-	cachelock.unlock();
-	AutoMutex openlocker(openlock);
-	cachelock.lock();
-
-	// lookup entry again (it might have changed in another thread)
-	PtexReader** entry = &_files[filename];
-
-	if (*entry) {
-	    // another thread opened it while we were waiting
-	    if (intptr_t(*entry) == -1) return 0;
-	    (*entry)->ref();
-	    return *entry; 
-	}
-		
 	// make a new reader
-	reader = new PtexReader((void**)entry, this, _premultiply, _io);
+	PtexReader* newreader = new PtexReader(0/*(void**)entry*/, this, _premultiply, _io);
 
-	// temporarily release cache lock while we open the file
-	cachelock.unlock();
 	std::string tmppath;
 	const char* pathToOpen = filename;
 	if (!_io) {
@@ -354,35 +336,24 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 		}
 	    }
 	}
-	if (ok) ok = reader->open(pathToOpen, error);
+	if (ok) ok = newreader->open(pathToOpen, error);
 
-	// reacquire cache lock
-	cachelock.lock();
-	    
 	if (!ok) {
 	    // open failed, clear parent ptr and unref to delete
-	    *entry = reader; // to pass parent check in orphan()
-	    reader->orphan();
-	    reader->unref();
-	    *entry = (PtexReader*)-1; // flag for future lookups
+            _files.tryInsert(key, (PtexReader*)-1);
+            newreader->unref();
 	    return 0;
 	}
-	    
+
 	// successful open, record in _files map entry
-	*entry = reader;
+        reader = _files.tryInsert(key, newreader);
+        if (reader != newreader) {
+            newreader->unref();
+            reader->ref();
+        }
 
-	// clean up unused files
-	purgeFiles();
-
-	// Cleanup map every so often so it doesn't get HUGE
-	// from being filled with blank entries from dead files.
-	// Note: this must be done while we still have the open lock!
-	if (++_cleanupCount >= 1000) {
-	    _cleanupCount = 0;
-	    removeBlankEntries();
-	}
+        return reader;
     }
-    return reader;
 }
 
 PtexCache* PtexCache::create(int maxFiles, int maxMem, bool premultiply,

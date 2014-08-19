@@ -203,16 +203,9 @@ namespace PtexInternal {
         return __sync_bool_compare_and_swap(target, oldvalue, newvalue);
     }
 
-    template <typename T>
-    inline T AtomicLoad(volatile T* source)
+    inline void MemoryFence()
     {
-        return *source;
-    }
-
-    template <typename T>
-    inline void AtomicStore(volatile T* target, T value)
-    {
-        *target = value;
+        __sync_synchronize();
     }
 
 #endif

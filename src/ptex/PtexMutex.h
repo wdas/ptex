@@ -75,7 +75,7 @@ namespace PtexInternal {
 #endif
 
     typedef AutoLock<Mutex> AutoMutex;
-//    typedef AutoLock<SpinLock> AutoSpin;
+    typedef AutoLock<SpinLock> AutoSpin;
 }
 
 #endif

@@ -270,8 +270,8 @@ public:
 	    : _res(res) {}
 	virtual void release() { }
 	virtual Ptex::Res res() { return _res; }
-	virtual void reduce(FaceData*&, PtexReader*,
-			    Res newres, PtexUtils::ReduceFn) = 0;
+	virtual FaceData* reduce(PtexReader*,
+                                 Res newres, PtexUtils::ReduceFn) = 0;
     protected:
 	Res _res;
     };
@@ -291,7 +291,7 @@ public:
 	virtual bool isTiled() { return false; }
 	virtual Ptex::Res tileRes() { return _res; }
 	virtual PtexFaceData* getTile(int) { return 0; }
-	virtual void reduce(FaceData*&, PtexReader*,
+	virtual FaceData* reduce(PtexReader*,
 			    Res newres, PtexUtils::ReduceFn);
 
     protected:
@@ -307,7 +307,7 @@ public:
 	    : PackedFace(0, pixelsize, pixelsize) {}
 	virtual bool isConstant() { return true; }
 	virtual void getPixel(int, int, void* result) { memcpy(result, _data, _pixelsize); }
-	virtual void reduce(FaceData*&, PtexReader*,
+	virtual FaceData* reduce(PtexReader*,
 			    Res newres, PtexUtils::ReduceFn);
     };
 
@@ -333,7 +333,7 @@ public:
 	virtual void* getData() { return 0; }
 	virtual bool isTiled() { return true; }
 	virtual Ptex::Res tileRes() { return _tileres; }
-	virtual void reduce(FaceData*&, PtexReader*,
+	virtual FaceData* reduce(PtexReader*,
 			    Res newres, PtexUtils::ReduceFn);
 	Res tileres() const { return _tileres; }
 	int ntilesu() const { return _ntilesu; }
@@ -555,24 +555,37 @@ protected:
     };
     std::vector<FaceEdit> _faceedits;
 
-    struct ReductionKey {
-	int faceid;
-	Res res;
-	ReductionKey() : faceid(0), res(0,0) {}
-	ReductionKey(uint32_t faceid, Res res) : faceid(faceid), res(res) {}
-	bool operator==(const ReductionKey& k) const
-	{ return k.faceid == faceid && k.res == res; }
-	struct Hasher {
-	    uint32_t operator() (const ReductionKey& key) const
-	    {
-		// constants from Knuth
-		static uint32_t M = 1664525, C = 1013904223;
- 		uint32_t val = (key.res.ulog2 * M + key.res.vlog2 + C) * M + key.faceid;
-		return val;
-	    }
-	};
+    class ReductionKey {
+	int _faceid;
+	Res _res;
+    public:
+	ReductionKey() : _faceid(-1), _res(0,0) {}
+	ReductionKey(uint32_t faceid, Res res) : _faceid(faceid), _res(res) {}
+
+        void copy(volatile ReductionKey& key) volatile
+        {
+            _faceid = key._faceid;
+            _res.ulog2 = key._res.ulog2;
+            _res.vlog2 = key._res.vlog2;
+        }
+
+        void copyNew(volatile ReductionKey& key) volatile
+        {
+            copy(key);
+        }
+
+        bool matches(const ReductionKey& key) volatile
+	{
+            return key._faceid == _faceid && key._res.ulog2 == _res.ulog2 && key._res.vlog2 == _res.vlog2;
+        }
+        bool isEmpty() volatile { return _faceid==-1; }
+        uint32_t hash() volatile
+        {
+            uint32_t val = ((_res.ulog2 << 8) + _res.vlog2) * 1664525 + _faceid;
+            return val;
+        }
     };
-    typedef PtexHashMap<ReductionKey, FaceData*, ReductionKey::Hasher> ReductionMap;
+    typedef PtexHashMap<ReductionKey, FaceData*> ReductionMap;
     ReductionMap _reductions;
 
     z_stream_s _zstream;

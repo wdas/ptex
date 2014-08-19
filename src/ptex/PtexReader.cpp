@@ -154,10 +154,13 @@ PtexReader::~PtexReader()
         if (*i) delete *i;
     }
 
+#if 0
+// TODO
     for (ReductionMap::iterator i = _reductions.begin(); i != _reductions.end(); i++) {
 	FaceData* f = (*i).second;
 	if (f) delete f;
     }
+#endif
     if (_metadata) {
 	delete _metadata;
 	_metadata = 0;
@@ -173,9 +176,12 @@ void PtexReader::release()
 {
     PtexCacheImpl* cache = _cache;
     {
+#if 0
+ TODO
 	// create local scope for cache lock
 	AutoLockCache lock(cache->cachelock);
 	unref();
+#endif
     }
     // If this reader owns the cache, then releasing it may cause deletion of the
     // reader and thus flag the cache for pending deletion.  Call the cache
@@ -750,12 +756,14 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
     }
 
     // dynamic reduction required - look in dynamic reduction cache
-    FaceData*& face = _reductions[ReductionKey(faceid, res)];
+    ReductionKey key(faceid, res);
+    FaceData* face = _reductions.get(key);
     if (face) {
 	return face;
     }
 
     // not found,  generate new reduction
+    FaceData *newface = 0;
 
     if (res.ulog2 < 0 || res.vlog2 < 0) {
 	std::cerr << "PtexReader::getData - reductions below 1 pixel not supported" << std::endl;
@@ -774,33 +782,35 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res((int8_t)(res.ulog2+1), (int8_t)(res.vlog2+1))) );
 	FaceData* src = static_cast<FaceData*>(psrc.get());
 	assert(src);
-	if (src) src->reduce(face, this, res, PtexUtils::reduceTri);
-	return face;
-    }
-
-    // determine which direction to blend
-    bool blendu;
-    if (redu == redv) {
-	// for symmetric face blends, alternate u and v blending
-	blendu = (res.ulog2 & 1);
-    }
-    else blendu = redu > redv;
-
-    if (blendu) {
-	// get next-higher u-res and reduce in u
-	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res((int8_t)(res.ulog2+1), (int8_t)res.vlog2)) );
-	FaceData* src = static_cast<FaceData*>(psrc.get());
-	assert(src);
-	if (src) src->reduce(face, this, res, PtexUtils::reduceu);
+        newface = src->reduce(this, res, PtexUtils::reduceTri);
     }
     else {
-	// get next-higher v-res and reduce in v
-	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res((int8_t)res.ulog2, (int8_t)(res.vlog2+1))) );
-	FaceData* src = static_cast<FaceData*>(psrc.get());
-	assert(src);
-	if (src) src->reduce(face, this, res, PtexUtils::reducev);
+        // determine which direction to blend
+        bool blendu;
+        if (redu == redv) {
+            // for symmetric face blends, alternate u and v blending
+            blendu = (res.ulog2 & 1);
+        }
+        else blendu = redu > redv;
+
+        if (blendu) {
+            // get next-higher u-res and reduce in u
+            PtexPtr<PtexFaceData> psrc ( getData(faceid, Res((int8_t)(res.ulog2+1), (int8_t)res.vlog2)) );
+            FaceData* src = static_cast<FaceData*>(psrc.get());
+            assert(src);
+            newface = src->reduce(this, res, PtexUtils::reduceu);
+        }
+        else {
+            // get next-higher v-res and reduce in v
+            PtexPtr<PtexFaceData> psrc ( getData(faceid, Res((int8_t)res.ulog2, (int8_t)(res.vlog2+1))) );
+            FaceData* src = static_cast<FaceData*>(psrc.get());
+            assert(src);
+            newface = src->reduce(this, res, PtexUtils::reducev);
+        }
     }
 
+    face = _reductions.tryInsert(key, newface);
+    if (face != newface) delete newface;
     return face;
 }
 
@@ -942,15 +952,9 @@ void PtexReader::getPixel(int faceid, int u, int v,
 }
 
 
-void PtexReader::PackedFace::reduce(FaceData*& face, PtexReader* r,
+PtexReader::FaceData* PtexReader::PackedFace::reduce(PtexReader* r,
 				    Res newres, PtexUtils::ReduceFn reducefn)
 {
-    // get reduce lock and make sure we still need to reduce
-    AutoMutex rlocker(r->reducelock);
-    if (face) {
-        return;
-    }
-
     // allocate a new face and reduce image
     DataType dt = r->datatype();
     int nchan = r->nchannels();
@@ -958,12 +962,12 @@ void PtexReader::PackedFace::reduce(FaceData*& face, PtexReader* r,
     // reduce and copy into new face
     reducefn(_data, _pixelsize * _res.u(), _res.u(), _res.v(),
 	     pf->_data, _pixelsize * newres.u(), dt, nchan);
-    face = pf;
+    return pf;
 }
 
 
 
-void PtexReader::ConstantFace::reduce(FaceData*& face, PtexReader*,
+PtexReader::FaceData* PtexReader::ConstantFace::reduce(PtexReader*,
 				      Res, PtexUtils::ReduceFn)
 {
     // must make a new constant face (even though it's identical to this one)
@@ -971,11 +975,11 @@ void PtexReader::ConstantFace::reduce(FaceData*& face, PtexReader*,
     // and will therefore have a different parent
     ConstantFace* pf = new ConstantFace(_pixelsize);
     memcpy(pf->_data, _data, _pixelsize);
-    face = pf;
+    return pf;
 }
 
 
-void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
+PtexReader::FaceData* PtexReader::TiledFaceBase::reduce(PtexReader* r,
 				       Res newres, PtexUtils::ReduceFn reducefn)
 {
     /* Tiled reductions should generally only be anisotropic (just u
@@ -1090,7 +1094,7 @@ void PtexReader::TiledFaceBase::reduce(FaceData*& face, PtexReader* r,
 	// otherwise, tile the reduced face
 	newface = new TiledReducedFace(newres, newtileres, _dt, _nchan, this, reducefn);
     }
-    face = newface;
+    return newface;
 }
 
 

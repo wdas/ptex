@@ -43,8 +43,76 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <inttypes.h>
 #include <vector>
 #include "PtexPlatform.h"
+#include "PtexMutex.h"
 
 namespace PtexInternal {
+
+class StringKey
+{
+    const char* volatile _val;
+    uint32_t volatile _len;
+    uint32_t volatile _hash;
+
+    void operator=(const StringKey& key); // disallow
+    StringKey(const StringKey& key); // disallow
+
+public:
+    StringKey() : _val(0), _len(0), _hash(0) {}
+    StringKey(const char* val)
+    {
+        _len = strlen(val);
+        _val = val;
+        _hash = hash();
+    }
+
+    // TODO - fix cleanup.  Can't delete in dtor unless we change copy to move.
+    // ~StringKey() { if (_val) delete [] _val; }
+
+    void copy(volatile StringKey& key) volatile
+    {
+        _len = key._len;
+        _hash = key._hash;
+        _val = key._val;
+    }
+
+    void copyNew(volatile StringKey& key) volatile
+    {
+        _len = key._len;
+        _hash = key._hash;
+        char* newval = new char[_len];
+        memcpy(newval, key._val, _len);
+        _val = newval;
+    }
+
+    bool matches(const StringKey& key) volatile
+    {
+        return key._hash == _hash && key._len == _len && _val && 0 == memcmp(key._val, _val, _len);
+    }
+
+    bool isEmpty() volatile { return _val==0; }
+
+    uint32_t hash() volatile
+    {
+	// this is similar to perl's hash function
+	uint32_t hashval = 0;
+        for (uint32_t i = 0; i < _len; ++i) hashval += hashval*33 + _val[i];
+        return hashval;
+    }
+};
+
+class IntKey
+{
+    int _val;
+
+public:
+    IntKey() : _val(0) {}
+    IntKey(int val) : _val(val) {}
+    void copy(volatile IntKey& key) volatile { _val = key._val; }
+    void copyNew(volatile IntKey& key) volatile { _val = key._val; }
+    bool matches(const IntKey& key) volatile { return _val == key._val; }
+    bool isEmpty() volatile { return _val==0; }
+    uint32_t hash() volatile { return (_val*7919) & ~0xf;  }
+};
 
 template <typename Key, typename Value>
 class PtexHashMap
@@ -55,7 +123,7 @@ class PtexHashMap
     public:
         Entry() : key(), value(0) {}
         Key volatile key;
-        Value* volatile value;
+        Value volatile value;
     };
 
     PtexHashMap(const PtexHashMap&); // disallow
@@ -63,7 +131,7 @@ class PtexHashMap
 
 public:
     PtexHashMap()
-        : _entries(0), _numEntries(16), _size(0), _inuse(0)
+        : _entries(0), _numEntries(16), _size(0)
     {
         _entries = new Entry[_numEntries];
     }
@@ -75,13 +143,13 @@ public:
 
     int32_t size() const { return _size; }
 
-    Value* get(Key& key)
+    Value get(Key& key)
     {
         Entry* entries = getEntries();
         uint32_t mask = _numEntries-1;
         uint32_t hash = key.hash();
 
-        Value* result = 0;
+        Value result = 0;
         for (uint32_t i = hash;; ++i) {
             Entry& e = entries[i & mask];
             if (e.key.matches(key)) {
@@ -93,42 +161,32 @@ public:
             }
         }
 
-        releaseEntries(entries);
         return result;
     }
 
-    Value* tryInsert(Key& key, Value* value)
+    Value tryInsert(Key& key, Value value)
     {
-        Entry* entries = getEntriesAndGrowIfNeeded();
+        Entry* entries = lockEntriesAndGrowIfNeeded();
         uint32_t mask = _numEntries-1;
         uint32_t hash = key.hash();
 
-        // open addressing w/ linear probing
-        Value* result = 0;
+        Value result = 0;
         for (uint32_t i = hash;; ++i) {
             Entry& e = entries[i & mask];
-            if (e.key.matches(key)) {
-                // entry already exists
+            if (e.value == 0) {
+                e.value = value; // needed? && AtomicCompareAndSwapPtr(&e.value, (Value*)0, value)) {
+                ++_size; // needed? AtomicIncrement(&_size);
+                e.key.copyNew(key);
                 result = e.value;
-                delete value;
                 break;
             }
-            if (e.value == 0) {
-                // blank reached, try to set entry
-                if (AtomicCompareAndSwapPtr(&e.value, (Value*)0, value)) {
-                    AtomicIncrement(&_size);
-                    e.key.copy(key);
-                    result = e.value;
-                    break;
-                }
-                else {
-                    // another thread got there first, recheck entry
-                    while (e.key.isEmpty()) ;
-                    --i;
-                }
+            while (e.key.isEmpty()) ;
+            if (e.key.matches(key)) {
+                result = e.value;
+                break;
             }
         }
-        releaseEntries(entries);
+        unlockEntries(entries);
         return result;
     }
 
@@ -136,29 +194,37 @@ private:
     Entry* getEntries()
     {
         while (1) {
-            while (AtomicLoad(&_entries) == 0) ;  // check *before* ref counting so we don't livelock
-            AtomicIncrement(&_inuse);
             Entry* entries = _entries;
             if (entries) return entries;
-            AtomicDecrement(&_inuse);
         }
     }
 
-    Entry* getEntriesAndGrowIfNeeded()
+    Entry* lockEntries()
     {
-        while (_size*2 >= _numEntries) {
+        while (1) {
             Entry* entries = _entries;
             if (entries && AtomicCompareAndSwapPtr(&_entries, entries, (Entry*)0)) {
-                while (AtomicLoad(&_inuse)) ;
-                AtomicIncrement(&_inuse);
-                if (_size*2 >= _numEntries) {
-                    return grow(entries);
-                }
-                AtomicStore(&_entries, entries);
                 return entries;
             }
         }
-        return getEntries();
+    }
+
+    void unlockEntries(Entry* entries)
+    {
+        MemoryFence();
+        _entries = entries;
+    }
+
+    Entry* lockEntriesAndGrowIfNeeded()
+    {
+        while (_size*2 >= _numEntries) {
+            Entry* entries = lockEntries();
+            if (_size*2 >= _numEntries) {
+                entries = grow(entries);
+            }
+            return entries;
+        }
+        return lockEntries();
     }
 
     Entry* grow(Entry* oldEntries)
@@ -177,21 +243,13 @@ private:
                 }
             }
         }
-        std::cout << numNewEntries << '\n';
-        AtomicStore(&_numEntries, numNewEntries);
-        AtomicStore(&_entries, entries);
+        _numEntries = numNewEntries;
         return entries;
-    }
-
-    void releaseEntries(Entry* /*entries*/)
-    {
-        AtomicDecrement(&_inuse);
     }
 
     Entry* volatile _entries;
     uint32_t volatile _numEntries;
     uint32_t volatile _size;
-    uint32_t volatile _inuse;
 };
 
 }

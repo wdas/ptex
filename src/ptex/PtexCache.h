@@ -201,7 +201,7 @@ public:
     virtual void release() { delete this; }
 
     Mutex openlock;
-    CacheLock cachelock;
+//    CacheLock cachelock;
 
     // internal use - only call from reader classes for deferred deletion
     void setPendingDelete() { _pendingDelete = true; }
@@ -247,8 +247,8 @@ public:
     PtexCachedFile(void** parent, PtexCacheImpl* cache)
 	: PtexLruItem(parent), _cache(cache), _refcount(1)
     { _cache->addFile(); }
-    void ref() { assert(_cache->cachelock.locked()); if (!_refcount++) _cache->setFileInUse(this); }
-    void unref() { assert(_cache->cachelock.locked()); if (!--_refcount) _cache->setFileUnused(this); }
+    void ref() {} // TODO if (!_refcount++) _cache->setFileInUse(this); }
+    void unref() {} // TODO if (!--_refcount) _cache->setFileUnused(this); }
 protected:
     virtual ~PtexCachedFile() {	_cache->removeFile(); }
     PtexCacheImpl* _cache;
