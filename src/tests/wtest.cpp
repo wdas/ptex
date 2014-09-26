@@ -89,8 +89,9 @@ int main(int /*argc*/, char** /*argv*/)
 			       { -1, -1, 5, 7 }};
 
     int nfaces = sizeof(res)/sizeof(res[0]);
-    Ptex::DataType dt = Ptex::dt_half;
-#define DTYPE PtexHalf
+    Ptex::DataType dt = Ptex::dt_uint16;
+    float ptexOne = Ptex::OneValue(dt);
+    typedef uint16_t Dtype;
     int alpha = -1;
     int nchan = 3;
 
@@ -110,14 +111,14 @@ int main(int /*argc*/, char** /*argv*/)
     for (int i = 0; i < nfaces; i++)
     {
 	memset(buff, 0, size);
-	DTYPE* fbuff = (DTYPE*)buff;
+	Dtype* fbuff = (Dtype*)buff;
 	int ures = res[i].u(), vres = res[i].v();
 	for (int v = 0; v < vres; v++) {
 	    for (int u = 0; u < ures; u++) {
 		float c = (u ^ v) & 1;
-		fbuff[(v*ures+u)*nchan] = u/float(ures-1);
-		fbuff[(v*ures+u)*nchan+1] = v/float(vres-1);
-		fbuff[(v*ures+u)*nchan+2] = c;
+		fbuff[(v*ures+u)*nchan] = u/float(ures-1) * ptexOne;
+		fbuff[(v*ures+u)*nchan+1] = v/float(vres-1) * ptexOne;
+		fbuff[(v*ures+u)*nchan+2] = c * ptexOne;
 	    }
 	}
 

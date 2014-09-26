@@ -79,6 +79,19 @@ struct PtexUtils : public Ptex {
 	return ones(x>>1) + !isPow2;
     }
 
+    static int calcResFromWidth(float w)
+    {
+        // read exponent directly from float32 representation
+        // equiv to ceil(log2(1.0/w)) but much faster and no error
+        union {
+            float wf;
+            int32_t wi;
+        };
+        wf = w;
+        int result = 127 - ((wi >> 23) & 0xff);
+        return result;
+    }
+
     static float smoothstep(float x, float a, float b)
     {
 	if ( x < a ) return 0;
@@ -97,7 +110,7 @@ struct PtexUtils : public Ptex {
     }
 
     template<typename T>
-    static T cond(bool c, T a, T b) { return c * a + (!c)*b; }
+    static T cond(bool c, T a, T b) { return (T)((T)c * a + (T)!c * b); }
 
     template<typename T>
     static T min(T a, T b) { return cond(a < b, a, b); }
@@ -146,7 +159,7 @@ struct PtexUtils : public Ptex {
 	VecAccum() {}
 	void operator()(float* dst, const T* val, float weight) 
 	{
-	    *dst += *val * weight;
+	    *dst += (float)*val * weight;
 	    // use template to unroll loop
 	    VecAccum<T,n-1>()(dst+1, val+1, weight);
 	}
@@ -159,7 +172,7 @@ struct PtexUtils : public Ptex {
     struct VecAccumN {
 	void operator()(float* dst, const T* val, int nchan, float weight) 
 	{
-	    for (int i = 0; i < nchan; i++) dst[i] += val[i] * weight;
+	    for (int i = 0; i < nchan; i++) dst[i] += (float)val[i] * weight;
 	}
     };
 
@@ -169,7 +182,7 @@ struct PtexUtils : public Ptex {
 	VecMult() {}
 	void operator()(float* dst, const T* val, float weight) 
 	{
-	    *dst = *val * weight;
+	    *dst = (float)*val * weight;
 	    // use template to unroll loop
 	    VecMult<T,n-1>()(dst+1, val+1, weight);
 	}
@@ -182,7 +195,7 @@ struct PtexUtils : public Ptex {
     struct VecMultN {
 	void operator()(float* dst, const T* val, int nchan, float weight) 
 	{
-	    for (int i = 0; i < nchan; i++) dst[i] = val[i] * weight;
+	    for (int i = 0; i < nchan; i++) dst[i] = (float)val[i] * weight;
 	}
     };
 

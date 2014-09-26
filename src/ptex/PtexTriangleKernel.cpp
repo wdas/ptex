@@ -43,7 +43,7 @@ namespace {
     inline float gaussian(float x_squared)
     {
 	static const float scale = -0.5f * (PtexTriangleKernelWidth * PtexTriangleKernelWidth);
-	return exp(scale * x_squared);
+	return (float)exp(scale * x_squared);
     }
 }
 
@@ -61,8 +61,8 @@ namespace {
 	    int xw = k.rowlen - vi;
 	    int x1 = PtexUtils::max(k.u1, xw-k.w2);
 	    int x2 = PtexUtils::min(k.u2, xw-k.w1);
-	    float U = x1 - k.u;
-	    float V = vi - k.v;
+	    float U = (float)x1 - k.u;
+	    float V = (float)vi - k.v;
 	    float DQ = k.A*(2.0f*U+1.0f)+k.B*V;
 	    float Q = k.A*U*U + (k.B*U + k.C*V)*V;
 	    T* p = (T*)data + (vi * k.rowlen + x1) * nTxChan;
@@ -88,8 +88,8 @@ namespace {
 	    int xw = k.rowlen - vi;
 	    int x1 = PtexUtils::max(k.u1, xw-k.w2);
 	    int x2 = PtexUtils::min(k.u2, xw-k.w1);
-	    float U = x1 - k.u;
-	    float V = vi - k.v;
+	    float U = (float)x1 - k.u;
+	    float V = (float)vi - k.v;
 	    float DQ = k.A*(2.0f*U+1.0f)+k.B*V;
 	    float Q = k.A*U*U + (k.B*U + k.C*V)*V;
 	    T* p = (T*)data + (vi * k.rowlen + x1) * nTxChan;
@@ -115,8 +115,8 @@ namespace {
 	    int xw = k.rowlen - vi;
 	    int x1 = PtexUtils::max(k.u1, xw-k.w2);
 	    int x2 = PtexUtils::min(k.u2, xw-k.w1);
-	    float U = x1 - k.u;
-	    float V = vi - k.v;
+	    float U = (float)x1 - k.u;
+	    float V = (float)vi - k.v;
 	    float DQ = k.A*(2.0f*U+1.0f)+k.B*V;
 	    float Q = k.A*U*U + (k.B*U + k.C*V)*V;
 	    T* p = (T*)data + (vi * k.rowlen + x1) * nTxChan;
@@ -161,8 +161,8 @@ void PtexTriangleKernelIter::applyConst(float* dst, void* data, DataType dt, int
 	int xw = rowlen - vi;
 	int x1 = PtexUtils::max(u1, xw-w2);
 	int x2 = PtexUtils::min(u2, xw-w1);
-	float U = x1 - u;
-	float V = vi - v;
+	float U = (float)x1 - u;
+	float V = (float)vi - v;
 	float DQ = A*(2.0f*U+1.0f)+B*V;
 	float Q = A*U*U + (B*U + C*V)*V;
 	for (int x = x1; x < x2; x++) {

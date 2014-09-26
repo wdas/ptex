@@ -77,15 +77,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 // missing functions on Windows
 #ifdef WINDOWS
-#define snprintf sprintf_s
-#define strtok_r strtok_s
 typedef __int64 FilePos;
 #define fseeko _fseeki64
 #define ftello _ftelli64
-
-inline float log2f(float x) {
-    return logf(x) * 1.4426950408889634f; 
-}
 
 #else
 typedef off_t FilePos;
@@ -102,22 +96,56 @@ namespace PtexInternal {
 
     class _Mutex {
     public:
-	_Mutex()       { _mutex = CreateMutex(NULL, FALSE, NULL); }
-	~_Mutex()      { CloseHandle(_mutex); }
-	void lock()   { WaitForSingleObject(_mutex, INFINITE); }
-	void unlock() { ReleaseMutex(_mutex); }
+	_Mutex(bool nopInLocking=false): _nopInLocking(nopInLocking)
+	{
+		if (!_nopInLocking)
+			_mutex = CreateMutex(NULL, FALSE, NULL);
+	}
+	~_Mutex()
+	{
+		if (!_nopInLocking)
+			CloseHandle(_mutex);
+	}
+	void lock()
+	{
+		if (!_nopInLocking)
+			WaitForSingleObject(_mutex, INFINITE);
+	}
+	void unlock()
+	{
+		if (!_nopInLocking)
+			ReleaseMutex(_mutex);
+	}
     private:
 	HANDLE _mutex;
+		bool _nopInLocking;
     };
 
     class _SpinLock {
     public:
-	_SpinLock()    { InitializeCriticalSection(&_spinlock); }
-	~_SpinLock()   { DeleteCriticalSection(&_spinlock); }
-	void lock()   { EnterCriticalSection(&_spinlock); }
-	void unlock() { LeaveCriticalSection(&_spinlock); }
+	_SpinLock(bool nopInLocking=false): _nopInLocking(nopInLocking)
+	{
+		if (!_nopInLocking)
+			InitializeCriticalSection(&_spinlock);
+	}
+	~_SpinLock()
+	{
+		if (!_nopInLocking)
+			DeleteCriticalSection(&_spinlock);
+	}
+	void lock()
+	{
+		if (!_nopInLocking)
+			EnterCriticalSection(&_spinlock);
+	}
+	void unlock()
+	{
+		if (!_nopInLocking)
+			LeaveCriticalSection(&_spinlock);
+	}
     private:
 	CRITICAL_SECTION _spinlock;
+		bool _nopInLocking;
     };
 
 #else
@@ -125,33 +153,80 @@ namespace PtexInternal {
 
     class _Mutex {
      public:
-	_Mutex()      { pthread_mutex_init(&_mutex, 0); }
-	~_Mutex()     { pthread_mutex_destroy(&_mutex); }
-	void lock()   { pthread_mutex_lock(&_mutex); }
-	void unlock() { pthread_mutex_unlock(&_mutex); }
+	_Mutex(bool nopInLocking=false): _nopInLocking(nopInLocking)
+	{
+		if (!_nopInLocking)
+			pthread_mutex_init(&_mutex, 0);
+	}
+	~_Mutex()
+	{
+		if (!_nopInLocking)
+			pthread_mutex_destroy(&_mutex);
+	}
+	void lock()
+	{
+		if (!_nopInLocking)
+			pthread_mutex_lock(&_mutex);
+	}
+	void unlock()
+	{
+		if (!_nopInLocking)
+			pthread_mutex_unlock(&_mutex);
+	}
     private:
 	pthread_mutex_t _mutex;
+		bool _nopInLocking;
     };
 
 #ifdef __APPLE__
     class _SpinLock {
     public:
-	_SpinLock()   { _spinlock = 0; }
+	_SpinLock(bool nopInLocking=false): _nopInLocking(nopInLocking)
+	{
+		if (!_nopInLocking)
+			_spinlock = 0;
+	}
 	~_SpinLock()  { }
-	void lock()   { OSSpinLockLock(&_spinlock); }
-	void unlock() { OSSpinLockUnlock(&_spinlock); }
+	void lock()
+	{
+		if (!_nopInLocking)
+			OSSpinLockLock(&_spinlock);
+	}
+	void unlock()
+	{
+		if (!_nopInLocking)
+			OSSpinLockUnlock(&_spinlock);
+	}
     private:
 	OSSpinLock _spinlock;
+		bool _nopInLocking;
     };
 #else
     class _SpinLock {
     public:
-	_SpinLock()   { pthread_spin_init(&_spinlock, PTHREAD_PROCESS_PRIVATE); }
-	~_SpinLock()  { pthread_spin_destroy(&_spinlock); }
-	void lock()   { pthread_spin_lock(&_spinlock); }
-	void unlock() { pthread_spin_unlock(&_spinlock); }
+	_SpinLock(bool nopInLocking=false): _nopInLocking(nopInLocking)
+	{
+		if (!_nopInLocking)
+			pthread_spin_init(&_spinlock, PTHREAD_PROCESS_PRIVATE);
+	}
+	~_SpinLock()
+	{
+		if (!_nopInLocking)
+			pthread_spin_destroy(&_spinlock);
+	}
+	void lock()
+	{
+		if (!_nopInLocking)
+			pthread_spin_lock(&_spinlock);
+	}
+	void unlock()
+	{
+		if (!_nopInLocking)
+			pthread_spin_unlock(&_spinlock);
+	}
     private:
 	pthread_spinlock_t _spinlock;
+		bool _nopInLocking;
     };
 #endif // __APPLE__
 #endif

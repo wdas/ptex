@@ -104,7 +104,7 @@ struct PtexHalf {
 	union { uint32_t i; float f; } u;
 	u.f = val;
 	int e = f2hTable[(u.i>>23)&0x1ff];
-	if (e) return e + (((u.i&0x7fffff) + 0x1000) >> 13);
+	if (e) return (uint16_t)(e + (((u.i&0x7fffff) + 0x1000) >> 13));
 	return fromFloat_except(u.i);
     }
 

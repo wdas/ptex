@@ -1,3 +1,4 @@
+/Linux-*
 install
 *.dylib
 *.o

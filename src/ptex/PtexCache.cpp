@@ -201,9 +201,9 @@ void PtexCacheImpl::removeData(int size) {
 class PtexReaderCache : public PtexCacheImpl
 {
 public:
-    PtexReaderCache(int maxFiles, int maxMem, bool premultiply, PtexInputHandler* handler)
-	: PtexCacheImpl(maxFiles, maxMem),
-	  _io(handler), _cleanupCount(0), _premultiply(premultiply)
+    PtexReaderCache(int maxFiles, int maxMem, bool premultiply, PtexInputHandler* handler, bool nopInLocking)
+	: PtexCacheImpl(maxFiles, maxMem, nopInLocking),
+	  _io(handler), _cleanupCount(0), _premultiply(premultiply), _nopInLocking(nopInLocking)
     {}
 
     ~PtexReaderCache()
@@ -213,24 +213,30 @@ public:
 	purgeAll();
     }
 
-    virtual void setSearchPath(const char* path) 
+    virtual void setSearchPath(const char* path)
     {
-	// get the open lock since the path is used during open operations
-	AutoMutex locker(openlock);
-	
-	// record path
-	_searchpath = path ? path : ""; 
+        // get the open lock since the path is used during open operations
+        AutoMutex locker(openlock);
 
-	// split into dirs
-	_searchdirs.clear();
-	char* buff = strdup(path);
-	char* pos = 0;
-	char* token = strtok_r(buff, ":", &pos);
-	while (token) {
-	    if (token[0]) _searchdirs.push_back(token);
-	    token = strtok_r(0, ":", &pos);
-	}
-	free(buff);
+        // record path
+        _searchpath = path ? path : "";
+
+        // split into dirs
+        _searchdirs.clear();
+
+        if (path) {
+            const char* cp = path;
+            while (1) {
+                const char* delim = strchr(cp, ':');
+                if (!delim) {
+                    if (*cp) _searchdirs.push_back(cp);
+                    break;
+                }
+                int len = int(delim-cp);
+                if (len) _searchdirs.push_back(std::string(cp, len));
+                cp = delim+1;
+            }
+        }
     }
 
     virtual const char* getSearchPath()
@@ -244,7 +250,10 @@ public:
 
     virtual void purge(PtexTexture* texture)
     {
-	PtexReader* reader = dynamic_cast<PtexReader*>(texture);
+        // Note: we're assuming here that the texture was created from this cache
+        // and is therefore a PtexReader instance.  dynamic_cast would be safer
+        // but we don't want to require rtti.
+	PtexReader* reader = static_cast<PtexReader*>(texture);
 	if (!reader) return;
 	purge(reader->path());
     }
@@ -296,6 +305,7 @@ private:
     FileMap _files;
     int _cleanupCount;
     bool _premultiply;
+	bool _nopInLocking;
 };
 
 
@@ -331,7 +341,7 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 	}
 		
 	// make a new reader
-	reader = new PtexReader((void**)entry, this, _premultiply, _io);
+	reader = new PtexReader((void**)entry, this, _premultiply, _io, _nopInLocking);
 
 	// temporarily release cache lock while we open the file
 	cachelock.unlock();
@@ -399,7 +409,7 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 }
 
 PtexCache* PtexCache::create(int maxFiles, int maxMem, bool premultiply,
-			     PtexInputHandler* handler)
+			     PtexInputHandler* handler, bool nopInLocking)
 {
     // set default files to 100
     if (maxFiles <= 0) maxFiles = 100;
@@ -413,7 +423,7 @@ PtexCache* PtexCache::create(int maxFiles, int maxMem, bool premultiply,
 	std::cerr << "Warning, PtexCache created with < 1 MB" << std::endl;
     }
 
-    return new PtexReaderCache(maxFiles, maxMem, premultiply, handler);
+    return new PtexReaderCache(maxFiles, maxMem, premultiply, handler, nopInLocking);
 }
 
 

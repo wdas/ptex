@@ -191,8 +191,9 @@ private:
     within set limits */
 class PtexCacheImpl : public PtexCache {
 public:
-    PtexCacheImpl(int maxFiles, int maxMem)
-	: _pendingDelete(false),
+    PtexCacheImpl(int maxFiles, int maxMem, bool nopInLocking)
+	: openlock(nopInLocking), cachelock(nopInLocking),
+	  _pendingDelete(false),
 	  _maxFiles(maxFiles), _unusedFileCount(0),
 	  _maxDataSize(maxMem),
 	  _unusedDataSize(0), _unusedDataCount(0)

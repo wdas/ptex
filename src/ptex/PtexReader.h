@@ -72,7 +72,7 @@ public:
 class PtexReader : public PtexCachedFile, public PtexTexture, public PtexIO {
 public:
     PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply,
-	       PtexInputHandler* handler);
+	       PtexInputHandler* handler, bool nopInLocking);
     bool open(const char* path, Ptex::String& error);
 
     void setOwnsCache() { _ownsCache = true; }
@@ -110,12 +110,12 @@ public:
     class MetaData : public PtexCachedData, public PtexMetaData {
     public:
 	MetaData(MetaData** parent, PtexCacheImpl* cache, int size, PtexReader* reader)
-	    : PtexCachedData((void**)parent, cache, sizeof(*this) + size),
+	    : PtexCachedData((void**)parent, cache, (int)sizeof(*this) + size),
 	      _reader(reader) {}
 	virtual void release() {
 	    AutoLockCache lock(_cache->cachelock);
 	    // first, unref all lmdData refs
-	    for (int i = 0, n = _lmdRefs.size(); i < n; i++)
+	    for (size_t i = 0, n = _lmdRefs.size(); i < n; i++)
 		_lmdRefs[i]->unref();
 	    _lmdRefs.resize(0);
 
@@ -302,7 +302,7 @@ public:
     class PackedFace : public FaceData {
     public:
 	PackedFace(void** parent, PtexCacheImpl* cache, Res res, int pixelsize, int size)
-	    : FaceData(parent, cache, res, sizeof(*this)+size),
+	    : FaceData(parent, cache, res, (int)sizeof(*this)+size),
 	      _pixelsize(pixelsize), _data(malloc(size)) {}
 	void* data() { return _data; }
 	virtual bool isConstant() { return false; }
@@ -349,7 +349,7 @@ public:
 	    _ntilesv = _res.ntilesv(tileres);
 	    _ntiles = _ntilesu*_ntilesv;
 	    _tiles.resize(_ntiles);
-	    incSize(sizeof(FaceData*)*_ntiles);
+	    incSize((int)sizeof(FaceData*)*_ntiles);
 	}
 
 	virtual void release() {
@@ -399,7 +399,7 @@ public:
 	{
 	    _fdh.resize(_ntiles),
 	    _offsets.resize(_ntiles);
-	    incSize((sizeof(FaceDataHeader)+sizeof(FilePos))*_ntiles);
+	    incSize((int)(sizeof(FaceDataHeader)+sizeof(FilePos))*_ntiles);
 	}
 	virtual PtexFaceData* getTile(int tile)
 	{
@@ -452,9 +452,9 @@ public:
 
 	Level(void** parent, PtexCacheImpl* cache, int nfaces)
 	    : PtexCachedData(parent, cache,
-			     sizeof(*this) + nfaces * (sizeof(FaceDataHeader) +
+			     (int)(sizeof(*this) + (size_t)nfaces * (sizeof(FaceDataHeader) +
 						       sizeof(FilePos) +
-						       sizeof(FaceData*))),
+						       sizeof(FaceData*)))),
 	      fdh(nfaces),
 	      offsets(nfaces),
 	      faces(nfaces) {}
@@ -509,7 +509,7 @@ protected:
 	    // for reduction level, look up res via rfaceid
 	    Res res = _res_r[faceid];
 	    // and adjust for number of reductions
-	    return Res(res.ulog2 - levelid, res.vlog2 - levelid);
+	    return Res((uint8_t)(res.ulog2 - levelid), (uint8_t)(res.vlog2 - levelid));
 	}
     }
 

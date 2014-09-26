@@ -50,7 +50,8 @@ PtexTexture* PtexTexture::open(const char* path, Ptex::String& error, bool premu
     PtexTexture* file = cache->get(path, error);
 
     // make reader own the cache (so it will delete it later)
-    PtexReader* reader = dynamic_cast<PtexReader*> (file);
+    // Note: we know that we have a PtexReader because it came from the cache
+    PtexReader* reader = static_cast<PtexReader*> (file);
     if (reader) reader->setOwnsCache();
 
     // and purge cache so cache doesn't try to hold reader open
@@ -80,11 +81,10 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 	return 0;
     }
     if (_header.version != 1) {
-	char ver[21]; snprintf(ver, 20, "%d", _header.version);
-	std::string errstr = "Unsupported ptex file version (";
-	errstr += ver; errstr += "): "; errstr += path;
-	error = errstr.c_str();
-	return 0;
+        std::stringstream s;
+        s << "Unsupported ptex file version ("<< _header.version << "): " << path;
+        error = s.str();
+        return 0;
     }
     _pixelsize = _header.pixelSize();
 
@@ -93,7 +93,7 @@ bool PtexReader::open(const char* path, Ptex::String& error)
     readBlock(&_extheader, PtexUtils::min(uint32_t(ExtHeaderSize), _header.extheadersize));
 
     // compute offsets of various blocks
-    FilePos pos = tell();
+    FilePos pos = HeaderSize + _header.extheadersize;
     _faceinfopos = pos;   pos += _header.faceinfosize;
     _constdatapos = pos;  pos += _header.constdatasize;
     _levelinfopos = pos;  pos += _header.levelinfosize;
@@ -124,8 +124,10 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 
 
 PtexReader::PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply,
-		       PtexInputHandler* io)
+		       PtexInputHandler* io, bool nopInLocking)
     : PtexCachedFile(parent, cache),
+      readlock(nopInLocking),
+      reducelock(nopInLocking),
       _io(io ? io : &_defaultIo),
       _premultiply(premultiply),
       _ownsCache(false),
@@ -200,7 +202,7 @@ void PtexReader::readFaceInfo()
 	int nfaces = _header.nfaces;
 	_faceinfo.resize(nfaces);
 	readZipBlock(&_faceinfo[0], _header.faceinfosize,
-		     sizeof(FaceInfo)*nfaces);
+		     (int)(sizeof(FaceInfo)*nfaces));
 
 	// generate rfaceids
 	_rfaceids.resize(nfaces);
@@ -387,7 +389,7 @@ void PtexReader::readMetaDataBlock(MetaData* metadata, FilePos pos, int zipsize,
 	    uint32_t datasize; memcpy(&datasize, ptr, sizeof(datasize));
 	    ptr += sizeof(datasize);
 	    char* data = ptr; ptr += datasize;
-	    metadata->addEntry(keysize-1, key, datatype, datasize, data);
+	    metadata->addEntry((uint8_t)(keysize-1), key, datatype, datasize, data);
 	}
     }
     if (useMalloc) free(buff);
@@ -415,7 +417,7 @@ void PtexReader::readLargeMetaDataHeaders(MetaData* metadata, FilePos pos, int z
 	    ptr += sizeof(datasize);
 	    uint32_t zipsize; memcpy(&zipsize, ptr, sizeof(zipsize));
 	    ptr += sizeof(zipsize);
-	    metadata->addLmdEntry(keysize-1, key, datatype, datasize, pos, zipsize);
+	    metadata->addLmdEntry((uint8_t)(keysize-1), key, datatype, datasize, pos, zipsize);
 	    pos += zipsize;
 	}
     }
@@ -502,7 +504,7 @@ void PtexReader::readEditMetaData()
 
 bool PtexReader::readBlock(void* data, int size, bool reporterror)
 {
-    int result = _io->read(data, size, _fp);
+    int result = (int)_io->read(data, size, _fp);
     if (result == size) {
 	_pos += size;
 	STATS_INC(nblocksRead);
@@ -536,7 +538,7 @@ bool PtexReader::readZipBlock(void* data, int zipsize, int unzipsize)
 	}
     }
 
-    int total = _zstream.total_out;
+    int total = (int)_zstream.total_out;
     inflateReset(&_zstream);
     return total == unzipsize;
 }
@@ -905,8 +907,8 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 	    std::cerr << "PtexReader::getData - anisotropic reductions not supported for triangle mesh" << std::endl;
 	    return 0;
 	}
-	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res(res.ulog2+1, res.vlog2+1)) );
-	FaceData* src = dynamic_cast<FaceData*>(psrc.get());
+	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res((int8_t)(res.ulog2+1), (int8_t)(res.vlog2+1))) );
+	FaceData* src = static_cast<FaceData*>(psrc.get());
 	assert(src);
 	if (src) src->reduce(face, this, res, PtexUtils::reduceTri);
 	return face;
@@ -922,15 +924,15 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 
     if (blendu) {
 	// get next-higher u-res and reduce in u
-	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res(res.ulog2+1, res.vlog2)) );
-	FaceData* src = dynamic_cast<FaceData*>(psrc.get());
+	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res((int8_t)(res.ulog2+1), (int8_t)res.vlog2)) );
+	FaceData* src = static_cast<FaceData*>(psrc.get());
 	assert(src);
 	if (src) src->reduce(face, this, res, PtexUtils::reduceu);
     }
     else {
 	// get next-higher v-res and reduce in v
-	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res(res.ulog2, res.vlog2+1)) );
-	FaceData* src = dynamic_cast<FaceData*>(psrc.get());
+	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res((int8_t)res.ulog2, (int8_t)(res.vlog2+1))) );
+	FaceData* src = static_cast<FaceData*>(psrc.get());
 	assert(src);
 	if (src) src->reduce(face, this, res, PtexUtils::reducev);
     }
@@ -948,13 +950,13 @@ void PtexReader::blendFaces(FaceData*& face, int faceid, Res res, bool blendu)
 	assert(res.ulog2 < 0); // res >= 0 requires reduction, not blending
 	length = (res.vlog2 <= 0 ? 1 : res.v());
 	e1 = e_bottom; e2 = e_top;
-	pres = Res(res.ulog2+1, res.vlog2);
+	pres = Res((int8_t)(res.ulog2+1), (int8_t)res.vlog2);
     }
     else {
 	assert(res.vlog2 < 0);
 	length = (res.ulog2 <= 0 ? 1 : res.u());
 	e1 = e_right; e2 = e_left;
-	pres = Res(res.ulog2, res.vlog2+1);
+	pres = Res((int8_t)res.ulog2, (int8_t)(res.vlog2+1));
     }
 
     // get neighbor face ids
@@ -1018,7 +1020,7 @@ void PtexReader::blendFaces(FaceData*& face, int faceid, Res res, bool blendu)
 	memcpy(data, psrc[0]->getData(), size);
     }
     else {
-	float weight = 1.0f / nf;
+	float weight = 1.0f / (float)nf;
 	memset(data, 0, size);
 	for (int i = 0; i < nf; i++)
 	    PtexUtils::blend(psrc[i]->getData(), weight, data, flip[i],
@@ -1041,7 +1043,7 @@ void PtexReader::blendFaces(FaceData*& face, int faceid, Res res, bool blendu)
 void PtexReader::getPixel(int faceid, int u, int v,
 			  float* result, int firstchan, int nchannels)
 {
-    memset(result, 0, nchannels);
+    memset(result, 0, sizeof(*result)*nchannels);
 
     // clip nchannels against actual number available
     nchannels = PtexUtils::min(nchannels,

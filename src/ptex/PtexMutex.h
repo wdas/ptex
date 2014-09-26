@@ -44,7 +44,7 @@ namespace PtexInternal {
     template <class T>
     class DebugLock : public T {
      public:
-	DebugLock() : _locked(0) {}
+	DebugLock(bool nopInLocking=false) : T(nopInLocking), _locked(0) {}
 	void lock()   { T::lock(); _locked = 1; }
 	void unlock() { assert(_locked); _locked = 0; T::unlock(); }
 	bool locked() { return _locked != 0; }
