@@ -43,18 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "Ptexture.h"
 #include "PtexDict.h"
 
-#define USE_SPIN // use spinlocks instead of mutex for main cache lock
-
-namespace PtexInternal {
-
-#ifdef USE_SPIN
-    typedef SpinLock CacheLock;
-#else
-    typedef Mutex CacheLock;
-#endif
-    typedef AutoLock<CacheLock> AutoLockCache;
-
-}
 using namespace PtexInternal;
 
 /** One item in a cache, typically an open file or a block of memory */
