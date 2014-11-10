@@ -481,8 +481,6 @@ bool PtexReader::readBlock(void* data, int size, bool reporterror)
     int result = (int)_io->read(data, size, _fp);
     if (result == size) {
 	_pos += size;
-	STATS_INC(nblocksRead);
-	STATS_ADD(nbytesRead, size);
 	return 1;
     }
     if (reporterror)

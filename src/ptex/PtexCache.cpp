@@ -114,35 +114,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexReader.h"
 #include "PtexCache.h"
 
-#ifdef GATHER_STATS
-namespace PtexInternal {
-    CacheStats::~CacheStats() { 
-	if (getenv("PTEX_STATS"))
-	    print(); 
-    }
-    
-    void CacheStats::print()
-    {
-	if (nfilesOpened || ndataAllocated || nblocksRead) {
-	    printf("Ptex Stats:\n");
-	    printf("  nfilesOpened:   %6d\n", nfilesOpened);
-	    printf("  nfilesClosed:   %6d\n", nfilesClosed);
-	    printf("  ndataAllocated: %6d\n", ndataAllocated);
-	    printf("  ndataFreed:     %6d\n", ndataFreed);
-	    printf("  nblocksRead:    %6d\n", nblocksRead);
-	    printf("  nseeks:         %6d\n", nseeks);
-	    if (nblocksRead)
-		printf("  avgReadSize:    %6d\n", int(nbytesRead/nblocksRead));
-	    if (nseeks)
-		printf("  avgSeqReadSize: %6d\n", int(nbytesRead/nseeks));
-	    printf("  MbytesRead:     %6.2f\n", nbytesRead/(1024.0*1024.0));
-	}
-    }
-
-    CacheStats stats;
-}
-#endif
-
 PtexCacheImpl::~PtexCacheImpl()
 {
     // explicitly pop all unused items so that they are 
@@ -166,7 +137,6 @@ void PtexCacheImpl::removeFile()
 { 
     // cachelock should be locked, but might not be if cache is being deleted
     _unusedFileCount--;
-    STATS_INC(nfilesClosed);
 }
 
 /** Cache for reading Ptex texture files */

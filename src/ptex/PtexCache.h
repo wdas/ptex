@@ -54,49 +54,6 @@ namespace PtexInternal {
 #endif
     typedef AutoLock<CacheLock> AutoLockCache;
 
-#ifndef NDEBUG
-#define GATHER_STATS
-#endif
-
-#ifdef GATHER_STATS
-    struct CacheStats{
-	int nfilesOpened;
-	int nfilesClosed;
-	int ndataAllocated;
-	int ndataFreed;
-	int nblocksRead;
-	long int nbytesRead;
-	int nseeks;
-
-	CacheStats()
-	    : nfilesOpened(0),
-	      nfilesClosed(0),
-	      ndataAllocated(0),
-	      ndataFreed(0),
-	      nblocksRead(0),
-	      nbytesRead(0),
-	      nseeks(0)	{}
-
-	~CacheStats();
-	void print();
-	static void inc(int& val) {
-	    static SpinLock spinlock;
-	    AutoSpin lock(spinlock);
-	    val++;
-	}
-	static void add(long int& val, int inc) {
-	    static SpinLock spinlock;
-	    AutoSpin lock(spinlock);
-	    val+=inc;
-	}
-    };
-    extern CacheStats stats;
-#define STATS_INC(x) stats.inc(stats.x);
-#define STATS_ADD(x, y) stats.add(stats.x, y);
-#else
-#define STATS_INC(x)
-#define STATS_ADD(x, y)
-#endif
 }
 using namespace PtexInternal;
 
@@ -208,11 +165,11 @@ public:
     void handlePendingDelete() { if (_pendingDelete) delete this; }
 
     // internal use - only call from PtexCachedFile, PtexCachedData
-    static void addFile() { STATS_INC(nfilesOpened); }
+    static void addFile() {}
     void setFileInUse(PtexLruItem* file);
     void setFileUnused(PtexLruItem* file);
     void removeFile();
-    static void addData() { STATS_INC(ndataAllocated); }
+    static void addData() {}
     void setDataInUse(PtexLruItem* data, int size);
     void setDataUnused(PtexLruItem* data, int size);
     void removeData(int size);

@@ -442,7 +442,6 @@ protected:
 	if (pos != _pos) {
 	    _io->seek(_fp, pos);
 	    _pos = pos;
-	    STATS_INC(nseeks);
 	}
     }
 
