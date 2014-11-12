@@ -47,6 +47,37 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 namespace PtexInternal {
 
+    inline uint32_t memHash(const char* val, int len)
+    {
+        int len64 = len & ~7;
+        uint64_t val64[4]; val64[0] = 0;
+        memcpy(&val64[0], &val[len64], len & 7);
+        uint64_t hashval[4] = {0,0,0,0}; hashval[0] = val64[0]*16777619;
+
+        for (int i = 0; i+32 <= len64; i+=32) {
+            for (int j = 0; j < 4; ++j) {
+                memcpy(&val64[j], &val[i+j*8], 8);  hashval[j] = (hashval[j]*16777619) ^ val64[j];
+            }
+        }
+        hashval[0] = (hashval[0]*16777619) ^ hashval[1];
+        hashval[2] = (hashval[2]*16777619) ^ hashval[3];
+        hashval[0] = (hashval[0]*16777619) ^ hashval[2];
+        return uint32_t(hashval[0]);
+    }
+
+    inline bool memCompare(const char* a, const char* b, int len)
+    {
+        int len64 = len & ~7;
+        uint64_t val64[2];
+        for (int i = 0; i < len64; i+=8) {
+            memcpy(&val64[0], &a[i], 8);
+            memcpy(&val64[1], &b[i], 8);
+            if (val64[0] != val64[1]) return 1;
+        }
+        return memcmp(&a[len64], &b[len64], len & 7);
+    }
+
+
 class StringKey
 {
     const char* volatile _val;
@@ -62,7 +93,7 @@ public:
     {
         _len = strlen(val);
         _val = val;
-        _hash = hash();
+        _hash = memHash(_val, _len);
     }
 
     // TODO - fix cleanup.  Can't delete in dtor unless we change copy to move.
@@ -86,17 +117,14 @@ public:
 
     bool matches(const StringKey& key) volatile
     {
-        return key._hash == _hash && key._len == _len && _val && 0 == memcmp(key._val, _val, _len);
+        return key._hash == _hash && key._len == _len && _val && 0 == memCompare(key._val, _val, _len);
     }
 
     bool isEmpty() volatile { return _val==0; }
 
     uint32_t hash() volatile
     {
-	// this is similar to perl's hash function
-	uint32_t hashval = 0;
-        for (uint32_t i = 0; i < _len; ++i) hashval += hashval*33 + _val[i];
-        return hashval;
+        return _hash;
     }
 };
 
