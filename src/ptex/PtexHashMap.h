@@ -52,11 +52,13 @@ namespace PtexInternal {
         int len64 = len & ~7;
         uint64_t val64[4]; val64[0] = 0;
         memcpy(&val64[0], &val[len64], len & 7);
-        uint64_t hashval[4] = {0,0,0,0}; hashval[0] = val64[0]*16777619;
+        uint64_t hashval[4] = {0,0,0,0};
+        hashval[0] = val64[0]*16777619;
 
         for (int i = 0; i+32 <= len64; i+=32) {
             for (int j = 0; j < 4; ++j) {
-                memcpy(&val64[j], &val[i+j*8], 8);  hashval[j] = (hashval[j]*16777619) ^ val64[j];
+                memcpy(&val64[j], &val[i+j*8], 8);
+                hashval[j] = (hashval[j]*16777619) ^ val64[j];
             }
         }
         hashval[0] = (hashval[0]*16777619) ^ hashval[1];
@@ -110,9 +112,10 @@ public:
     {
         _len = key._len;
         _hash = key._hash;
-        char* newval = new char[_len];
-        memcpy(newval, key._val, _len);
+        char* newval = new char[_len+1];
+        memcpy(newval, key._val, _len+1);
         _val = newval;
+        _val = key._val;
     }
 
     bool matches(const StringKey& key) volatile
@@ -202,8 +205,9 @@ public:
         for (uint32_t i = hash;; ++i) {
             Entry& e = entries[i & mask];
             if (e.value == 0) {
-                e.value = value; // needed? && AtomicCompareAndSwapPtr(&e.value, (Value*)0, value)) {
-                ++_size; // needed? AtomicIncrement(&_size);
+                e.value = value;
+                ++_size;
+                MemoryFence();
                 e.key.copyNew(key);
                 result = e.value;
                 break;

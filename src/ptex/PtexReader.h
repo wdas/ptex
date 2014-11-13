@@ -418,7 +418,7 @@ public:
 	      offsets(nfaces),
 	      faces(nfaces) {}
 
-	virtual ~Level() {
+	~Level() {
             for (std::vector<FaceData*>::iterator i = faces.begin(); i != faces.end(); ++i) {
                 if (*i) delete *i;
             }
@@ -426,7 +426,6 @@ public:
     };
 
     Mutex readlock;
-    Mutex reducelock;
 
 protected:
     virtual ~PtexReader();

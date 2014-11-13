@@ -546,6 +546,7 @@ void PtexReader::readLevel(int levelid, Level*& level)
     }
 
     // don't assign to result until level data is fully initialized
+    MemoryFence();
     level = newlevel;
 
     // clean up unused data
@@ -636,6 +637,7 @@ void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int leve
 	break;
     }
 
+    MemoryFence();
     face = newface;
 }
 
@@ -1134,14 +1136,15 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
 	ptile += i%nu? 1 : pntilesu - nu + 1;
     }
 
+    FaceData* newface = 0;
     if (allConstant) {
 	// allocate a new constant face
-	face = new ConstantFace(_pixelsize);
+	newface = new ConstantFace(_pixelsize);
 	memcpy(face->getData(), tiles[0]->getData(), _pixelsize);
     }
     else {
 	// allocate a new packed face for the tile
-	face = new PackedFace(_tileres, _pixelsize, _pixelsize*_tileres.size());
+	newface = new PackedFace(_tileres, _pixelsize, _pixelsize*_tileres.size());
 
 	// generate reduction from parent tiles
 	int ptileures = _parentface->tileres().u();
@@ -1151,7 +1154,7 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
 	int dstepu = dstride/nu;
 	int dstepv = dstride*_tileres.v()/nv - dstepu*(nu-1);
 
-	char* dst = (char*) face->getData();
+	char* dst = (char*) newface->getData();
 	for (int i = 0; i < ntiles;) {
 	    PtexFaceData* tile = tiles[i];
 	    if (tile->isConstant())
@@ -1164,6 +1167,10 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
 	    i++;
 	    dst += i%nu ? dstepu : dstepv;
 	}
+    }
+
+    if (!AtomicCompareAndSwapPtr(&face, (FaceData*)0, newface)) {
+        delete newface;
     }
 
     return face;
