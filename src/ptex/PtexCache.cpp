@@ -157,9 +157,6 @@ public:
 
     virtual void setSearchPath(const char* path)
     {
-        // get the open lock since the path is used during open operations
-        AutoMutex locker(openlock);
-
         // record path
         _searchpath = path ? path : "";
 
@@ -183,8 +180,6 @@ public:
 
     virtual const char* getSearchPath()
     {
-	// get the open lock since the path is used during open operations
-	AutoMutex locker(openlock);
 	return _searchpath.c_str(); 
     }
 
@@ -249,7 +244,6 @@ private:
     PtexInputHandler* _io;
     std::string _searchpath;
     std::vector<std::string> _searchdirs;
-    //typedef PtexDict<PtexReader*> FileMap;
     typedef PtexHashMap<StringKey,PtexReader*> FileMap;
     FileMap _files;
     int _cleanupCount;

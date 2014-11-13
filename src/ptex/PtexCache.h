@@ -145,9 +145,6 @@ public:
 
     virtual void release() { delete this; }
 
-    Mutex openlock;
-//    CacheLock cachelock;
-
     // internal use - only call from reader classes for deferred deletion
     void setPendingDelete() { _pendingDelete = true; }
     void handlePendingDelete() { if (_pendingDelete) delete this; }
