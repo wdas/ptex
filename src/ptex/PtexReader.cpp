@@ -174,19 +174,19 @@ PtexReader::~PtexReader()
 
 void PtexReader::release()
 {
-    PtexCacheImpl* cache = _cache;
-    {
 #if 0
  TODO
+    PtexCacheImpl* cache = _cache;
+    {
 	// create local scope for cache lock
 	AutoLockCache lock(cache->cachelock);
 	unref();
-#endif
     }
     // If this reader owns the cache, then releasing it may cause deletion of the
     // reader and thus flag the cache for pending deletion.  Call the cache
     // to handle the pending deletion.
     cache->handlePendingDelete();
+#endif
 }
 
 

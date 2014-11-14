@@ -85,37 +85,40 @@ class StringKey
     const char* volatile _val;
     uint32_t volatile _len;
     uint32_t volatile _hash;
+    bool volatile _ownsVal;
 
     void operator=(const StringKey& key); // disallow
     StringKey(const StringKey& key); // disallow
 
 public:
-    StringKey() : _val(0), _len(0), _hash(0) {}
+    StringKey() : _val(0), _len(0), _hash(0), _ownsVal(false) {}
     StringKey(const char* val)
     {
-        _len = strlen(val);
         _val = val;
+        _len = strlen(val);
         _hash = memHash(_val, _len);
+        _ownsVal = false;
     }
 
-    // TODO - fix cleanup.  Can't delete in dtor unless we change copy to move.
-    // ~StringKey() { if (_val) delete [] _val; }
+    ~StringKey() { if (_ownsVal) delete [] _val; }
 
     void copy(volatile StringKey& key) volatile
     {
+        char* newval = new char[key._len+1];
+        memcpy(newval, key._val, key._len+1);
+        _val = newval;
         _len = key._len;
         _hash = key._hash;
-        _val = key._val;
+        _ownsVal = true;
     }
 
-    void copyNew(volatile StringKey& key) volatile
+    void move(volatile StringKey& key) volatile
     {
+        _val = key._val;
         _len = key._len;
         _hash = key._hash;
-        char* newval = new char[_len+1];
-        memcpy(newval, key._val, _len+1);
-        _val = newval;
-        _val = key._val;
+        _ownsVal = key._ownsVal;
+        key._ownsVal = false;
     }
 
     bool matches(const StringKey& key) volatile
@@ -139,7 +142,7 @@ public:
     IntKey() : _val(0) {}
     IntKey(int val) : _val(val) {}
     void copy(volatile IntKey& key) volatile { _val = key._val; }
-    void copyNew(volatile IntKey& key) volatile { _val = key._val; }
+    void move(volatile IntKey& key) volatile { _val = key._val; }
     bool matches(const IntKey& key) volatile { return _val == key._val; }
     bool isEmpty() volatile { return _val==0; }
     uint32_t hash() volatile { return (_val*7919) & ~0xf;  }
@@ -169,7 +172,13 @@ public:
 
     ~PtexHashMap()
     {
+        for (uint32_t i = 0; i < _numEntries; ++i) {
+            if (_entries[i].value) delete _entries[i].value;
+        }
         delete [] _entries;
+        for (size_t i = 0; i < _oldEntries.size(); ++i) {
+            delete [] _oldEntries[i];
+        }
     }
 
     int32_t size() const { return _size; }
@@ -208,7 +217,7 @@ public:
                 e.value = value;
                 ++_size;
                 MemoryFence();
-                e.key.copyNew(key);
+                e.key.copy(key);
                 result = e.value;
                 break;
             }
@@ -261,17 +270,20 @@ private:
 
     Entry* grow(Entry* oldEntries)
     {
+        _oldEntries.push_back(oldEntries);
         uint32_t numNewEntries = _numEntries*2;
         Entry* entries = new Entry[numNewEntries];
         uint32_t mask = numNewEntries-1;
         for (uint32_t oldIndex = 0; oldIndex < _numEntries; ++oldIndex) {
             Entry& oldEntry = oldEntries[oldIndex];
-            for (int newIndex = oldEntry.key.hash();; ++newIndex) {
-                Entry& newEntry = entries[newIndex&mask];
-                if (!newEntry.value) {
-                    newEntry.key.copy(oldEntry.key);
-                    newEntry.value = oldEntry.value;
-                    break;
+            if (oldEntry.value) {
+                for (int newIndex = oldEntry.key.hash();; ++newIndex) {
+                    Entry& newEntry = entries[newIndex&mask];
+                    if (!newEntry.value) {
+                        newEntry.key.move(oldEntry.key);
+                        newEntry.value = oldEntry.value;
+                        break;
+                    }
                 }
             }
         }
@@ -282,6 +294,7 @@ private:
     Entry* volatile _entries;
     uint32_t volatile _numEntries;
     uint32_t volatile _size;
+    std::vector<Entry*> _oldEntries;
 };
 
 }

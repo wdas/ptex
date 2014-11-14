@@ -53,6 +53,7 @@ class PtexReader : public PtexCachedFile, public PtexTexture, public PtexIO {
 public:
     PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply,
 	       PtexInputHandler* handler);
+    virtual ~PtexReader();
     bool open(const char* path, Ptex::String& error);
 
     void setOwnsCache() { _ownsCache = true; }
@@ -268,6 +269,7 @@ public:
     public:
 	FaceData(Res res)
 	    : _res(res) {}
+        virtual ~FaceData() {}
 	virtual void release() { }
 	virtual Ptex::Res res() { return _res; }
 	virtual FaceData* reduce(PtexReader*,
@@ -428,7 +430,6 @@ public:
     Mutex readlock;
 
 protected:
-    virtual ~PtexReader();
     void setError(const char* error)
     {
 	_error = error; _error += " PtexFile: "; _error += _path;
@@ -554,33 +555,30 @@ protected:
     std::vector<FaceEdit> _faceedits;
 
     class ReductionKey {
-	int _faceid;
-	Res _res;
+        int64_t _val;
     public:
-	ReductionKey() : _faceid(-1), _res(0,0) {}
-	ReductionKey(uint32_t faceid, Res res) : _faceid(faceid), _res(res) {}
+	ReductionKey() : _val(-1) {}
+	ReductionKey(uint32_t faceid, Res res)
+            : _val( int64_t(faceid)<<32 | (16777619*((res.val()<<16) ^ faceid)) ) {}
 
         void copy(volatile ReductionKey& key) volatile
         {
-            _faceid = key._faceid;
-            _res.ulog2 = key._res.ulog2;
-            _res.vlog2 = key._res.vlog2;
+            _val = key._val;
         }
 
-        void copyNew(volatile ReductionKey& key) volatile
+        void move(volatile ReductionKey& key) volatile
         {
-            copy(key);
+            _val = key._val;
         }
 
         bool matches(const ReductionKey& key) volatile
 	{
-            return key._faceid == _faceid && key._res.ulog2 == _res.ulog2 && key._res.vlog2 == _res.vlog2;
+            return _val == key._val;
         }
-        bool isEmpty() volatile { return _faceid==-1; }
+        bool isEmpty() volatile { return _val==-1; }
         uint32_t hash() volatile
         {
-            uint32_t val = ((_res.ulog2 << 8) + _res.vlog2) * 1664525 + _faceid;
-            return val;
+            return uint32_t(_val);
         }
     };
     typedef PtexHashMap<ReductionKey, FaceData*> ReductionMap;
