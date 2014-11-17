@@ -43,21 +43,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <errno.h>
 #include "Ptexture.h"
 #include "PtexIO.h"
-#include "PtexCache.h"
 #include "PtexUtils.h"
 
 #include "PtexHashMap.h"
 using namespace PtexInternal;
 
-class PtexReader : public PtexCachedFile, public PtexTexture, public PtexIO {
+class PtexReader : public PtexTexture, public PtexIO {
 public:
-    PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply,
-	       PtexInputHandler* handler);
+    PtexReader(bool premultiply, PtexInputHandler* handler);
     virtual ~PtexReader();
+    virtual void release() { delete this; }
     bool open(const char* path, Ptex::String& error);
 
-    void setOwnsCache() { _ownsCache = true; }
-    virtual void release();
     virtual const char* path() { return _path.c_str(); }
     virtual Ptex::MeshType meshType() { return MeshType(_header.meshtype); }
     virtual Ptex::DataType dataType() { return DataType(_header.datatype); }
@@ -199,7 +196,7 @@ public:
 	    uint32_t datasize;	      // size of data in bytes
 	    void* data;		      // if lmd, data only valid when lmd is loaded and ref'ed
 	    bool isLmd;		      // true if data is a large meta data block
-	    LargeMetaData* lmdData;   // large meta data (lazy-loaded, lru-cached)
+	    LargeMetaData* lmdData;   // large meta data (lazy-loaded)
 	    FilePos lmdPos;	      // large meta data file position
 	    uint32_t lmdZipSize;      // large meta data size on disk
 
@@ -511,7 +508,6 @@ protected:
     DefaultInputHandler _defaultIo;   // Default IO handler
     PtexInputHandler* _io;	      // IO handler
     bool _premultiply;		      // true if reader should premultiply the alpha chan
-    bool _ownsCache;		      // true if reader owns the cache
     bool _ok;			      // flag set if read error occurred)
     std::string _error;		      // error string (if !_ok)
     PtexInputHandler::Handle _fp;     // file pointer

@@ -45,18 +45,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 PtexTexture* PtexTexture::open(const char* path, Ptex::String& error, bool premultiply)
 {
-    // create a private cache and use it to open the file
-    PtexCache* cache = PtexCache::create(1, 1024*1024, premultiply);
-    PtexTexture* file = cache->get(path, error);
-
-    // make reader own the cache (so it will delete it later)
-    // Note: we know that we have a PtexReader because it came from the cache
-    PtexReader* reader = static_cast<PtexReader*> (file);
-    if (reader) reader->setOwnsCache();
-
-    // and purge cache so cache doesn't try to hold reader open
-    cache->purgeAll();
-    return file;
+    PtexReader* reader = new PtexReader(premultiply, 0);
+    bool ok = reader->open(path, error);
+    if (!ok) {
+        reader->release();
+        return 0;
+    }
+    return reader;
 }
 
 
@@ -123,12 +118,9 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 }
 
 
-PtexReader::PtexReader(void** parent, PtexCacheImpl* cache, bool premultiply,
-		       PtexInputHandler* io)
-    : PtexCachedFile(parent, cache),
-      _io(io ? io : &_defaultIo),
+PtexReader::PtexReader(bool premultiply, PtexInputHandler* io)
+    : _io(io ? io : &_defaultIo),
       _premultiply(premultiply),
-      _ownsCache(false),
       _ok(true),
       _fp(0),
       _pos(0),
@@ -147,46 +139,18 @@ PtexReader::~PtexReader()
 {
     if (_fp) _io->close(_fp);
 
-    // we can free the const data directly since we own it (it doesn't go through the cache)
     if (_constdata) free(_constdata);
 
     for (std::vector<Level*>::iterator i = _levels.begin(); i != _levels.end(); ++i) {
         if (*i) delete *i;
     }
 
-#if 0
-// TODO
-    for (ReductionMap::iterator i = _reductions.begin(); i != _reductions.end(); i++) {
-	FaceData* f = (*i).second;
-	if (f) delete f;
-    }
-#endif
     if (_metadata) {
 	delete _metadata;
 	_metadata = 0;
     }
 
     inflateEnd(&_zstream);
-
-    if (_ownsCache) _cache->setPendingDelete();
-}
-
-
-void PtexReader::release()
-{
-#if 0
- TODO
-    PtexCacheImpl* cache = _cache;
-    {
-	// create local scope for cache lock
-	AutoLockCache lock(cache->cachelock);
-	unref();
-    }
-    // If this reader owns the cache, then releasing it may cause deletion of the
-    // reader and thus flag the cache for pending deletion.  Call the cache
-    // to handle the pending deletion.
-    cache->handlePendingDelete();
-#endif
 }
 
 
@@ -339,8 +303,6 @@ void PtexReader::readMetaData()
     // store meta data
     _metadata = newmeta;
 
-    // clean up unused data
-    _cache->purgeData();
 }
 
 
@@ -548,9 +510,6 @@ void PtexReader::readLevel(int levelid, Level*& level)
     // don't assign to result until level data is fully initialized
     MemoryFence();
     level = newlevel;
-
-    // clean up unused data
-    _cache->purgeData();
 }
 
 

@@ -40,161 +40,79 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <assert.h>
 
 #include "PtexMutex.h"
-#include "Ptexture.h"
+#include "PtexHashMap.h"
+#include "PtexReader.h"
 
 using namespace PtexInternal;
 
-/** One item in a cache, typically an open file or a block of memory */
-class PtexLruItem {
+/** Cache for reading Ptex texture files */
+class PtexReaderCache : public PtexCache
+{
 public:
-    bool inuse() { return _prev == 0; }
-    void orphan() 
-    {
-	// parent no longer wants me
-	void** p = _parent;
-	_parent = 0;
-	assert(p && *p == this);
-	if (!inuse()) delete this;
-	*p = 0;
-    }
-    template <typename T> static void orphanList(T& list)
-    {
-	for (typename T::iterator i=list.begin(); i != list.end(); i++) {
-	    PtexLruItem* obj = *i;
-	    if (obj) {
-		assert(obj->_parent == (void**)&*i);
-		obj->orphan();
-	    }
-	}
-    }
+    PtexReaderCache(int maxFiles, int maxMem, bool premultiply, PtexInputHandler* handler)
+	: _maxFiles(maxFiles), _maxMem(maxMem), _io(handler), _cleanupCount(0), _premultiply(premultiply)
+    {}
 
-protected:
-    PtexLruItem(void** parent=0)
-	: _parent(parent), _prev(0), _next(0) {}
-    virtual ~PtexLruItem()
-    {
-	// detach from parent (if any)
-	if (_parent) { assert(*_parent == this); *_parent = 0; }
-	// unlink from lru list (if in list)
-	if (_prev) {
-	    _prev->_next = _next; 
-	    _next->_prev = _prev;
-	}
-    }
-
-private:
-    friend class PtexLruList;	// maintains prev/next, deletes
-    void** _parent;		// pointer to this item within parent
-    PtexLruItem* _prev;		// prev in lru list (0 if in-use)
-    PtexLruItem* _next;		// next in lru list (0 if in-use)
-};
-
-
-
-/** A list of items kept in least-recently-used (LRU) order.
-    Only items not in use are kept in the list. */
-class PtexLruList {
-public:
-    PtexLruList() { _end._prev = _end._next = &_end; }
-    ~PtexLruList() { while (pop()) continue; }
-
-    void extract(PtexLruItem* node)
-    {
-	// remove from list
-	node->_prev->_next = node->_next;
-	node->_next->_prev = node->_prev;
-	node->_next = node->_prev = 0;
-    }
-
-    void push(PtexLruItem* node)
-    {
-	// delete node if orphaned
-	if (!node->_parent) delete node;
-	else {
-	    // add to end of list
-	    node->_next = &_end;
-	    node->_prev = _end._prev;
-	    _end._prev->_next = node;
-	    _end._prev = node;
-	}
-    }
-
-    bool pop()
-    {
-	if (_end._next == &_end) return 0;
-	delete _end._next; // item will unlink itself
-	return 1;
-    }
-
-private:
-    PtexLruItem _end;
-};
-
-
-/** Ptex cache implementation.  Maintains a file and memory cache
-    within set limits */
-class PtexCacheImpl : public PtexCache {
-public:
-    PtexCacheImpl(int maxFiles, int maxMem)
-	: _pendingDelete(false),
-	  _maxFiles(maxFiles), _unusedFileCount(0),
-	  _maxDataSize(maxMem)
-    {
-    }
+    ~PtexReaderCache()
+    {}
 
     virtual void release() { delete this; }
 
-    // internal use - only call from reader classes for deferred deletion
-    void setPendingDelete() { _pendingDelete = true; }
-    void handlePendingDelete() { if (_pendingDelete) delete this; }
+    virtual void setSearchPath(const char* path)
+    {
+        // record path
+        _searchpath = path ? path : "";
 
-    // internal use - only call from PtexCachedFile, PtexCachedData
-    static void addFile() {}
-    void setFileInUse(PtexLruItem* file);
-    void setFileUnused(PtexLruItem* file);
-    void removeFile();
-    static void addData() {}
-    void setDataInUse(PtexLruItem* data, int size);
-    void setDataUnused(PtexLruItem* data, int size);
-    void removeData(int size);
+        // split into dirs
+        _searchdirs.clear();
 
-    void purgeFiles() {
-	while (_unusedFileCount > _maxFiles) 
-	{
-	    if (!_unusedFiles.pop()) break;
-	    // note: pop will destroy item and item destructor will
-	    // call removeFile which will decrement _unusedFileCount
-	}
-    }
-    void purgeData() {
-        // TODO make this work again
+        if (path) {
+            const char* cp = path;
+            while (1) {
+                const char* delim = strchr(cp, ':');
+                if (!delim) {
+                    if (*cp) _searchdirs.push_back(cp);
+                    break;
+                }
+                int len = int(delim-cp);
+                if (len) _searchdirs.push_back(std::string(cp, len));
+                cp = delim+1;
+            }
+        }
     }
 
-protected:
-    ~PtexCacheImpl();
+    virtual const char* getSearchPath()
+    {
+	return _searchpath.c_str();
+    }
+
+    virtual PtexTexture* get(const char* path, Ptex::String& error);
+
+    // TODO
+    virtual void purge(PtexTexture* /*texture*/) {}
+    virtual void purge(const char* /*filename*/) {}
+    virtual void purgeAll() {}
 
 private:
-    bool _pendingDelete;	             // flag set if delete is pending
-    int _maxFiles, _unusedFileCount;	     // file limit, current unused file count
-    long int _maxDataSize;                   // data limit (bytes)
-    PtexLruList _unusedFiles;                // lists of unused items
+    int _maxFiles;
+    int _maxMem;
+    PtexInputHandler* _io;
+    std::string _searchpath;
+    std::vector<std::string> _searchdirs;
+    typedef PtexHashMap<StringKey,PtexReader*> FileMap;
+    FileMap _files;
+    int _cleanupCount;
+    bool _premultiply;
 };
 
-
-/** Cache entry for open file handle */
-class PtexCachedFile : public PtexLruItem
+class PtexCachedReader : public PtexReader
 {
 public:
-    PtexCachedFile(void** parent, PtexCacheImpl* cache)
-	: PtexLruItem(parent), _cache(cache), _refcount(1)
-    { _cache->addFile(); }
-    void ref() {} // TODO if (!_refcount++) _cache->setFileInUse(this); }
-    void unref() {} // TODO if (!--_refcount) _cache->setFileUnused(this); }
-protected:
-    virtual ~PtexCachedFile() {	_cache->removeFile(); }
-    PtexCacheImpl* _cache;
-private:
-    int _refcount;
+    PtexCachedReader(bool premultiply, PtexInputHandler* handler)
+        : PtexReader(premultiply, handler)
+    {}
+
+    virtual void release() {} // TODO
 };
 
 

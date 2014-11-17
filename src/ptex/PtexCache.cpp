@@ -114,139 +114,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexReader.h"
 #include "PtexCache.h"
 
-PtexCacheImpl::~PtexCacheImpl()
-{
-    // explicitly pop all unused items so that they are 
-    // destroyed while cache is still valid
-    while (_unusedFiles.pop()) continue;
-}
-
-void PtexCacheImpl::setFileInUse(PtexLruItem* file)
-{
-    _unusedFiles.extract(file); 
-    _unusedFileCount--;
-}
-
-void PtexCacheImpl::setFileUnused(PtexLruItem* file)
-{
-    _unusedFiles.push(file);
-    _unusedFileCount++;
-}
-
-void PtexCacheImpl::removeFile()
-{ 
-    // cachelock should be locked, but might not be if cache is being deleted
-    _unusedFileCount--;
-}
-
-/** Cache for reading Ptex texture files */
-class PtexReaderCache : public PtexCacheImpl
-{
-public:
-    PtexReaderCache(int maxFiles, int maxMem, bool premultiply, PtexInputHandler* handler)
-	: PtexCacheImpl(maxFiles, maxMem),
-	  _io(handler), _cleanupCount(0), _premultiply(premultiply)
-    {}
-
-    ~PtexReaderCache()
-    {}
-
-    virtual void setSearchPath(const char* path)
-    {
-        // record path
-        _searchpath = path ? path : "";
-
-        // split into dirs
-        _searchdirs.clear();
-
-        if (path) {
-            const char* cp = path;
-            while (1) {
-                const char* delim = strchr(cp, ':');
-                if (!delim) {
-                    if (*cp) _searchdirs.push_back(cp);
-                    break;
-                }
-                int len = int(delim-cp);
-                if (len) _searchdirs.push_back(std::string(cp, len));
-                cp = delim+1;
-            }
-        }
-    }
-
-    virtual const char* getSearchPath()
-    {
-	return _searchpath.c_str(); 
-    }
-
-    virtual PtexTexture* get(const char* path, Ptex::String& error);
-
-    virtual void purge(PtexTexture* texture)
-    {
-        // Note: we're assuming here that the texture was created from this cache
-        // and is therefore a PtexReader instance.  dynamic_cast would be safer
-        // but we don't want to require rtti.
-	PtexReader* reader = static_cast<PtexReader*>(texture);
-	if (!reader) return;
-	purge(reader->path());
-    }
-
-    virtual void purge(const char* /*filename*/)
-    {
-#if 0 // TODO
-	AutoLockCache locker(cachelock);
-	FileMap::iterator iter = _files.find(filename);
-	if (iter != _files.end()) {
-	    PtexReader* reader = iter->second;
-	    if (reader && intptr_t(reader) != -1) {
-		reader->orphan();
-		iter->second = 0;
-	    }
-	    _files.erase(iter);
-	}
-#endif
-    }
-
-    virtual void purgeAll()
-    {
-#if 0 // TODO
-	AutoLockCache locker(cachelock);
-	FileMap::iterator iter = _files.begin();
-	while (iter != _files.end()) {
-	    PtexReader* reader = iter->second;
-	    if (reader && intptr_t(reader) != -1) {
-		reader->orphan();
-		iter->second = 0;
-	    }
-	    iter = _files.erase(iter);
-	}
-#endif
-    }
-
-
-    void removeBlankEntries()
-    {
-#if 0 // TODO
-	// remove blank file entries to keep map size in check
-	for (FileMap::iterator i = _files.begin(); i != _files.end();) {
-	    if (i->second == 0) i = _files.erase(i);
-	    else i++;
-	}
-#endif
-    }
-
-
-private:
-    PtexInputHandler* _io;
-    std::string _searchpath;
-    std::vector<std::string> _searchdirs;
-    typedef PtexHashMap<StringKey,PtexReader*> FileMap;
-    FileMap _files;
-    int _cleanupCount;
-    bool _premultiply;
-};
-
-
 PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 {
     // lookup reader in map
@@ -255,14 +122,14 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
     if (reader) {
 	// -1 means previous open attempt failed
 	if (intptr_t(reader) == -1) return 0;
-	reader->ref();
+	// TODO reader->ref();
 	return reader;
     }
     else {
 	bool ok = true;
 
 	// make a new reader
-	PtexReader* newreader = new PtexReader(0/*(void**)entry*/, this, _premultiply, _io);
+	PtexReader* newreader = new PtexCachedReader(_premultiply, _io);
 
 	std::string tmppath;
 	const char* pathToOpen = filename;
@@ -299,17 +166,17 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 	if (ok) ok = newreader->open(pathToOpen, error);
 
 	if (!ok) {
-	    // open failed, clear parent ptr and unref to delete
+	    // open failed, delete
             _files.tryInsert(key, (PtexReader*)-1);
-            newreader->unref();
+            delete newreader;
 	    return 0;
 	}
 
 	// successful open, record in _files map entry
         reader = _files.tryInsert(key, newreader);
         if (reader != newreader) {
-            newreader->unref();
-            reader->ref();
+            delete newreader;
+            // TODO: reader->ref();
         }
 
         return reader;
