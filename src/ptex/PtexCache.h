@@ -41,7 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 #include "PtexMutex.h"
 #include "Ptexture.h"
-#include "PtexDict.h"
 
 using namespace PtexInternal;
 
