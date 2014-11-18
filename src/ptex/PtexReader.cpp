@@ -168,15 +168,29 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 }
 
 
+void PtexReader::close()
+{
+    if (_fp) {
+        AutoMutex locker(readlock);
+        if (_fp) {
+            _io->close(_fp);
+            _fp = 0;
+        }
+    }
+}
+
+
 bool PtexReader::reopen()
 {
     if (_fp) return true;
 
+    // we assume this is called lazily in a scope where readlock is already held
     _fp = _io->open(_path.c_str());
     if (!_fp) {
         setError("Can't reopen");
 	return false;
     }
+    _pos = 0;
     Header header;
     ExtHeader extheader;
     readBlock(&header, HeaderSize);
@@ -482,14 +496,15 @@ void PtexReader::readEditMetaData()
 
 bool PtexReader::readBlock(void* data, int size, bool reporterror)
 {
+    if (!_fp) return false;
     int result = (int)_io->read(data, size, _fp);
     if (result == size) {
 	_pos += size;
-	return 1;
+	return true;
     }
     if (reporterror)
 	setError("PtexReader error: read failed (EOF)");
-    return 0;
+    return false;
 }
 
 

@@ -55,7 +55,7 @@ public:
     virtual void release() { delete this; }
     void clear();
     bool open(const char* path, Ptex::String& error);
-    void close() { if (_fp) { _io->close(_fp); _fp = 0; } }
+    void close();
     bool reopen();
     bool ok() const { return _ok; }
     bool isOpen() { return _fp; }
