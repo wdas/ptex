@@ -555,7 +555,7 @@ protected:
     public:
 	ReductionKey() : _val(-1) {}
 	ReductionKey(uint32_t faceid, Res res)
-            : _val( int64_t(faceid)<<32 | (16777619*((res.val()<<16) ^ faceid)) ) {}
+            : _val( int64_t(faceid)<<32 | uint32_t(16777619*((res.val()<<16) ^ faceid)) ) {}
 
         void copy(volatile ReductionKey& key) volatile
         {
