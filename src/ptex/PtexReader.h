@@ -484,6 +484,7 @@ protected:
     {
         char* buffer;
      public:
+        DefaultInputHandler() : buffer(0) {}
         virtual Handle open(const char* path) {
             FILE* fp = fopen(path, "rb");
             if (fp) {

@@ -291,10 +291,14 @@ void PtexReader::readMetaData()
         return;
     }
 
+#if 0
+    // TODO
+
     // compute total size (including edit blocks) for cache tracking
     int totalsize = _header.metadatamemsize;
     for (size_t i = 0, size = _metaedits.size(); i < size; i++)
 	totalsize += _metaedits[i].memsize;
+#endif
 
     // allocate new meta data (keep local until fully initialized)
     MetaData* newmeta = new MetaData(this);
