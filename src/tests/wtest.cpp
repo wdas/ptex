@@ -172,6 +172,7 @@ int main(int /*argc*/, char** /*argv*/)
     w->release();
     if (!checkMeta("test.ptx", sval, dvals, ndvals, ivals, nivals, xval))
 	return 1;
+    free(dvals);
 
     return 0;
 }
