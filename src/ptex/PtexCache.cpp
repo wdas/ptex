@@ -118,18 +118,15 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 {
     // lookup reader in map
     StringKey key(filename);
-    PtexReader* reader = _files.get(key);
+    PtexCachedReader* reader = _files.get(key);
     if (reader) {
-	// -1 means previous open attempt failed
-	if (intptr_t(reader) == -1) return 0;
 	// TODO reader->ref();
-	return reader;
     }
     else {
 	bool ok = true;
 
 	// make a new reader
-	PtexReader* newreader = new PtexCachedReader(_premultiply, _io);
+	PtexCachedReader* newreader = new PtexCachedReader(_premultiply, _io);
 
 	std::string tmppath;
 	const char* pathToOpen = filename;
@@ -163,7 +160,7 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 		}
 	    }
 	}
-	newreader->open(pathToOpen, error);
+        if (ok) newreader->open(pathToOpen, error);
 
 	// record in _files map entry (even if open failed)
         reader = _files.tryInsert(key, newreader);
@@ -171,9 +168,10 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
             // another thread got here first
             delete newreader;
         }
-
-        return reader;
     }
+
+    if (!reader->ok()) return 0;
+    return reader;
 }
 
 PtexCache* PtexCache::create(int maxFiles, int maxMem, bool premultiply,

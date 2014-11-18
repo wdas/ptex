@@ -45,6 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 using namespace PtexInternal;
 
+class PtexCachedReader;
+
 /** Cache for reading Ptex texture files */
 class PtexReaderCache : public PtexCache
 {
@@ -99,7 +101,7 @@ private:
     PtexInputHandler* _io;
     std::string _searchpath;
     std::vector<std::string> _searchdirs;
-    typedef PtexHashMap<StringKey,PtexReader*> FileMap;
+    typedef PtexHashMap<StringKey,PtexCachedReader*> FileMap;
     FileMap _files;
     int _cleanupCount;
     bool _premultiply;

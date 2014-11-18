@@ -51,9 +51,11 @@ using namespace PtexInternal;
 class PtexReader : public PtexTexture, public PtexIO {
 public:
     PtexReader(bool premultiply, PtexInputHandler* handler);
-    virtual ~PtexReader();
+    virtual ~PtexReader() { clear(); }
     virtual void release() { delete this; }
     bool open(const char* path, Ptex::String& error);
+    void clear();
+    bool ok() const { return _ok; }
 
     virtual const char* path() { return _path.c_str(); }
     virtual Ptex::MeshType meshType() { return MeshType(_header.meshtype); }
@@ -581,6 +583,7 @@ protected:
     ReductionMap _reductions;
 
     z_stream_s _zstream;
+    bool _inflateInitialized;
 };
 
 #endif
