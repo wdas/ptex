@@ -441,6 +441,7 @@ protected:
     FilePos tell() { return _pos; }
     void seek(FilePos pos)
     {
+        if (!_fp && !reopen()) return;
 	if (pos != _pos) {
 	    _io->seek(_fp, pos);
 	    _pos = pos;
