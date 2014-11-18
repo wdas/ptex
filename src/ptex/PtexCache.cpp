@@ -163,20 +163,13 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 		}
 	    }
 	}
-	if (ok) ok = newreader->open(pathToOpen, error);
+	newreader->open(pathToOpen, error);
 
-	if (!ok) {
-	    // open failed, delete
-            _files.tryInsert(key, (PtexReader*)-1);
-            delete newreader;
-	    return 0;
-	}
-
-	// successful open, record in _files map entry
+	// record in _files map entry (even if open failed)
         reader = _files.tryInsert(key, newreader);
         if (reader != newreader) {
+            // another thread got here first
             delete newreader;
-            // TODO: reader->ref();
         }
 
         return reader;

@@ -7,7 +7,7 @@
 int main(int argc, char** argv)
 {
     int maxmem = argc >= 2 ? atoi(argv[1]) : 1024*1024;
-    PtexCache* c = PtexCache::create(0, maxmem);
+    PtexPtr<PtexCache> c(PtexCache::create(0, maxmem));
 
     Ptex::String error;
     PtexPtr<PtexTexture> r ( c->get("test.ptx", error) );

@@ -142,6 +142,7 @@ int main(int /*argc*/, char** /*argv*/)
 	}
         r->getData(i, data, 0, Ptex::Res(0,0));
 	DumpData(res, r->dataType(), r->numChannels(), data, "  ");
+        free(data);
 
 	// Read more channels than are available.
 	// This should wipe pixel with zeroes and nothing more.
