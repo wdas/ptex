@@ -572,15 +572,7 @@ void PtexReader::readLevel(int levelid, Level*& level)
 
 void PtexReader::readFace(int levelid, Level* level, int faceid, Ptex::Res res)
 {
-    // get read lock and make sure we still need to read
     FaceData*& face = level->faces[faceid];
-    AutoMutex locker(readlock);
-
-    if (face) {
-        return;
-    }
-
-    // Go ahead and read the face
     FaceDataHeader fdh = level->fdh[faceid];
     readFaceData(level->offsets[faceid], fdh, res, levelid, face);
 }
@@ -588,13 +580,6 @@ void PtexReader::readFace(int levelid, Level* level, int faceid, Ptex::Res res)
 
 void PtexReader::TiledFace::readTile(int tile, FaceData*& data)
 {
-    // get read lock and make sure we still need to read
-    AutoMutex locker(_reader->readlock);
-    if (data) {
-        return;
-    }
-
-    // go ahead and read the face data
     _reader->readFaceData(_offsets[tile], _fdh[tile], _tileres, _levelid, data);
 }
 
@@ -602,6 +587,11 @@ void PtexReader::TiledFace::readTile(int tile, FaceData*& data)
 void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int levelid,
 			      FaceData*& face)
 {
+    AutoMutex locker(readlock);
+    if (face) {
+        return;
+    }
+
     // keep new face local until fully initialized
     FaceData* newface = 0;
 
