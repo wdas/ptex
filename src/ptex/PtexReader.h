@@ -53,8 +53,8 @@ public:
     PtexReader(bool premultiply, PtexInputHandler* handler);
     virtual ~PtexReader() { clear(); }
     virtual void release() { delete this; }
-    bool open(const char* path, Ptex::String& error);
     void clear();
+    bool open(const char* path, Ptex::String& error);
     bool ok() const { return _ok; }
 
     virtual const char* path() { return _path.c_str(); }

@@ -55,6 +55,55 @@ PtexTexture* PtexTexture::open(const char* path, Ptex::String& error, bool premu
 }
 
 
+PtexReader::PtexReader(bool premultiply, PtexInputHandler* io)
+    : _io(io ? io : &_defaultIo),
+      _premultiply(premultiply),
+      _ok(true),
+      _fp(0),
+      _pos(0),
+      _pixelsize(0),
+      _constdata(0),
+      _metadata(0),
+      _hasEdits(false)
+{
+    memset(&_header, 0, sizeof(_header));
+    memset(&_zstream, 0, sizeof(_zstream));
+    inflateInit(&_zstream);
+    _inflateInitialized = true;
+}
+
+
+void PtexReader::clear()
+{
+    if (_fp) {
+        _io->close(_fp);
+        _fp = 0;
+    }
+
+    if (_constdata) {
+        free(_constdata);
+        _constdata = 0;
+    }
+
+    for (std::vector<Level*>::iterator i = _levels.begin(); i != _levels.end(); ++i) {
+        if (*i) delete *i;
+    }
+    _levels.clear();
+
+    if (_metadata) {
+	delete _metadata;
+	_metadata = 0;
+    }
+
+    if (_inflateInitialized) {
+        inflateEnd(&_zstream);
+        _inflateInitialized = false;
+    }
+
+    _ok = false;
+}
+
+
 bool PtexReader::open(const char* path, Ptex::String& error)
 {
     if (!LittleEndian()) {
@@ -116,55 +165,6 @@ bool PtexReader::open(const char* path, Ptex::String& error)
     }
 
     return 1;
-}
-
-
-PtexReader::PtexReader(bool premultiply, PtexInputHandler* io)
-    : _io(io ? io : &_defaultIo),
-      _premultiply(premultiply),
-      _ok(true),
-      _fp(0),
-      _pos(0),
-      _pixelsize(0),
-      _constdata(0),
-      _metadata(0),
-      _hasEdits(false)
-{
-    memset(&_header, 0, sizeof(_header));
-    memset(&_zstream, 0, sizeof(_zstream));
-    inflateInit(&_zstream);
-    _inflateInitialized = true;
-}
-
-
-void PtexReader::clear()
-{
-    if (_fp) {
-        _io->close(_fp);
-        _fp = 0;
-    }
-
-    if (_constdata) {
-        free(_constdata);
-        _constdata = 0;
-    }
-
-    for (std::vector<Level*>::iterator i = _levels.begin(); i != _levels.end(); ++i) {
-        if (*i) delete *i;
-    }
-    _levels.clear();
-
-    if (_metadata) {
-	delete _metadata;
-	_metadata = 0;
-    }
-
-    if (_inflateInitialized) {
-        inflateEnd(&_zstream);
-        _inflateInitialized = false;
-    }
-
-    _ok = false;
 }
 
 
