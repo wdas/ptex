@@ -55,7 +55,10 @@ public:
     virtual void release() { delete this; }
     void clear();
     bool open(const char* path, Ptex::String& error);
+    void close() { if (_fp) { _io->close(_fp); _fp = 0; } }
+    bool reopen();
     bool ok() const { return _ok; }
+    bool isOpen() { return _fp; }
 
     virtual const char* path() { return _path.c_str(); }
     virtual Ptex::MeshType meshType() { return MeshType(_header.meshtype); }

@@ -168,6 +168,30 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 }
 
 
+bool PtexReader::reopen()
+{
+    if (_fp) return true;
+
+    _fp = _io->open(_path.c_str());
+    if (!_fp) {
+        setError("Can't reopen");
+	return false;
+    }
+    Header header;
+    ExtHeader extheader;
+    readBlock(&header, HeaderSize);
+    memset(&extheader, 0, sizeof(extheader));
+    readBlock(&extheader, PtexUtils::min(uint32_t(ExtHeaderSize), header.extheadersize));
+    if (0 != memcmp(&header, &_header, sizeof(header)) ||
+        0 != memcmp(&extheader, &_extheader, sizeof(extheader)))
+    {
+        setError("Header mismatch on reopen of");
+	return false;
+    }
+    return true;
+}
+
+
 const Ptex::FaceInfo& PtexReader::getFaceInfo(int faceid)
 {
     if (faceid >= 0 && uint32_t(faceid) < _faceinfo.size())
