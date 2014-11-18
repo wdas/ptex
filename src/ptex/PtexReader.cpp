@@ -788,84 +788,6 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 }
 
 
-void PtexReader::blendFaces(FaceData*& face, int faceid, Res res, bool blendu)
-{
-    Res pres;   // parent res, 1 higher in blend direction
-    int length; // length of blend edge (1xN or Nx1)
-    int e1, e2; // neighboring edge ids
-    if (blendu) {
-	assert(res.ulog2 < 0); // res >= 0 requires reduction, not blending
-	length = (res.vlog2 <= 0 ? 1 : res.v());
-	e1 = e_bottom; e2 = e_top;
-	pres = Res((int8_t)(res.ulog2+1), (int8_t)res.vlog2);
-    }
-    else {
-	assert(res.vlog2 < 0);
-	length = (res.ulog2 <= 0 ? 1 : res.u());
-	e1 = e_right; e2 = e_left;
-	pres = Res((int8_t)res.ulog2, (int8_t)(res.vlog2+1));
-    }
-
-    // get neighbor face ids
-    FaceInfo& f = _faceinfo[faceid];
-    int nf1 = f.adjfaces[e1], nf2 = f.adjfaces[e2];
-
-    // compute rotation of faces relative to current
-    int r1 = (f.adjedge(e1)-e1+2)&3;
-    int r2 = (f.adjedge(e2)-e2+2)&3;
-
-    // swap u and v res for faces rotated +/- 90 degrees
-    Res pres1 = pres, pres2 = pres;
-    if (r1 & 1) pres1.swapuv();
-    if (r2 & 1) pres2.swapuv();
-
-    // ignore faces that have insufficient res (unlikely, but possible)
-    if (nf1 >= 0 && !(_faceinfo[nf1].res >= pres)) nf1 = -1;
-    if (nf2 >= 0 && !(_faceinfo[nf2].res >= pres)) nf2 = -1;
-
-    // get parent face data
-    int nf = 1;			// number of faces to blend (1 to 3)
-    bool flip[3];		// true if long dimension needs to be flipped
-    PtexFaceData* psrc[3];	// the face data
-    psrc[0] = getData(faceid, pres);
-    flip[0] = 0;		// don't flip main face
-    if (nf1 >= 0) {
-	// face must be flipped if rot is 1 or 2 for blendu, or 2 or 3 for blendv
-	// thus, just add the blendu bool val to align the ranges and check bit 1
-	// also, no need to flip if length is zero
-	flip[nf] = length ? (r1 + blendu) & 1 : 0;
-	psrc[nf++] = getData(nf1, pres1);
-    }
-    if (nf2 >= 0) {
-	flip[nf] = length ? (r2 + blendu) & 1 : 0;
-	psrc[nf++] = getData(nf2, pres2);
-    }
-
-    // allocate a new face data (1 x N or N x 1)
-    DataType dt = datatype();
-    int nchan = nchannels();
-    int size = _pixelsize * length;
-    PackedFace* pf = new PackedFace(res, _pixelsize, size);
-    void* data = pf->getData();
-    if (nf == 1) {
-	// no neighbors - just copy face
-	memcpy(data, psrc[0]->getData(), size);
-    }
-    else {
-	float weight = 1.0f / (float)nf;
-	memset(data, 0, size);
-	for (int i = 0; i < nf; i++)
-	    PtexUtils::blend(psrc[i]->getData(), weight, data, flip[i],
-			     length, dt, nchan);
-    }
-
-    face = pf;
-
-    // release parent data
-    for (int i = 0; i < nf; i++) psrc[i]->release();
-}
-
-
 void PtexReader::getPixel(int faceid, int u, int v,
 			  float* result, int firstchan, int nchannels)
 {
@@ -970,11 +892,10 @@ PtexReader::FaceData* PtexReader::TiledFaceBase::reduce(PtexReader* r,
     // keep new face local until fully initialized
     FaceData* newface = 0;
 
-    // don't tile if either dimension is 1 (rare, would complicate blendFaces too much)
-    // also, don't tile triangle reductions (too complicated)
+    // don't tile triangle reductions (too complicated)
     Res newtileres;
     bool isTriangle = r->_header.meshtype == mt_triangle;
-    if (newres.ulog2 == 1 || newres.vlog2 == 1 || isTriangle) {
+    if (isTriangle) {
 	newtileres = newres;
     }
     else {

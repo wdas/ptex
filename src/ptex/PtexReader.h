@@ -479,7 +479,6 @@ protected:
 	FilePos* end = offsets + noffsets;
 	while (offsets != end) { *offsets++ = pos; pos += fdh->blocksize(); fdh++; }
     }
-    void blendFaces(FaceData*& face, int faceid, Res res, bool blendu);
 
     class DefaultInputHandler : public PtexInputHandler
     {
