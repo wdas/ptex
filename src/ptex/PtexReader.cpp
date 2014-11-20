@@ -357,6 +357,7 @@ void PtexReader::readMetaData()
 			  _metaedits[i].zipsize, _metaedits[i].memsize);
 
     // store meta data
+    MemoryFence();
     _metadata = newmeta;
 
 }

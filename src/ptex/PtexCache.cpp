@@ -120,9 +120,8 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
     StringKey key(filename);
     PtexCachedReader* reader = _files.get(key);
     if (reader) {
-	// TODO reader->ref();
-    }
-    else {
+        reader->ref();
+    } else {
 	bool ok = true;
 
 	// make a new reader
@@ -166,6 +165,8 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
         reader = _files.tryInsert(key, newreader);
         if (reader != newreader) {
             // another thread got here first
+            reader->ref();
+            newreader->unref();
             delete newreader;
         }
     }

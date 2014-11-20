@@ -156,12 +156,12 @@ namespace PtexInternal {
      */
 
 #if defined(WINDOWS)
-    inline void AtomicIncrement(volatile uint32_t* target)
+    inline void AtomicIncrement(volatile int32_t* target)
     {
         InterlockedIncrement(target);
     }
 
-    inline void AtomicDecrement(volatile uint32_t* target)
+    inline void AtomicDecrement(volatile int32_t* target)
     {
         InterlockedDecrement(target);
     }
@@ -183,14 +183,20 @@ namespace PtexInternal {
         return __sync_lock_test_and_set(target, value);
     }
 
-    inline void AtomicIncrement(volatile uint32_t* target)
+    inline void AtomicIncrement(volatile int32_t* target)
     {
         __sync_fetch_and_add(target, 1);
     }
 
-    inline void AtomicDecrement(volatile uint32_t* target)
+    inline void AtomicDecrement(volatile int32_t* target)
     {
         __sync_fetch_and_sub(target, 1);
+    }
+
+    template <typename T>
+    inline bool AtomicCompareAndSwap(T volatile* target, T oldvalue, T newvalue)
+    {
+        return __sync_bool_compare_and_swap(target, oldvalue, newvalue);
     }
 
     template <typename T>

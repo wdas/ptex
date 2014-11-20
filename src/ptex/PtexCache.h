@@ -90,7 +90,8 @@ public:
 
     virtual PtexTexture* get(const char* path, Ptex::String& error);
 
-    // TODO
+    // TODO - make new dummy textures, put inuse textures in deadpool when purging
+    //      - but what about effect on stats?
     virtual void purge(PtexTexture* /*texture*/) {}
     virtual void purge(const char* /*filename*/) {}
     virtual void purgeAll() {}
@@ -109,12 +110,32 @@ private:
 
 class PtexCachedReader : public PtexReader
 {
+    volatile int32_t _refCount;
+    volatile bool _recentlyUsed;
+
 public:
     PtexCachedReader(bool premultiply, PtexInputHandler* handler)
-        : PtexReader(premultiply, handler)
+        : PtexReader(premultiply, handler), _refCount(1), _recentlyUsed(true)
     {}
 
-    virtual void release() {} // TODO
+    ~PtexCachedReader() { assert(_refCount == 0); }
+
+    void ref() {
+        while (1) {
+            int32_t oldCount = _refCount;
+            if (oldCount >= 0 && AtomicCompareAndSwap(&_refCount, oldCount, oldCount+1))
+                return;
+        }
+    }
+
+    void unref() {
+        AtomicDecrement(&_refCount);
+        _recentlyUsed = true;
+    }
+
+    virtual void release() {
+        unref();
+    }
 };
 
 
