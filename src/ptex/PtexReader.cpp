@@ -1068,7 +1068,7 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
     if (allConstant) {
 	// allocate a new constant face
 	newface = new ConstantFace(_pixelsize);
-	memcpy(face->getData(), tiles[0]->getData(), _pixelsize);
+	memcpy(newface->getData(), tiles[0]->getData(), _pixelsize);
     }
     else {
 	// allocate a new packed face for the tile
