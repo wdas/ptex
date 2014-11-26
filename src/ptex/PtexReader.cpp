@@ -122,12 +122,14 @@ bool PtexReader::open(const char* path, Ptex::String& error)
     if (_header.magic != Magic) {
 	std::string errstr = "Not a ptex file: "; errstr += path;
 	error = errstr.c_str();
+        clear();
 	return 0;
     }
     if (_header.version != 1) {
         std::stringstream s;
         s << "Unsupported ptex file version ("<< _header.version << "): " << path;
         error = s.str();
+        clear();
         return 0;
     }
     _pixelsize = _header.pixelSize();
@@ -164,6 +166,7 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 	return 0;
     }
 
+    logOpen();
     return 1;
 }
 
@@ -200,8 +203,10 @@ bool PtexReader::reopen()
         0 != memcmp(&extheader, &_extheader, sizeof(extheader)))
     {
         setError("Header mismatch on reopen of");
+        clear();
 	return false;
     }
+    logOpen();
     return true;
 }
 
@@ -497,10 +502,12 @@ void PtexReader::readEditMetaData()
 
 bool PtexReader::readBlock(void* data, int size, bool reporterror)
 {
+    assert(_fp);
     if (!_fp) return false;
     int result = (int)_io->read(data, size, _fp);
     if (result == size) {
 	_pos += size;
+        setIoTimestamp();
 	return true;
     }
     if (reporterror)

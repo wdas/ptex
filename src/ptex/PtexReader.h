@@ -432,6 +432,9 @@ public:
     Mutex readlock;
 
 protected:
+    virtual void logOpen() {}
+    virtual void setIoTimestamp() {}
+
     void setError(const char* error)
     {
 	_error = error; _error += " PtexFile: "; _error += _path;
