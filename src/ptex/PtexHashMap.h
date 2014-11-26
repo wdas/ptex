@@ -185,8 +185,8 @@ public:
 
     Value get(Key& key)
     {
-        Entry* entries = getEntries();
         uint32_t mask = _numEntries-1;
+        Entry* entries = getEntries();
         uint32_t hash = key.hash();
 
         Value result = 0;
