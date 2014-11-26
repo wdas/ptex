@@ -231,6 +231,16 @@ public:
         return result;
     }
 
+    template <typename Fn>
+    void foreach(Fn& fn)
+    {
+        Entry* entries = getEntries();
+        for (uint32_t i = 0; i < _numEntries; ++i) {
+            Value v = entries[i].value;
+            if (v) fn(v);
+        }
+    }
+
 private:
     Entry* getEntries()
     {
