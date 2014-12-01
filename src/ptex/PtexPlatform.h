@@ -183,14 +183,14 @@ namespace PtexInternal {
         return __sync_lock_test_and_set(target, value);
     }
 
-    inline void AtomicIncrement(volatile int32_t* target)
+    inline int32_t AtomicIncrement(volatile int32_t* target)
     {
-        __sync_fetch_and_add(target, 1);
+        return __sync_add_and_fetch(target, 1);
     }
 
-    inline void AtomicDecrement(volatile int32_t* target)
+    inline int32_t AtomicDecrement(volatile int32_t* target)
     {
-        __sync_fetch_and_sub(target, 1);
+        return __sync_sub_and_fetch(target, 1);
     }
 
     template <typename T>
