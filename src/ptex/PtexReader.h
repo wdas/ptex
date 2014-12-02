@@ -445,6 +445,7 @@ protected:
     void seek(FilePos pos)
     {
         if (!_fp && !reopen()) return;
+        setIoTimestamp();
 	if (pos != _pos) {
 	    _io->seek(_fp, pos);
 	    _pos = pos;

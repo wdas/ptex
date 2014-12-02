@@ -507,7 +507,6 @@ bool PtexReader::readBlock(void* data, int size, bool reporterror)
     int result = (int)_io->read(data, size, _fp);
     if (result == size) {
 	_pos += size;
-        setIoTimestamp();
 	return true;
     }
     if (reporterror)
