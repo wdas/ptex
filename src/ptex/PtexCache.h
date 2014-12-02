@@ -52,7 +52,8 @@ class PtexReaderCache : public PtexCache
 {
 public:
     PtexReaderCache(int maxFiles, int maxMem, bool premultiply, PtexInputHandler* handler)
-	: _maxFiles(maxFiles), _maxMem(maxMem), _io(handler), _cleanupCount(0), _premultiply(premultiply)
+	: _maxFiles(maxFiles), _maxMem(maxMem), _io(handler), _premultiply(premultiply),
+          _pruneOpenLock(0), _ioTimeStamp(0)
     {}
 
     ~PtexReaderCache()
@@ -96,6 +97,12 @@ public:
     virtual void purge(const char* /*filename*/) {}
     virtual void purgeAll() {}
 
+    void logOpen(PtexCachedReader* reader);
+    int32_t ioTimeStamp() const { return _ioTimeStamp; }
+    int32_t nextIoTimeStamp() { return AtomicIncrement(&_ioTimeStamp); }
+
+    void pruneOpenFiles();
+
 private:
     int _maxFiles;
     int _maxMem;
@@ -104,19 +111,44 @@ private:
     std::vector<std::string> _searchdirs;
     typedef PtexHashMap<StringKey,PtexCachedReader*> FileMap;
     FileMap _files;
-    int _cleanupCount;
     bool _premultiply;
+    volatile int32_t _pruneOpenLock;
+    volatile int32_t _ioTimeStamp;
+    struct OpenFile {
+        PtexCachedReader* reader;
+        uint32_t ioAge;
+    };
+    static bool compareIoAge(OpenFile a, OpenFile b) { return a.ioAge < b.ioAge; }
+
+    std::vector<OpenFile> _openFiles;
+    SpinLock _logOpenLock;
 };
 
 class PtexCachedReader : public PtexReader
 {
+    PtexReaderCache* _cache;
     volatile int32_t _refCount;
     volatile bool _recentlyUsed;
+    int32_t _ioTimeStamp;
+
+    virtual void logOpen()
+    {
+        _cache->logOpen(this);
+    }
+
+    virtual void setIoTimestamp()
+    {
+        if (_ioTimeStamp !=_cache->ioTimeStamp()) {
+            _ioTimeStamp = _cache->nextIoTimeStamp();
+        }
+    }
 
 public:
-    PtexCachedReader(bool premultiply, PtexInputHandler* handler)
-        : PtexReader(premultiply, handler), _refCount(1), _recentlyUsed(true)
-    {}
+    PtexCachedReader(bool premultiply, PtexInputHandler* handler, PtexReaderCache* cache)
+        : PtexReader(premultiply, handler), _cache(cache), _refCount(1), _recentlyUsed(true)
+    {
+        _ioTimeStamp = cache->nextIoTimeStamp();
+    }
 
     ~PtexCachedReader() { assert(_refCount == 0); }
 
@@ -144,6 +176,8 @@ public:
     virtual void release() {
         unref();
     }
+
+    uint32_t ioAge() { return _cache->ioTimeStamp() - _ioTimeStamp; }
 };
 
 

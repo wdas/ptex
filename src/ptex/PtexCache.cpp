@@ -105,6 +105,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
  */
 
 #include "PtexPlatform.h"
+#include <algorithm>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdlib.h>
@@ -125,7 +126,7 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 	bool ok = true;
 
 	// make a new reader
-	PtexCachedReader* newreader = new PtexCachedReader(_premultiply, _io);
+	PtexCachedReader* newreader = new PtexCachedReader(_premultiply, _io, this);
 
 	std::string tmppath;
 	const char* pathToOpen = filename;
@@ -159,7 +160,9 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 		}
 	    }
 	}
-        if (ok) newreader->open(pathToOpen, error);
+        if (ok) {
+            newreader->open(pathToOpen, error);
+        }
 
 	// record in _files map entry (even if open failed)
         reader = _files.tryInsert(key, newreader);
@@ -197,3 +200,58 @@ PtexCache* PtexCache::create(int maxFiles, int maxMem, bool premultiply,
 }
 
 
+void PtexReaderCache::logOpen(PtexCachedReader* reader)
+{
+    bool shouldPrune;
+    {
+        AutoSpin locker(_logOpenLock);
+        _openFiles.resize(_openFiles.size()+1);
+        _openFiles.back().reader = reader;
+        shouldPrune = _openFiles.size() >= _maxFiles + 16;
+    }
+    if (shouldPrune) {
+        pruneOpenFiles();
+    }
+}
+
+void PtexReaderCache::pruneOpenFiles()
+{
+    if (_pruneOpenLock != 0 || !AtomicCompareAndSwap(&_pruneOpenLock, 0, 1)) return;
+
+    int numToClose = _openFiles.size() - _maxFiles;
+    if (numToClose > 0) {
+        std::vector<OpenFile> tmpOpenFiles;
+        {
+            AutoSpin locker(_logOpenLock);
+            std::swap(tmpOpenFiles, _openFiles);
+        }
+
+        for (std::vector<OpenFile>::iterator iter = tmpOpenFiles.begin(); iter != tmpOpenFiles.end(); ++iter) {
+            iter->ioAge = iter->reader->ioAge();
+        }
+        std::nth_element(tmpOpenFiles.begin(), tmpOpenFiles.end() - numToClose, tmpOpenFiles.end(), compareIoAge);
+        std::vector<OpenFile> keep;
+
+        while (numToClose && !tmpOpenFiles.empty()) {
+            OpenFile file = tmpOpenFiles.back();
+            tmpOpenFiles.pop_back();
+            if (file.reader->tryLock()) {
+                file.reader->close();
+                file.reader->unlock();
+                numToClose--;
+            }
+            else {
+                keep.push_back(file);
+            }
+        }
+        std::copy(keep.begin(), keep.end(), std::back_inserter(tmpOpenFiles));
+        {
+            AutoSpin locker(_logOpenLock);
+            std::copy(_openFiles.begin(), _openFiles.end(), std::back_inserter(tmpOpenFiles));
+            std::swap(tmpOpenFiles, _openFiles);
+        }
+    }
+
+    MemoryFence();
+    _pruneOpenLock = 0;
+}
