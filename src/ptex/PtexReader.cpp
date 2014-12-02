@@ -166,7 +166,6 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 	return 0;
     }
 
-    logOpen();
     return 1;
 }
 

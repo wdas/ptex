@@ -169,6 +169,9 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
             newreader->unref();
             delete newreader;
         }
+        else {
+            logOpen(reader);
+        }
     }
 
     if (!reader->ok()) return 0;
