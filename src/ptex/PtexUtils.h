@@ -79,6 +79,17 @@ struct PtexUtils : public Ptex {
 	return ones(x>>1) + !isPow2;
     }
 
+    static float reciprocalPow2(int power)
+    {
+        // 1.0/pow(2,power)
+        union {
+            float f;
+            int32_t i;
+        } u;
+        u.i = (127-power)<<23;
+        return u.f;
+    }
+
     static int calcResFromWidth(float w)
     {
         // read exponent directly from float32 representation

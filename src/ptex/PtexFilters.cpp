@@ -144,7 +144,7 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	// build 1 axis (note: "u" labels may repesent either u or v axis)
 
 	// clamp filter width to no smaller than a texel
-	uw = PtexUtils::max(uw, 1.0f/(float)(1<<f_ureslog2));
+	uw = PtexUtils::max(uw, PtexUtils::reciprocalPow2(f_ureslog2));
 
 	// compute desired texture res based on filter width
 	k_ureslog2 = (int8_t)PtexUtils::calcResFromWidth(uw);
@@ -323,8 +323,8 @@ class PtexBoxFilter : public PtexSeparableFilter
 	vw = PtexUtils::min(vw, 1.0f);
 
 	// clamp filter width to no smaller than a texel
-	uw = PtexUtils::max(uw, 1.0f/((float)faceRes.u()));
-	vw = PtexUtils::max(vw, 1.0f/((float)faceRes.v()));
+	uw = PtexUtils::max(uw, PtexUtils::reciprocalPow2(faceRes.ulog2));
+	vw = PtexUtils::max(vw, PtexUtils::reciprocalPow2(faceRes.vlog2));
 
 	// compute desired texture res based on filter width
 	uint8_t ureslog2 = (uint8_t)PtexUtils::calcResFromWidth(uw);
@@ -387,8 +387,8 @@ class PtexBilinearFilter : public PtexSeparableFilter
 	vw = PtexUtils::min(vw, 1.0f);
 
 	// clamp filter width to no smaller than a texel
-	uw = PtexUtils::max(uw, 1.0f/((float)faceRes.u()));
-	vw = PtexUtils::max(vw, 1.0f/((float)faceRes.v()));
+	uw = PtexUtils::max(uw, PtexUtils::reciprocalPow2(faceRes.ulog2));
+	vw = PtexUtils::max(vw, PtexUtils::reciprocalPow2(faceRes.vlog2));
 
 	uint8_t ureslog2 = (uint8_t)PtexUtils::calcResFromWidth(uw);
 	uint8_t vreslog2 = (uint8_t)PtexUtils::calcResFromWidth(vw);
