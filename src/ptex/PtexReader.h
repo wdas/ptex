@@ -429,8 +429,6 @@ public:
         }
     };
 
-    Mutex readlock;
-
 protected:
     virtual void logOpen() {}
     virtual void setIoTimestamp() {}
@@ -515,6 +513,7 @@ protected:
         virtual const char* lastError() { return strerror(errno); }
     };
 
+    Mutex readlock;
     DefaultInputHandler _defaultIo;   // Default IO handler
     PtexInputHandler* _io;	      // IO handler
     bool _premultiply;		      // true if reader should premultiply the alpha chan
