@@ -110,16 +110,13 @@ struct PtexUtils : public Ptex {
     }
 
     template<typename T>
-    static T cond(bool c, T a, T b) { return (T)((T)c * a + (T)!c * b); }
+    static T min(T a, T b) { return a < b ? a : b; }
 
     template<typename T>
-    static T min(T a, T b) { return cond(a < b, a, b); }
+    static T max(T a, T b) { return a > b ? a : b; }
 
     template<typename T>
-    static T max(T a, T b) { return cond(a >= b, a, b); }
-
-    template<typename T>
-    static T clamp(T x, T lo, T hi) { return cond(x < lo, lo, cond(x > hi, hi, x)); }
+    static T clamp(T x, T lo, T hi) { return min(max(x,lo),hi); }
 
     static bool isConstant(const void* data, int stride, int ures, int vres, 
 			   int pixelSize);
