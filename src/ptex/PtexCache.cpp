@@ -207,7 +207,7 @@ void PtexReaderCache::logOpen(PtexCachedReader* reader)
         AutoSpin locker(_logOpenLock);
         _openFiles.resize(_openFiles.size()+1);
         _openFiles.back().reader = reader;
-        shouldPrune = _openFiles.size() >= _maxFiles + 16;
+        shouldPrune = _openFiles.size() >= size_t(_maxFiles + 16);
     }
     if (shouldPrune) {
         pruneOpenFiles();
