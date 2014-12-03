@@ -204,7 +204,6 @@ bool PtexReader::reopen()
         0 != memcmp(&extheader, &_extheader, sizeof(extheader)))
     {
         setError("Header mismatch on reopen of");
-        clear();
 	return false;
     }
     logOpen();
