@@ -235,12 +235,9 @@ void PtexReaderCache::pruneOpenFiles()
         while (numToClose && !tmpOpenFiles.empty()) {
             OpenFile file = tmpOpenFiles.back();
             tmpOpenFiles.pop_back();
-            if (file.reader->tryLock()) {
-                file.reader->close();
-                file.reader->unlock();
+            if (file.reader->tryClose()) {
                 numToClose--;
-            }
-            else {
+            } else {
                 keep.push_back(file);
             }
         }

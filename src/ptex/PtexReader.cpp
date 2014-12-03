@@ -170,15 +170,17 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 }
 
 
-void PtexReader::close()
+bool PtexReader::tryClose()
 {
     if (_fp) {
-        AutoMutex locker(readlock);
+        if (!readlock.trylock()) return false;
         if (_fp) {
             _io->close(_fp);
             _fp = 0;
         }
+        readlock.unlock();
     }
+    return true;
 }
 
 

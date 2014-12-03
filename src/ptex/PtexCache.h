@@ -152,14 +152,6 @@ public:
 
     ~PtexCachedReader() { assert(_refCount == 0); }
 
-    bool tryLock() {
-        return AtomicCompareAndSwap(&_refCount, 0, -1);
-    }
-
-    void unlock() {
-        _refCount = 0;
-    }
-
     void ref() {
         while (1) {
             int32_t oldCount = _refCount;
