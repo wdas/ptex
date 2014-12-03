@@ -161,8 +161,8 @@ public:
     }
 
     void unref() {
-        AtomicDecrement(&_refCount);
         _recentlyUsed = true;
+        AtomicDecrement(&_refCount);
     }
 
     virtual void release() {
