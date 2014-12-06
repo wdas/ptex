@@ -243,7 +243,6 @@ public:
 	typedef std::map<std::string, Entry> MetaMap;
 	MetaMap _map;
 	std::vector<Entry*> _entries;
-	std::vector<LargeMetaData*> _lmdRefs;
     };
 
 

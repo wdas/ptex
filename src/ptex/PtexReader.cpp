@@ -300,8 +300,6 @@ PtexReader::MetaData::getEntry(const char* key)
 
     // large meta data - may not be read in yet
     if (e->lmdData) {
-	// already in memory, add a ref
-	_lmdRefs.push_back(e->lmdData);
 	return e;
     }
     else {
@@ -310,8 +308,6 @@ PtexReader::MetaData::getEntry(const char* key)
 	// get read lock and make sure we still need to read
 	AutoMutex locker(_reader->readlock);
 	if (e->lmdData) {
-            e->data = e->lmdData->data();
-            _lmdRefs.push_back(e->lmdData);
             return e;
 	}
 	// go ahead and read, keep local until finished
