@@ -727,6 +727,8 @@ class PtexCache {
         active PtexTexture* handles remain open until released.
      */
     virtual void purgeAll() = 0;
+
+    virtual size_t memUsed() = 0;
 };
 
 

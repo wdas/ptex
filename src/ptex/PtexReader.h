@@ -59,6 +59,8 @@ public:
     bool reopen();
     bool ok() const { return _ok; }
     bool isOpen() { return _fp; }
+    size_t memUsed() { return _memUsed; }
+    void increaseMemUsed(size_t amount) { if (amount) AtomicAdd(&_memUsed, amount); }
 
     virtual const char* path() { return _path.c_str(); }
     virtual Ptex::MeshType meshType() { return MeshType(_header.meshtype); }
@@ -166,22 +168,30 @@ public:
 	}
 
 	void addEntry(uint8_t keysize, const char* key, uint8_t datatype,
-		      uint32_t datasize, void* data)
+		      uint32_t datasize, void* data, size_t& metaDataMemUsed)
 	{
 	    Entry* e = newEntry(keysize, key, datatype, datasize);
 	    e->data = malloc(datasize);
 	    memcpy(e->data, data, datasize);
+            metaDataMemUsed += sizeof(std::string) + keysize + 1 + sizeof(Entry) + datasize;
 	}
 
 	void addLmdEntry(uint8_t keysize, const char* key, uint8_t datatype,
-			 uint32_t datasize, FilePos filepos, uint32_t zipsize)
+			 uint32_t datasize, FilePos filepos, uint32_t zipsize,
+                         size_t& metaDataMemUsed)
 	{
 	    Entry* e = newEntry(keysize, key, datatype, datasize);
 	    e->isLmd = true;
 	    e->lmdData = 0;
 	    e->lmdPos = filepos;
 	    e->lmdZipSize = zipsize;
+            metaDataMemUsed += sizeof(Entry);
 	}
+
+        size_t selfDataSize()
+        {
+            return sizeof(*this) + sizeof(Entry*) * _entries.capacity();
+        }
 
     protected:
 	class LargeMetaData
@@ -273,8 +283,7 @@ public:
         virtual ~FaceData() {}
 	virtual void release() { }
 	virtual Ptex::Res res() { return _res; }
-	virtual FaceData* reduce(PtexReader*,
-                                 Res newres, PtexUtils::ReduceFn) = 0;
+	virtual FaceData* reduce(PtexReader*, Res newres, PtexUtils::ReduceFn, size_t& newMemUsed) = 0;
     protected:
 	Res _res;
     };
@@ -294,8 +303,7 @@ public:
 	virtual bool isTiled() { return false; }
 	virtual Ptex::Res tileRes() { return _res; }
 	virtual PtexFaceData* getTile(int) { return 0; }
-	virtual FaceData* reduce(PtexReader*,
-			    Res newres, PtexUtils::ReduceFn);
+	virtual FaceData* reduce(PtexReader*, Res newres, PtexUtils::ReduceFn, size_t& newMemUsed);
 
     protected:
 	virtual ~PackedFace() { free(_data); }
@@ -317,13 +325,14 @@ public:
 
     class TiledFaceBase : public FaceData {
     public:
-	TiledFaceBase(Res res, Res tileres, DataType dt, int nchan)
+	TiledFaceBase(PtexReader* reader, Res res, Res tileres)
 	    : FaceData(res),
-	      _tileres(tileres),
-	      _dt(dt),
-	      _nchan(nchan),
-	      _pixelsize(DataSize(dt)*nchan)
+              _reader(reader),
+	      _tileres(tileres)
 	{
+            _dt = reader->datatype();
+            _nchan = reader->nchannels();
+            _pixelsize = DataSize(_dt)*_nchan;
 	    _ntilesu = _res.ntilesu(tileres);
 	    _ntilesv = _res.ntilesv(tileres);
 	    _ntiles = _ntilesu*_ntilesv;
@@ -336,20 +345,22 @@ public:
 	virtual void* getData() { return 0; }
 	virtual bool isTiled() { return true; }
 	virtual Ptex::Res tileRes() { return _tileres; }
-	virtual FaceData* reduce(PtexReader*,
-			    Res newres, PtexUtils::ReduceFn);
+	virtual FaceData* reduce(PtexReader*, Res newres, PtexUtils::ReduceFn, size_t& newMemUsed);
 	Res tileres() const { return _tileres; }
 	int ntilesu() const { return _ntilesu; }
 	int ntilesv() const { return _ntilesv; }
 	int ntiles() const { return _ntiles; }
 
     protected:
+        size_t baseExtraMemUsed() { return _tiles.size() * sizeof(_tiles[0]); }
+
 	virtual ~TiledFaceBase() {
             for (std::vector<FaceData*>::iterator i = _tiles.begin(); i != _tiles.end(); ++i) {
                 if (*i) delete *i;
             }
         }
 
+	PtexReader* _reader;
 	Res _tileres;
 	DataType _dt;
 	int _nchan;
@@ -363,11 +374,8 @@ public:
 
     class TiledFace : public TiledFaceBase {
     public:
-	TiledFace(Res res, Res tileres,
-		  int levelid, PtexReader* reader)
-	    : TiledFaceBase(res, tileres,
-			    reader->datatype(), reader->nchannels()),
-	      _reader(reader),
+	TiledFace(PtexReader* reader, Res res, Res tileres, int levelid)
+	    : TiledFaceBase(reader, res, tileres),
 	      _levelid(levelid)
 	{
 	    _fdh.resize(_ntiles),
@@ -380,10 +388,12 @@ public:
 	    return f;
 	}
 	void readTile(int tile, FaceData*& data);
+        size_t memUsed() {
+            return sizeof(*this) + baseExtraMemUsed() + _fdh.size() * (sizeof(_fdh[0]) + sizeof(_offsets[0]));
+        }
 
     protected:
 	friend class PtexReader;
-	PtexReader* _reader;
 	int _levelid;
 	std::vector<FaceDataHeader> _fdh;
 	std::vector<FilePos> _offsets;
@@ -392,9 +402,9 @@ public:
 
     class TiledReducedFace : public TiledFaceBase {
     public:
-	TiledReducedFace(Res res, Res tileres, DataType dt, int nchan,
-			 TiledFaceBase* parentface, PtexUtils::ReduceFn reducefn)
-	    : TiledFaceBase(res, tileres, dt, nchan),
+	TiledReducedFace(PtexReader* reader, Res res, Res tileres,
+                         TiledFaceBase* parentface, PtexUtils::ReduceFn reducefn)
+	    : TiledFaceBase(reader, res, tileres),
 	      _parentface(parentface),
 	      _reducefn(reducefn)
 	{
@@ -403,6 +413,8 @@ public:
 	{
 	}
 	virtual PtexFaceData* getTile(int tile);
+
+        size_t memUsed() { return sizeof(*this) + baseExtraMemUsed(); }
 
     protected:
 	TiledFaceBase* _parentface;
@@ -425,6 +437,12 @@ public:
             for (std::vector<FaceData*>::iterator i = faces.begin(); i != faces.end(); ++i) {
                 if (*i) delete *i;
             }
+        }
+
+        size_t memUsed() {
+            return sizeof(*this) + fdh.size() * (sizeof(fdh[0]) +
+                                                 sizeof(offsets[0]) +
+                                                 sizeof(faces[0]));
         }
     };
 
@@ -473,8 +491,8 @@ protected:
     void readFace(int levelid, Level* level, int faceid, Res res);
     void readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int levelid, FaceData*& face);
     void readMetaData();
-    void readMetaDataBlock(MetaData* metadata, FilePos pos, int zipsize, int memsize);
-    void readLargeMetaDataHeaders(MetaData* metadata, FilePos pos, int zipsize, int memsize);
+    void readMetaDataBlock(MetaData* metadata, FilePos pos, int zipsize, int memsize, size_t& metaDataMemUsed);
+    void readLargeMetaDataHeaders(MetaData* metadata, FilePos pos, int zipsize, int memsize, size_t& metaDataMemUsed);
     void readEditData();
     void readEditFaceData();
     void readEditMetaData();
@@ -590,6 +608,8 @@ protected:
 
     z_stream_s _zstream;
     bool _inflateInitialized;
+
+    size_t _memUsed;
 };
 
 #endif

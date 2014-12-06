@@ -204,9 +204,9 @@ public:
         return result;
     }
 
-    Value tryInsert(Key& key, Value value)
+    Value tryInsert(Key& key, Value value, size_t& newMemUsed)
     {
-        Entry* entries = lockEntriesAndGrowIfNeeded();
+        Entry* entries = lockEntriesAndGrowIfNeeded(newMemUsed);
         uint32_t mask = _numEntries-1;
         uint32_t hash = key.hash();
 
@@ -266,23 +266,24 @@ private:
         _entries = entries;
     }
 
-    Entry* lockEntriesAndGrowIfNeeded()
+    Entry* lockEntriesAndGrowIfNeeded(size_t& newMemUsed)
     {
         while (_size*2 >= _numEntries) {
             Entry* entries = lockEntries();
             if (_size*2 >= _numEntries) {
-                entries = grow(entries);
+                entries = grow(entries, newMemUsed);
             }
             return entries;
         }
         return lockEntries();
     }
 
-    Entry* grow(Entry* oldEntries)
+    Entry* grow(Entry* oldEntries, size_t& newMemUsed)
     {
         _oldEntries.push_back(oldEntries);
         uint32_t numNewEntries = _numEntries*2;
         Entry* entries = new Entry[numNewEntries];
+        newMemUsed = numNewEntries * sizeof(Entry);
         uint32_t mask = numNewEntries-1;
         for (uint32_t oldIndex = 0; oldIndex < _numEntries; ++oldIndex) {
             Entry& oldEntry = oldEntries[oldIndex];

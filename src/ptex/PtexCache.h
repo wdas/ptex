@@ -53,7 +53,7 @@ class PtexReaderCache : public PtexCache
 public:
     PtexReaderCache(int maxFiles, int maxMem, bool premultiply, PtexInputHandler* handler)
 	: _maxFiles(maxFiles), _maxMem(maxMem), _io(handler), _premultiply(premultiply),
-          _pruneOpenLock(0), _ioTimeStamp(0)
+          _pruneOpenLock(0), _ioTimeStamp(0), _memUsed(sizeof(*this))
     {}
 
     ~PtexReaderCache()
@@ -96,12 +96,14 @@ public:
     virtual void purge(PtexTexture* /*texture*/) {}
     virtual void purge(const char* /*filename*/) {}
     virtual void purgeAll() {}
+    virtual size_t memUsed();
 
     void logOpen(PtexCachedReader* reader);
     int32_t ioTimeStamp() const { return _ioTimeStamp; }
     int32_t nextIoTimeStamp() { return AtomicIncrement(&_ioTimeStamp); }
 
     void pruneOpenFiles();
+    void increaseMemUsed(size_t amount) { if (amount) AtomicAdd(&_memUsed, amount); }
 
 private:
     int _maxFiles;
@@ -122,6 +124,7 @@ private:
 
     std::vector<OpenFile> _openFiles;
     SpinLock _logOpenLock;
+    volatile size_t _memUsed;
 };
 
 class PtexCachedReader : public PtexReader
