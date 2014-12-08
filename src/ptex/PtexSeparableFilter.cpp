@@ -67,7 +67,7 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     }
 
     // find filter width as bounding box of vectors w1 and w2
-    float uw = fabsf(uw1) + fabsf(uw2), vw = fabsf(vw1) + fabsf(vw2);
+    float uw = PtexUtils::abs(uw1) + PtexUtils::abs(uw2), vw = PtexUtils::abs(vw1) + PtexUtils::abs(vw2);
 
     // handle border modes
     switch (_uMode) {

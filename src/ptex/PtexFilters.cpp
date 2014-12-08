@@ -134,7 +134,7 @@ class PtexWidth4Filter : public PtexSeparableFilter
     {
 	// 2-unit (x in -1..1) cubic hermite kernel
 	// this produces a blur roughly 1.5 times that of the 4-unit b-spline kernel
-	x = fabsf(x);
+	x = PtexUtils::abs(x);
 	return x < 1.0f ? (2.0f*x-3.0f)*x*x+1.0f : 0.0f;
     }
 
@@ -277,7 +277,7 @@ class PtexBicubicFilter : public PtexWidth4Filter
  private:
     static float kernelFn(float x, const float* c)
     {
-	x = fabsf(x);
+	x = PtexUtils::abs(x);
 	if (x < 1.0f)      return (c[0]*x + c[1])*x*x + c[2];
 	else if (x < 2.0f) return ((c[3]*x + c[4])*x + c[5])*x + c[6];
 	else               return 0.0f;

@@ -85,9 +85,9 @@ struct PtexUtils : public Ptex {
         union {
             float f;
             int32_t i;
-        } u;
-        u.i = (127-power)<<23;
-        return u.f;
+        };
+        i = (127-power)<<23;
+        return f;
     }
 
     static int calcResFromWidth(float w)
@@ -118,6 +118,20 @@ struct PtexUtils : public Ptex {
 	if ( x >= b ) return 1;
 	x = (x - a)/(b - a);
 	return x*x*x * (10 + x * (-15 + x*6));
+    }
+
+    template<typename T>
+    static T abs(T x) { return x > 0 ? x : -x; }
+
+    static float abs(float x)
+    {
+        union {
+            float f;
+            int32_t i;
+        };
+        f = x;
+        i &= 0x7fffffff;
+        return f;
     }
 
     template<typename T>
