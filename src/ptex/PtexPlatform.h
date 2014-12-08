@@ -179,7 +179,7 @@ namespace PtexInternal {
 #else
     // assume linux/unix/posix
     template <typename T>
-    inline T* AtomicExchangePtr(T* volatile* target, T* value)
+    inline T AtomicExchange(T volatile* target, T value)
     {
         return __sync_lock_test_and_set(target, value);
     }
@@ -204,12 +204,6 @@ namespace PtexInternal {
 
     template <typename T>
     inline bool AtomicCompareAndSwap(T volatile* target, T oldvalue, T newvalue)
-    {
-        return __sync_bool_compare_and_swap(target, oldvalue, newvalue);
-    }
-
-    template <typename T>
-    inline bool AtomicCompareAndSwapPtr(T* volatile* target, T* oldvalue, T* newvalue)
     {
         return __sync_bool_compare_and_swap(target, oldvalue, newvalue);
     }

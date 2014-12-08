@@ -1127,7 +1127,7 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
 	}
     }
 
-    if (!AtomicCompareAndSwapPtr(&face, (FaceData*)0, newface)) {
+    if (!AtomicCompareAndSwap(&face, (FaceData*)0, newface)) {
         delete newface;
     }
     else {

@@ -254,7 +254,7 @@ private:
     {
         while (1) {
             Entry* entries = _entries;
-            if (entries && AtomicCompareAndSwapPtr(&_entries, entries, (Entry*)0)) {
+            if (entries && AtomicCompareAndSwap(&_entries, entries, (Entry*)0)) {
                 return entries;
             }
         }
