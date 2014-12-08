@@ -215,6 +215,12 @@ namespace PtexInternal {
 
 #endif
 
+#ifndef CACHE_LINE_SIZE
+#define CACHE_LINE_SIZE 64
+#endif
+
+#define PAD(var) char var##_pad[CACHE_LINE_SIZE - sizeof(var)]
+
 }
 
 #endif // PtexPlatform_h

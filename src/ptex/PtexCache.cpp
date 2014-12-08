@@ -207,53 +207,57 @@ void PtexReaderCache::logOpen(PtexCachedReader* reader)
     bool shouldPrune;
     {
         AutoSpin locker(_logOpenLock);
-        _openFiles.resize(_openFiles.size()+1);
-        _openFiles.back().reader = reader;
-        shouldPrune = _openFiles.size() >= size_t(_maxFiles + 16);
+        _newOpenFiles.push_back(reader);
+        shouldPrune = _newOpenFiles.size() >= 16;
     }
     if (shouldPrune) {
-        pruneOpenFiles();
+        pruneFiles();
     }
 }
 
-void PtexReaderCache::pruneOpenFiles()
+void PtexReaderCache::pruneFiles()
 {
-    if (_pruneOpenLock != 0 || !AtomicCompareAndSwap(&_pruneOpenLock, 0, 1)) return;
+    if (_pruneFileLock != 0 || !AtomicCompareAndSwap(&_pruneFileLock, 0, 1)) return;
+
+    {
+        AutoSpin locker(_logOpenLock);
+        std::swap(_tmpOpenFiles, _newOpenFiles);
+    }
+
+    for (std::vector<PtexCachedReader*>::iterator iter = _tmpOpenFiles.begin(); iter != _tmpOpenFiles.end(); ++iter) {
+        _openFiles.push_back(ReaderAge(*iter));
+    }
+    _tmpOpenFiles.clear();
 
     int numToClose = _openFiles.size() - _maxFiles;
     if (numToClose > 0) {
-        std::vector<OpenFile> tmpOpenFiles;
-        {
-            AutoSpin locker(_logOpenLock);
-            std::swap(tmpOpenFiles, _openFiles);
-        }
+        std::nth_element(_openFiles.begin(), _openFiles.end() - numToClose, _openFiles.end(), compareReaderAge);
+        std::vector<ReaderAge> keep;
 
-        for (std::vector<OpenFile>::iterator iter = tmpOpenFiles.begin(); iter != tmpOpenFiles.end(); ++iter) {
-            iter->ioAge = iter->reader->ioAge();
-        }
-        std::nth_element(tmpOpenFiles.begin(), tmpOpenFiles.end() - numToClose, tmpOpenFiles.end(), compareIoAge);
-        std::vector<OpenFile> keep;
-
-        while (numToClose && !tmpOpenFiles.empty()) {
-            OpenFile file = tmpOpenFiles.back();
-            tmpOpenFiles.pop_back();
+        while (numToClose && !_openFiles.empty()) {
+            ReaderAge file = _openFiles.back();
+            _openFiles.pop_back();
             if (file.reader->tryClose()) {
                 numToClose--;
             } else {
                 keep.push_back(file);
             }
         }
-        std::copy(keep.begin(), keep.end(), std::back_inserter(tmpOpenFiles));
-        {
-            AutoSpin locker(_logOpenLock);
-            std::copy(_openFiles.begin(), _openFiles.end(), std::back_inserter(tmpOpenFiles));
-            std::swap(tmpOpenFiles, _openFiles);
-        }
     }
 
-    MemoryFence();
-    _pruneOpenLock = 0;
+    _pruneFileLock = 0;
 }
+
+
+void PtexReaderCache::logRecentlyUsed(PtexCachedReader* reader)
+{
+}
+
+
+void PtexReaderCache::pruneData()
+{
+}
+
 
 namespace {
     struct SumMemUsed {

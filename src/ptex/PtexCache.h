@@ -53,7 +53,7 @@ class PtexReaderCache : public PtexCache
 public:
     PtexReaderCache(int maxFiles, int maxMem, bool premultiply, PtexInputHandler* handler)
 	: _maxFiles(maxFiles), _maxMem(maxMem), _io(handler), _premultiply(premultiply),
-          _pruneOpenLock(0), _ioTimeStamp(0), _memUsed(sizeof(*this))
+          _pruneFileLock(0), _pruneDataLock(0), _ioTimeStamp(0), _memUsed(sizeof(*this))
     {}
 
     ~PtexReaderCache()
@@ -102,10 +102,12 @@ public:
     int32_t ioTimeStamp() const { return _ioTimeStamp; }
     int32_t nextIoTimeStamp() { return AtomicIncrement(&_ioTimeStamp); }
 
-    void pruneOpenFiles();
     void increaseMemUsed(size_t amount) { if (amount) AtomicAdd(&_memUsed, amount); }
+    void logRecentlyUsed(PtexCachedReader* reader);
 
 private:
+    void pruneFiles();
+    void pruneData();
     int _maxFiles;
     int _maxMem;
     PtexInputHandler* _io;
@@ -114,24 +116,30 @@ private:
     typedef PtexHashMap<StringKey,PtexCachedReader*> FileMap;
     FileMap _files;
     bool _premultiply;
-    volatile int32_t _pruneOpenLock;
-    volatile int32_t _ioTimeStamp;
-    struct OpenFile {
+    struct ReaderAge {
         PtexCachedReader* reader;
-        uint32_t ioAge;
+        uint32_t age;
+        ReaderAge(PtexCachedReader* reader) : reader(reader) {}
     };
-    static bool compareIoAge(OpenFile a, OpenFile b) { return a.ioAge < b.ioAge; }
-
-    std::vector<OpenFile> _openFiles;
-    SpinLock _logOpenLock;
-    volatile size_t _memUsed;
+    static bool compareReaderAge(ReaderAge a, ReaderAge b) { return a.age < b.age; }
+    std::vector<PtexCachedReader*> _newOpenFiles; PAD(_newOpenFiles);
+    std::vector<PtexCachedReader*> _tmpOpenFiles; PAD(_tmpOpenFiles);
+    std::vector<ReaderAge> _openFiles; PAD(_openFiles);
+    std::vector<ReaderAge> _newActiveFiles; PAD(_newActiveFiles);
+    std::vector<ReaderAge> _activeFiles; PAD(_activeFiles);
+    SpinLock _logOpenLock; PAD(_logOpenLock);
+    SpinLock _logRecentLock; PAD(_logRecentLock);
+    volatile int32_t _pruneFileLock; PAD(_pruneFileLock);
+    volatile int32_t _pruneDataLock; PAD(_pruneDataLock);
+    volatile int32_t _ioTimeStamp; PAD(_ioTimeStamp);
+    volatile int32_t _dataTimeStamp; PAD(_dataTimeStamp);
+    volatile size_t _memUsed; PAD(_memUsed);
 };
 
 class PtexCachedReader : public PtexReader
 {
     PtexReaderCache* _cache;
     volatile int32_t _refCount;
-    volatile bool _recentlyUsed;
     int32_t _ioTimeStamp;
 
     virtual void logOpen()
@@ -148,7 +156,7 @@ class PtexCachedReader : public PtexReader
 
 public:
     PtexCachedReader(bool premultiply, PtexInputHandler* handler, PtexReaderCache* cache)
-        : PtexReader(premultiply, handler), _cache(cache), _refCount(1), _recentlyUsed(true)
+        : PtexReader(premultiply, handler), _cache(cache), _refCount(1)
     {
         _ioTimeStamp = cache->nextIoTimeStamp();
     }
@@ -164,8 +172,9 @@ public:
     }
 
     void unref() {
-        _recentlyUsed = true;
-        AtomicDecrement(&_refCount);
+        if (0 == AtomicDecrement(&_refCount)) {
+            _cache->logRecentlyUsed(this);
+        }
     }
 
     virtual void release() {
