@@ -51,7 +51,7 @@ class PtexCachedReader;
 class PtexReaderCache : public PtexCache
 {
 public:
-    PtexReaderCache(int maxFiles, int maxMem, bool premultiply, PtexInputHandler* handler)
+    PtexReaderCache(int maxFiles, size_t maxMem, bool premultiply, PtexInputHandler* handler)
 	: _maxFiles(maxFiles), _maxMem(maxMem), _io(handler), _premultiply(premultiply),
           _pruneFileLock(0), _pruneDataLock(0), _ioTimeStamp(0), _memUsed(sizeof(*this))
     {}
@@ -109,7 +109,7 @@ private:
     void pruneFiles();
     void pruneData();
     int _maxFiles;
-    int _maxMem;
+    size_t _maxMem;
     PtexInputHandler* _io;
     std::string _searchpath;
     std::vector<std::string> _searchdirs;

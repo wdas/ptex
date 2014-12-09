@@ -183,7 +183,7 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
     return reader;
 }
 
-PtexCache* PtexCache::create(int maxFiles, int maxMem, bool premultiply,
+PtexCache* PtexCache::create(int maxFiles, size_t maxMem, bool premultiply,
 			     PtexInputHandler* handler)
 {
     // set default files to 100

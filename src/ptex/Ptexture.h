@@ -665,7 +665,7 @@ class PtexCache {
 	be directed through the handler.
      */
     PTEXAPI static PtexCache* create(int maxFiles=0,
-				     int maxMem=0,
+				     size_t maxMem=0,
 				     bool premultiply=false,
 				     PtexInputHandler* handler=0);
 
