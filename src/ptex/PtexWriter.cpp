@@ -248,12 +248,11 @@ bool PtexWriter::applyEdits(const char* path, Ptex::String& error)
     // see if we have any edits to apply
     if (tex->hasEdits()) {
 	// create non-incremental writer
-	PtexWriter* w = new PtexMainWriter(path, tex, tex->meshType(), tex->dataType(),
-					   tex->numChannels(), tex->alphaChannel(), tex->numFaces(),
-					   tex->hasMipMaps());
+        PtexPtr<PtexWriter> w(new PtexMainWriter(path, tex, tex->meshType(), tex->dataType(),
+                                                 tex->numChannels(), tex->alphaChannel(), tex->numFaces(),
+                                                 tex->hasMipMaps()));
 	// close to rebuild file
 	if (!w->close(error)) return 0;
-	w->release();
     }
     return 1;
 }
