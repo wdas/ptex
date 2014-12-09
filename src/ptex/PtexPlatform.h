@@ -145,6 +145,7 @@ namespace PtexInternal {
 	SpinLock()   { pthread_spin_init(&_spinlock, PTHREAD_PROCESS_PRIVATE); }
 	~SpinLock()  { pthread_spin_destroy(&_spinlock); }
 	void lock()   { pthread_spin_lock(&_spinlock); }
+        bool trylock() { return 0 == pthread_spin_trylock(&_spinlock); }
 	void unlock() { pthread_spin_unlock(&_spinlock); }
     private:
 	pthread_spinlock_t _spinlock;
