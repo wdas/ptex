@@ -163,14 +163,14 @@ class PtexHashMap
     PtexHashMap(const PtexHashMap&); // disallow
     void operator=(const PtexHashMap&); // disallow
 
-public:
-    PtexHashMap()
-        : _entries(0), _numEntries(16), _size(0)
+    void initContents()
     {
+        _numEntries = 16;
+        _size = 0;
         _entries = new Entry[_numEntries];
     }
 
-    ~PtexHashMap()
+    void deleteContents()
     {
         for (uint32_t i = 0; i < _numEntries; ++i) {
             if (_entries[i].value) delete _entries[i].value;
@@ -179,6 +179,24 @@ public:
         for (size_t i = 0; i < _oldEntries.size(); ++i) {
             delete [] _oldEntries[i];
         }
+        _oldEntries.clear();
+    }
+
+public:
+    PtexHashMap()
+    {
+        initContents();
+    }
+
+    ~PtexHashMap()
+    {
+        deleteContents();
+    }
+
+    void clear()
+    {
+        deleteContents();
+        initContents();
     }
 
     int32_t size() const { return _size; }
