@@ -65,12 +65,12 @@ PtexReader::PtexReader(bool premultiply, PtexInputHandler* io)
       _constdata(0),
       _metadata(0),
       _hasEdits(false),
-      _memUsed(sizeof(this))
+      _inflateInitialized(false),
+      _baseMemUsed(sizeof(this)),
+      _memUsed(_baseMemUsed)
 {
     memset(&_header, 0, sizeof(_header));
     memset(&_zstream, 0, sizeof(_zstream));
-    inflateInit(&_zstream);
-    _inflateInitialized = true;
 }
 
 
@@ -178,6 +178,10 @@ bool PtexReader::tryClose()
         if (_fp) {
             _io->close(_fp);
             _fp = 0;
+        }
+        if (_inflateInitialized) {
+            inflateEnd(&_zstream);
+            _inflateInitialized = false;
         }
         readlock.unlock();
     }
@@ -513,6 +517,11 @@ bool PtexReader::readBlock(void* data, int size, bool reporterror)
 
 bool PtexReader::readZipBlock(void* data, int zipsize, int unzipsize)
 {
+    if (!_inflateInitialized) {
+        inflateInit(&_zstream);
+        _inflateInitialized = true;
+    }
+
     void* buff = alloca(BlockSize);
     _zstream.next_out = (Bytef*) data;
     _zstream.avail_out = unzipsize;
