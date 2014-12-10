@@ -36,7 +36,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 */
 
+#include <cmath>
 #include "Ptexture.h"
+
+#ifdef __SSE4_1__
+#include <smmintrin.h>
+#endif
 
 struct PtexUtils : public Ptex {
 
@@ -229,6 +234,23 @@ struct PtexUtils : public Ptex {
 	ApplyConstFn fn = applyConstFunctions[((unsigned)nChan<=4)*nChan*4 + dt];
 	fn(weight, dst, data, nChan);
     }
+
+#ifdef __SSE4_1__
+    static float floor(float f) {
+        float result;
+        _mm_store_ss(&result, _mm_round_ps(_mm_set1_ps(f), (_MM_FROUND_NO_EXC | _MM_FROUND_TO_NEG_INF)));
+        return result;
+    }
+    static float ceil(float f) {
+        float result;
+        _mm_store_ss(&result, _mm_round_ps(_mm_set1_ps(f), (_MM_FROUND_NO_EXC | _MM_FROUND_TO_POS_INF)));
+        return result;
+    }
+#else
+    static float floor(float f) { return std::floor(f); }
+    static float ceil(float f) { return std::ceil(f); }
+#endif
+
 };
 
 #endif

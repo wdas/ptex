@@ -72,13 +72,13 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     // handle border modes
     switch (_uMode) {
     case m_clamp: u = PtexUtils::clamp(u, 0.0f, 1.0f); break;
-    case m_periodic: u = u-floorf(u); break;
+    case m_periodic: u = u-PtexUtils::floor(u); break;
     case m_black: break; // do nothing
     }
 
     switch (_vMode) {
     case m_clamp: v = PtexUtils::clamp(v, 0.0f, 1.0f); break;
-    case m_periodic: v = v-floorf(v);
+    case m_periodic: v = v-PtexUtils::floor(v);
     case m_black: break; // do nothing
     }
 

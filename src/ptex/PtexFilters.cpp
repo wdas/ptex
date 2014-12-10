@@ -160,7 +160,7 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	    if (uw < .5f) {
 		k_ureslog2 = 2;
 		float upix = u * 4.0f - 0.5f;
-		int u1 = int(ceilf(upix - 2)), u2 = int(ceilf(upix + 2));
+		int u1 = int(PtexUtils::ceil(upix - 2)), u2 = int(PtexUtils::ceil(upix + 2));
 		u1 = u1 & ~1;	    // round down to even pair
 		u2 = (u2 + 1) & ~1; // round up to even pair
 		k_u = u1;
@@ -180,7 +180,7 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	    else if (uw < 1) {
 		k_ureslog2 = 1;
 		float upix = u * 2.0f - 0.5f;
-		k_u = int(floorf(u - .5f))*2;
+		k_u = int(PtexUtils::floor(u - .5f))*2;
 		k_uw = 4;
 		float x1 = (float)k_u-upix;
 		for (int i = 0; i < k_uw; i+=2) {
@@ -200,7 +200,7 @@ class PtexWidth4Filter : public PtexSeparableFilter
 		k_ureslog2 = 0;
 		float upix = u - .5f;
 		k_uw = 2;
-		float ui = floorf(upix);
+		float ui = PtexUtils::floor(upix);
 		k_u = int(ui);
 		ku[0] = blur(upix-ui);
 		ku[1] = 1-ku[0];
@@ -215,7 +215,7 @@ class PtexWidth4Filter : public PtexSeparableFilter
 	// find integer pixel extent: [u,v] +/- [2*uw,2*vw]
 	// (kernel width is 4 times filter width)
 	float dupix = 2.0f*uwpix;
-	int u1 = int(ceilf(upix - dupix)), u2 = int(ceilf(upix + dupix));
+	int u1 = int(PtexUtils::ceil(upix - dupix)), u2 = int(PtexUtils::ceil(upix + dupix));
 
 	if (lerp2) {
 	    // lerp kernel weights towards next-lower res
@@ -342,8 +342,8 @@ class PtexBoxFilter : public PtexSeparableFilter
 	// (box is 1 unit wide for a 1 unit filter period)
 	float u1 = u - 0.5f*uw, u2 = u + 0.5f*uw;
 	float v1 = v - 0.5f*vw, v2 = v + 0.5f*vw;
-	float u1floor = floorf(u1), u2ceil = ceilf(u2);
-	float v1floor = floorf(v1), v2ceil = ceilf(v2);
+	float u1floor = PtexUtils::floor(u1), u2ceil = PtexUtils::ceil(u2);
+	float v1floor = PtexUtils::floor(v1), v2ceil = PtexUtils::ceil(v2);
 	k.u = int(u1floor);
 	k.v = int(v1floor);
 	k.uw = int(u2ceil)-k.u;
@@ -399,8 +399,8 @@ class PtexBilinearFilter : public PtexSeparableFilter
 	float upix = u * (float)k.res.u() - 0.5f;
 	float vpix = v * (float)k.res.v() - 0.5f;
 
-	float ufloor = floorf(upix);
-	float vfloor = floorf(vpix);
+	float ufloor = PtexUtils::floor(upix);
+	float vfloor = PtexUtils::floor(vpix);
 	k.u = int(ufloor);
 	k.v = int(vfloor);
 	k.uw = 2;
