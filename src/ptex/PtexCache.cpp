@@ -121,7 +121,9 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
     StringKey key(filename);
     PtexCachedReader* reader = _files.get(key);
     if (reader) {
+        if (!reader->ok()) return 0;
         reader->ref();
+        return reader;
     } else {
 	bool ok = true;
 
@@ -178,7 +180,10 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
         }
     }
 
-    if (!reader->ok()) return 0;
+    if (!reader->ok()) {
+        reader->unref();
+        return 0;
+    }
     return reader;
 }
 
