@@ -246,11 +246,70 @@ void PtexReaderCache::pruneFiles()
 
 void PtexReaderCache::logRecentlyUsed(PtexCachedReader* reader)
 {
+    if (!_maxMem) return;
+    bool shouldPrune;
+    {
+        AutoSpin locker(_logRecentLock);
+        _newRecentFiles.push_back(reader);
+        shouldPrune = _newRecentFiles.size() >= 16;
+    }
+    if (shouldPrune) {
+        pruneData();
+    }
 }
 
 
 void PtexReaderCache::pruneData()
 {
+    if (!_pruneDataLock.trylock()) return;
+
+    {
+        AutoSpin locker(_logRecentLock);
+        std::swap(_tmpRecentFiles, _newRecentFiles);
+    }
+
+    // migrate recent additions to active file list, updating time stamp and accounting for new memory use
+    size_t memUsedChange = 0;
+    for (std::vector<PtexCachedReader*>::iterator iter = _tmpRecentFiles.begin(); iter != _tmpRecentFiles.end(); ++iter) {
+        PtexCachedReader* reader = *iter;
+        uint32_t timestamp = nextDataTimestamp();
+        reader->setDataTimestamp(timestamp);
+        _activeFiles.push_back(ReaderAge(reader, timestamp));
+        memUsedChange += reader->memUsedChange();
+    }
+    adjustMemUsed(memUsedChange);
+    _tmpRecentFiles.clear();
+
+    // compute age of active entries (skip stale entries - old readers that have been accessed again more recently)
+    uint32_t now = _dataTimestamp;
+    std::vector<ReaderAge>::iterator keep = _activeFiles.begin();
+    for (std::vector<ReaderAge>::iterator iter = _activeFiles.begin(); iter != _activeFiles.end(); ++iter) {
+        if (iter->reader->dataTimestamp() == iter->timestamp) {
+            *keep = *iter;
+            keep->age = now - iter->timestamp;
+            ++keep;
+        }
+    }
+
+    // remove skipped entries
+    _activeFiles.erase(keep, _activeFiles.end());
+
+
+    // pop and clear least recent files
+    std::sort(_activeFiles.begin(), _activeFiles.end(), compareReaderAge); // TODO: (maybe) use nth_element on avg reader size?
+    memUsedChange = 0;
+    size_t memUsed = _memUsed;
+    while (memUsed + memUsedChange > _maxMem && !_activeFiles.empty()) {
+        PtexCachedReader* reader = _activeFiles.back().reader;
+        _activeFiles.pop_back();
+        if (reader->tryClear()) {
+            // Note: after clearing, memUsedChange is negative
+            memUsedChange += reader->memUsedChange();
+        }
+    }
+    adjustMemUsed(memUsedChange);
+
+    _pruneDataLock.unlock();
 }
 
 

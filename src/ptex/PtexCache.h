@@ -126,7 +126,8 @@ private:
     std::vector<PtexCachedReader*> _newOpenFiles; PAD(_newOpenFiles);
     std::vector<PtexCachedReader*> _tmpOpenFiles; PAD(_tmpOpenFiles);
     std::vector<ReaderAge> _openFiles; PAD(_openFiles);
-    std::vector<ReaderAge> _newActiveFiles; PAD(_newActiveFiles);
+    std::vector<PtexCachedReader*> _newRecentFiles; PAD(_newRecentFiles);
+    std::vector<PtexCachedReader*> _tmpRecentFiles; PAD(_tmpRecentFiles);
     std::vector<ReaderAge> _activeFiles; PAD(_activeFiles);
     SpinLock _logOpenLock; PAD(_logOpenLock);
     SpinLock _logRecentLock; PAD(_logRecentLock);
@@ -183,6 +184,15 @@ public:
         unref();
     }
 
+    bool tryClear() {
+        if (AtomicCompareAndSwap(&_refCount, 0, -1)) {
+            clear();
+            MemoryFence();
+            _refCount = 0;
+            return true;
+        }
+        return false;
+    }
 
     uint32_t ioTimestamp() const { return _ioTimestamp; }
     uint32_t dataTimestamp() const { return _dataTimestamp; }
