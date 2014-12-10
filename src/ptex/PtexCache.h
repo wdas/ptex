@@ -96,13 +96,13 @@ public:
     virtual void purge(PtexTexture* /*texture*/) {}
     virtual void purge(const char* /*filename*/) {}
     virtual void purgeAll() {}
-    virtual size_t memUsed();
+    virtual size_t memUsed() { return _memUsed; }
 
     void logOpen(PtexCachedReader* reader);
     uint32_t ioTimestamp() const { return _ioTimestamp; }
     uint32_t nextIoTimestamp() { return AtomicIncrement(&_ioTimestamp); }
 
-    void increaseMemUsed(size_t amount) { if (amount) AtomicAdd(&_memUsed, amount); }
+    void adjustMemUsed(size_t amount) { if (amount) AtomicAdd(&_memUsed, amount); }
     void logRecentlyUsed(PtexCachedReader* reader);
 
 private:
@@ -130,11 +130,11 @@ private:
     std::vector<ReaderAge> _activeFiles; PAD(_activeFiles);
     SpinLock _logOpenLock; PAD(_logOpenLock);
     SpinLock _logRecentLock; PAD(_logRecentLock);
-    volatile size_t _memUsed; PAD(_memUsed);
     SpinLock _pruneFileLock; PAD(_pruneFileLock);
     SpinLock _pruneDataLock; PAD(_pruneDataLock);
     volatile uint32_t _ioTimestamp; PAD(_ioTimestamp);
     uint32_t _dataTimestamp; PAD(_dataTimestamp);
+    volatile size_t _memUsed; PAD(_memUsed);
 };
 
 class PtexCachedReader : public PtexReader
@@ -143,6 +143,7 @@ class PtexCachedReader : public PtexReader
     volatile int32_t _refCount;
     uint32_t _ioTimestamp;
     uint32_t _dataTimestamp;
+    size_t _memUsedAccountedFor;
 
     virtual void logOpen()
     {
@@ -182,11 +183,15 @@ public:
         unref();
     }
 
-    uint32_t ioAge() { return _cache->ioTimeStamp() - _ioTimeStamp; }
-};
 
     uint32_t ioTimestamp() const { return _ioTimestamp; }
     uint32_t dataTimestamp() const { return _dataTimestamp; }
     void setDataTimestamp(uint32_t dataTimestamp) { _dataTimestamp = dataTimestamp; }
+    size_t memUsedChange() {
+        size_t result = _memUsed - _memUsedAccountedFor;
+        _memUsedAccountedFor = _memUsed;
+        return result;
+    }
+};
 
 #endif

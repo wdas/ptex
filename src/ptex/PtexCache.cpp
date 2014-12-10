@@ -167,6 +167,7 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 	// record in _files map entry (even if open failed)
         size_t newMemUsed = 0;
         reader = _files.tryInsert(key, newreader, newMemUsed);
+        adjustMemUsed(newMemUsed);
         if (reader != newreader) {
             // another thread got here first
             reader->ref();
@@ -174,7 +175,6 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
         }
         else {
             logOpen(reader);
-            increaseMemUsed(newMemUsed);
         }
     }
 
@@ -264,11 +264,5 @@ namespace {
         void operator() (PtexCachedReader* reader) { sum += reader->memUsed(); }
         SumMemUsed() : sum(0) {}
     };
-}
-
-size_t PtexReaderCache::memUsed()
-{
-    SumMemUsed summer;
-    _files.foreach(summer);
-    return _memUsed + summer.sum;
+    // e.g. _files.foreach(summer);
 }
