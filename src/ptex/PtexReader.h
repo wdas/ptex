@@ -51,7 +51,7 @@ using namespace PtexInternal;
 class PtexReader : public PtexTexture, public PtexIO {
 public:
     PtexReader(bool premultiply, PtexInputHandler* handler);
-    virtual ~PtexReader() { clear(); }
+    virtual ~PtexReader();
     virtual void release() { delete this; }
     void clear();
     bool open(const char* path, Ptex::String& error);

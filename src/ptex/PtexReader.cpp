@@ -74,34 +74,27 @@ PtexReader::PtexReader(bool premultiply, PtexInputHandler* io)
 }
 
 
-void PtexReader::clear()
+PtexReader::~PtexReader()
 {
-    if (_fp) {
-        _io->close(_fp);
-        _fp = 0;
-    }
-
-    if (_constdata) {
-        free(_constdata);
-        _constdata = 0;
-    }
+    if (_fp) _io->close(_fp);
+    if (_constdata) free(_constdata);
+    if (_metadata) delete _metadata;
 
     for (std::vector<Level*>::iterator i = _levels.begin(); i != _levels.end(); ++i) {
         if (*i) delete *i;
     }
-    _levels.clear();
-
-    if (_metadata) {
-	delete _metadata;
-	_metadata = 0;
-    }
-
-    if (_inflateInitialized) {
+    if (_inflateInitialized)
         inflateEnd(&_zstream);
-        _inflateInitialized = false;
-    }
+}
 
-    _ok = false;
+void PtexReader::clear()
+{
+    if (_metadata) { delete _metadata; _metadata = 0; }
+    for (std::vector<Level*>::iterator i = _levels.begin(); i != _levels.end(); ++i) {
+        if (*i) { delete *i; *i = 0; }
+    }
+    _reductions.clear();
+    _memUsed = _baseMemUsed;
 }
 
 
@@ -117,20 +110,21 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 	std::string errstr = "Can't open ptex file: ";
 	errstr += path; errstr += "\n"; errstr += _io->lastError();
 	error = errstr.c_str();
+        _ok = 0;
 	return 0;
     }
     readBlock(&_header, HeaderSize);
     if (_header.magic != Magic) {
 	std::string errstr = "Not a ptex file: "; errstr += path;
 	error = errstr.c_str();
-        clear();
+        _ok = 0;
 	return 0;
     }
     if (_header.version != 1) {
         std::stringstream s;
         s << "Unsupported ptex file version ("<< _header.version << "): " << path;
         error = s.str();
-        clear();
+        _ok = 0;
         return 0;
     }
     _pixelsize = _header.pixelSize();
@@ -159,11 +153,11 @@ bool PtexReader::open(const char* path, Ptex::String& error)
     readConstData();
     readLevelInfo();
     readEditData();
+    _baseMemUsed = _memUsed;
 
     // an error occurred while reading the file
     if (!_ok) {
 	error = _error.c_str();
-        clear();
 	return 0;
     }
 
