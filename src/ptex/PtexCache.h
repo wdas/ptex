@@ -163,7 +163,7 @@ public:
     {
     }
 
-    ~PtexCachedReader() { assert(_refCount == 0); }
+    ~PtexCachedReader() {}
 
     void ref() {
         while (1) {
