@@ -654,8 +654,8 @@ class PtexCache {
         @param maxFiles Maximum open file handles.  If unspecified,
 	limit is set to 100 open files.
 
-	@param maxMem Maximum allocated memory, in bytes.  If unspecified,
-	limit is set to 100MB.
+	@param maxMem Maximum allocated memory, in bytes.  If zero
+	(or unspecified) the cache is unlimited.
 
 	@param premultiply If true, textures will be premultiplied by the alpha
         channel (if any) when read from disk.  See PtexTexture and PtexWriter

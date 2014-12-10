@@ -193,15 +193,6 @@ PtexCache* PtexCache::create(int maxFiles, size_t maxMem, bool premultiply,
     // set default files to 100
     if (maxFiles <= 0) maxFiles = 100;
 
-    // set default memory to 100 MB
-    const int MB = 1024*1024;
-    if (maxMem <= 0) maxMem = 100 * MB;
-
-    // if memory is < 1 MB, warn
-    if (maxMem < 1 * MB) {
-	std::cerr << "Warning, PtexCache created with < 1 MB" << std::endl;
-    }
-
     return new PtexReaderCache(maxFiles, maxMem, premultiply, handler);
 }
 
