@@ -53,7 +53,7 @@ class PtexReaderCache : public PtexCache
 public:
     PtexReaderCache(int maxFiles, size_t maxMem, bool premultiply, PtexInputHandler* handler)
 	: _maxFiles(maxFiles), _maxMem(maxMem), _io(handler), _premultiply(premultiply),
-          _pruneFileLock(0), _pruneDataLock(0), _ioTimeStamp(0), _memUsed(sizeof(*this))
+          _ioTimestamp(0), _dataTimestamp(0), _memUsed(sizeof(*this))
     {}
 
     ~PtexReaderCache()
@@ -129,11 +129,11 @@ private:
     std::vector<ReaderAge> _activeFiles; PAD(_activeFiles);
     SpinLock _logOpenLock; PAD(_logOpenLock);
     SpinLock _logRecentLock; PAD(_logRecentLock);
-    volatile int32_t _pruneFileLock; PAD(_pruneFileLock);
-    volatile int32_t _pruneDataLock; PAD(_pruneDataLock);
     volatile int32_t _ioTimeStamp; PAD(_ioTimeStamp);
     volatile int32_t _dataTimeStamp; PAD(_dataTimeStamp);
     volatile size_t _memUsed; PAD(_memUsed);
+    SpinLock _pruneFileLock; PAD(_pruneFileLock);
+    SpinLock _pruneDataLock; PAD(_pruneDataLock);
 };
 
 class PtexCachedReader : public PtexReader

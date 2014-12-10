@@ -216,7 +216,7 @@ void PtexReaderCache::logOpen(PtexCachedReader* reader)
 
 void PtexReaderCache::pruneFiles()
 {
-    if (_pruneFileLock != 0 || !AtomicCompareAndSwap(&_pruneFileLock, 0, 1)) return;
+    if (!_pruneFileLock.trylock()) return;
 
     {
         AutoSpin locker(_logOpenLock);
@@ -244,7 +244,7 @@ void PtexReaderCache::pruneFiles()
         }
     }
 
-    _pruneFileLock = 0;
+    _pruneFileLock.unlock();
 }
 
 
