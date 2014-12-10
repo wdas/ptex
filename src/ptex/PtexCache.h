@@ -99,13 +99,14 @@ public:
     virtual size_t memUsed();
 
     void logOpen(PtexCachedReader* reader);
-    int32_t ioTimeStamp() const { return _ioTimeStamp; }
-    int32_t nextIoTimeStamp() { return AtomicIncrement(&_ioTimeStamp); }
+    uint32_t ioTimestamp() const { return _ioTimestamp; }
+    uint32_t nextIoTimestamp() { return AtomicIncrement(&_ioTimestamp); }
 
     void increaseMemUsed(size_t amount) { if (amount) AtomicAdd(&_memUsed, amount); }
     void logRecentlyUsed(PtexCachedReader* reader);
 
 private:
+    uint32_t nextDataTimestamp() { return ++_dataTimestamp; }
     void pruneFiles();
     void pruneData();
     int _maxFiles;
@@ -118,8 +119,8 @@ private:
     bool _premultiply;
     struct ReaderAge {
         PtexCachedReader* reader;
-        uint32_t age;
-        ReaderAge(PtexCachedReader* reader) : reader(reader) {}
+        uint32_t age, timestamp;
+        ReaderAge(PtexCachedReader* reader, uint32_t timestamp=0) : reader(reader), age(0), timestamp(timestamp) {}
     };
     static bool compareReaderAge(ReaderAge a, ReaderAge b) { return a.age < b.age; }
     std::vector<PtexCachedReader*> _newOpenFiles; PAD(_newOpenFiles);
@@ -129,18 +130,19 @@ private:
     std::vector<ReaderAge> _activeFiles; PAD(_activeFiles);
     SpinLock _logOpenLock; PAD(_logOpenLock);
     SpinLock _logRecentLock; PAD(_logRecentLock);
-    volatile int32_t _ioTimeStamp; PAD(_ioTimeStamp);
-    volatile int32_t _dataTimeStamp; PAD(_dataTimeStamp);
     volatile size_t _memUsed; PAD(_memUsed);
     SpinLock _pruneFileLock; PAD(_pruneFileLock);
     SpinLock _pruneDataLock; PAD(_pruneDataLock);
+    volatile uint32_t _ioTimestamp; PAD(_ioTimestamp);
+    uint32_t _dataTimestamp; PAD(_dataTimestamp);
 };
 
 class PtexCachedReader : public PtexReader
 {
     PtexReaderCache* _cache;
     volatile int32_t _refCount;
-    int32_t _ioTimeStamp;
+    uint32_t _ioTimestamp;
+    uint32_t _dataTimestamp;
 
     virtual void logOpen()
     {
@@ -149,16 +151,15 @@ class PtexCachedReader : public PtexReader
 
     virtual void setIoTimestamp()
     {
-        if (_ioTimeStamp !=_cache->ioTimeStamp()) {
-            _ioTimeStamp = _cache->nextIoTimeStamp();
+        if (_ioTimestamp !=_cache->ioTimestamp()) {
+            _ioTimestamp = _cache->nextIoTimestamp();
         }
     }
 
 public:
     PtexCachedReader(bool premultiply, PtexInputHandler* handler, PtexReaderCache* cache)
-        : PtexReader(premultiply, handler), _cache(cache), _refCount(1)
+        : PtexReader(premultiply, handler), _cache(cache), _refCount(1), _ioTimestamp(0), _dataTimestamp(0), _memUsedAccountedFor(0)
     {
-        _ioTimeStamp = cache->nextIoTimeStamp();
     }
 
     ~PtexCachedReader() { assert(_refCount == 0); }
@@ -184,5 +185,8 @@ public:
     uint32_t ioAge() { return _cache->ioTimeStamp() - _ioTimeStamp; }
 };
 
+    uint32_t ioTimestamp() const { return _ioTimestamp; }
+    uint32_t dataTimestamp() const { return _dataTimestamp; }
+    void setDataTimestamp(uint32_t dataTimestamp) { _dataTimestamp = dataTimestamp; }
 
 #endif
