@@ -122,7 +122,7 @@ private:
         uint32_t age, timestamp;
         ReaderAge(PtexCachedReader* reader, uint32_t timestamp=0) : reader(reader), age(0), timestamp(timestamp) {}
     };
-    static bool compareReaderAge(ReaderAge a, ReaderAge b) { return a.age < b.age; }
+    static bool compareReaderAge(const ReaderAge& a, const ReaderAge& b) { return a.age < b.age; }
     std::vector<PtexCachedReader*> _newOpenFiles; PAD(_newOpenFiles);
     std::vector<PtexCachedReader*> _tmpOpenFiles; PAD(_tmpOpenFiles);
     std::vector<ReaderAge> _openFiles; PAD(_openFiles);
