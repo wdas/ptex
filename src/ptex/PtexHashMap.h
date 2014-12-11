@@ -199,7 +199,7 @@ public:
         initContents();
     }
 
-    int32_t size() const { return _size; }
+    uint32_t size() const { return _size; }
 
     Value get(Key& key)
     {
