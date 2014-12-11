@@ -728,6 +728,7 @@ class PtexCache {
      */
     virtual void purgeAll() = 0;
 
+    /** Get current estimate of memory used. */
     virtual size_t memUsed() = 0;
 };
 
