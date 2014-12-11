@@ -53,9 +53,10 @@ public:
     PtexReader(bool premultiply, PtexInputHandler* handler);
     virtual ~PtexReader();
     virtual void release() { delete this; }
-    void prune();
     bool needToOpen() const { return _needToOpen; }
     bool open(const char* path, Ptex::String& error);
+    void prune();
+    void purge();
     bool tryClose();
     bool ok() const { return _ok; }
     bool isOpen() { return _fp; }

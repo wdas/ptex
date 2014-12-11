@@ -77,58 +77,48 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexReader.h"
 #include "PtexCache.h"
 
+
+bool PtexReaderCache::findFile(const char*& filename, std::string& buffer, Ptex::String& error)
+{
+    bool isAbsolute = (filename[0] == '/'
+#ifdef WINDOWS
+                       || filename[0] == '\\'
+                       || (isalpha(filename[0]) && filename[1] == ':')
+#endif
+    );
+    if (isAbsolute || _searchdirs.empty()) return true; // no need to search
+
+    // file is relative, search in searchpath
+    buffer.reserve(256); // minimize reallocs (will grow automatically)
+    struct stat statbuf;
+    for (size_t i = 0, size = _searchdirs.size(); i < size; i++) {
+        buffer = _searchdirs[i];
+        buffer += "/";
+        buffer += filename;
+        if (stat(buffer.c_str(), &statbuf) == 0) {
+            filename = buffer.c_str();
+            return true;
+        }
+    }
+    // not found
+    std::string errstr = "Can't find ptex file: ";
+    errstr += filename;
+    error = errstr.c_str();
+    return false;
+}
+
+
 PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 {
     // lookup reader in map
     StringKey key(filename);
     PtexCachedReader* reader = _files.get(key);
+
     if (reader) {
         if (!reader->ok()) return 0;
         reader->ref();
-        return reader;
     } else {
-	bool ok = true;
-
-	// make a new reader
-	PtexCachedReader* newreader = new PtexCachedReader(_premultiply, _io, this);
-
-	std::string tmppath;
-	const char* pathToOpen = filename;
-	if (!_io) {
-            bool isAbsolute = (filename[0] == '/'
-#ifdef WINDOWS
-                               || filename[0] == '\\'
-                               || (isalpha(filename[0]) && filename[1] == ':')
-#endif
-                               );
-	    if (!isAbsolute && !_searchdirs.empty()) {
-		// file is relative, search in searchpath
-		tmppath.reserve(256); // minimize reallocs (will grow automatically)
-		bool found = false;
-		struct stat statbuf;
-		for (size_t i = 0, size = _searchdirs.size(); i < size; i++) {
-		    tmppath = _searchdirs[i];
-		    tmppath += "/";
-		    tmppath += filename;
-		    if (stat(tmppath.c_str(), &statbuf) == 0) {
-			found = true;
-			pathToOpen = tmppath.c_str();
-			break;
-		    }
-		}
-		if (!found) {
-		    std::string errstr = "Can't find ptex file: ";
-		    errstr += filename;
-		    error = errstr.c_str();
-		    ok = false;
-		}
-	    }
-	}
-        if (ok) {
-            newreader->open(pathToOpen, error);
-        }
-
-	// record in _files map entry (even if open failed)
+        PtexCachedReader* newreader = new PtexCachedReader(_premultiply, _io, this);
         size_t newMemUsed = 0;
         reader = _files.tryInsert(key, newreader, newMemUsed);
         adjustMemUsed(newMemUsed);
@@ -137,7 +127,14 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
             reader->ref();
             delete newreader;
         }
-        else {
+    }
+
+    if (reader->needToOpen()) {
+	bool ok = true;
+	std::string buffer;
+	const char* pathToOpen = filename;
+	if (!_io) ok = findFile(pathToOpen, buffer, error);
+        if (ok && reader->open(pathToOpen, error)) {
             logOpen(reader);
         }
     }
@@ -272,6 +269,44 @@ void PtexReaderCache::pruneData()
     adjustMemUsed(memUsedChange);
 
     _pruneDataLock.unlock();
+}
+
+
+void PtexReaderCache::purge(PtexTexture* texture)
+{
+    PtexCachedReader* reader = static_cast<PtexCachedReader*>(texture);
+    reader->unref();
+    purge(reader);
+    reader->ref();
+}
+
+
+void PtexReaderCache::purge(const char* filename)
+{
+    StringKey key(filename);
+    PtexCachedReader* reader = _files.get(key);
+    if (reader) purge(reader);
+}
+
+void PtexReaderCache::purge(PtexCachedReader* reader)
+{
+    if (reader->tryPurge()) {
+        adjustMemUsed(reader->memUsedChange());
+    }
+}
+
+void PtexReaderCache::Purger::operator()(PtexCachedReader* reader)
+{
+    if (reader->tryPurge()) {
+        memUsedChange += reader->memUsedChange();
+    }
+}
+
+void PtexReaderCache::purgeAll()
+{
+    Purger purger;
+    _files.foreach(purger);
+    adjustMemUsed(purger.memUsedChange);
 }
 
 

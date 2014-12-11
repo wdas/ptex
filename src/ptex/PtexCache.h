@@ -91,13 +91,12 @@ public:
 
     virtual PtexTexture* get(const char* path, Ptex::String& error);
 
-    // TODO - make new dummy textures, put inuse textures in deadpool when purging
-    //      - but what about effect on stats?
-    virtual void purge(PtexTexture* /*texture*/) {}
-    virtual void purge(const char* /*filename*/) {}
-    virtual void purgeAll() {}
+    virtual void purge(PtexTexture* /*texture*/);
+    virtual void purge(const char* /*filename*/);
+    virtual void purgeAll();
     virtual size_t memUsed() { return _memUsed; }
 
+    void purge(PtexCachedReader* reader);
     void logOpen(PtexCachedReader* reader);
     uint32_t ioTimestamp() const { return _ioTimestamp; }
     uint32_t nextIoTimestamp() { return AtomicIncrement(&_ioTimestamp); }
@@ -106,6 +105,13 @@ public:
     void logRecentlyUsed(PtexCachedReader* reader);
 
 private:
+    struct Purger {
+        size_t memUsedChange;
+        Purger() : memUsedChange(0) {}
+        void operator() (PtexCachedReader* reader);
+    };
+
+    bool findFile(const char*& filename, std::string& buffer, Ptex::String& error);
     uint32_t nextDataTimestamp() { return ++_dataTimestamp; }
     void pruneFiles();
     void pruneData();
@@ -168,6 +174,7 @@ class PtexCachedReader : public PtexReader
         MemoryFence();
         _refCount = 0;
     }
+
 public:
     PtexCachedReader(bool premultiply, PtexInputHandler* handler, PtexReaderCache* cache)
         : PtexReader(premultiply, handler), _cache(cache), _refCount(1), _ioTimestamp(0), _dataTimestamp(0), _memUsedAccountedFor(0)
@@ -202,6 +209,11 @@ public:
         }
         return false;
     }
+
+    bool tryPurge() {
+        if (trylock()) {
+            purge();
+            unlock();
             return true;
         }
         return false;

@@ -96,6 +96,26 @@ void PtexReader::prune()
 }
 
 
+void PtexReader::purge()
+{
+    // free all dynamic data
+    prune();
+    if (_constdata) { free(_constdata); _constdata = 0; }
+    std::vector<FaceInfo>().swap(_faceinfo);
+    std::vector<uint32_t>().swap(_rfaceids);
+    std::vector<LevelInfo>().swap(_levelinfo);
+    std::vector<FilePos>().swap(_levelpos);
+    std::vector<Level*>().swap(_levels);
+    closeFP();
+
+    // reset initial state
+    _ok = true;
+    _needToOpen = true;
+    _error.clear();
+    _memUsed = _baseMemUsed = sizeof(*this);
+}
+
+
 bool PtexReader::open(const char* path, Ptex::String& error)
 {
     AutoMutex locker(readlock);
@@ -165,12 +185,10 @@ bool PtexReader::open(const char* path, Ptex::String& error)
         closeFP();
 	return 0;
     }
-
     MemoryFence();
     _needToOpen = false;
     return true;
 }
-
 
 bool PtexReader::tryClose()
 {
