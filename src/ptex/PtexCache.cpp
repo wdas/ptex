@@ -183,6 +183,11 @@ void PtexReaderCache::pruneFiles()
     }
     _tmpOpenFiles.clear();
 
+    uint32_t now = _ioTimestamp;
+    for (std::vector<ReaderAge>::iterator iter = _openFiles.begin(); iter != _openFiles.end(); ++iter) {
+        iter->age = now - iter->reader->ioTimestamp();
+    }
+
     int numToClose = int(_openFiles.size()) - _maxFiles;
     if (numToClose > 0) {
         std::nth_element(_openFiles.begin(), _openFiles.end() - numToClose, _openFiles.end(), compareReaderAge);
