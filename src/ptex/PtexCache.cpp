@@ -257,14 +257,14 @@ void PtexReaderCache::pruneData()
     _activeFiles.erase(keep, _activeFiles.end());
 
 
-    // pop and clear least recent files
+    // pop and prune least recent files
     std::sort(_activeFiles.begin(), _activeFiles.end(), compareReaderAge); // TODO: (maybe) use nth_element on avg reader size?
     memUsedChange = 0;
     size_t memUsed = _memUsed;
     while (memUsed + memUsedChange > _maxMem && !_activeFiles.empty()) {
         PtexCachedReader* reader = _activeFiles.back().reader;
         _activeFiles.pop_back();
-        if (reader->tryClear()) {
+        if (reader->tryPrune()) {
             // Note: after clearing, memUsedChange is negative
             memUsedChange += reader->memUsedChange();
         }

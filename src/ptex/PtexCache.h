@@ -158,6 +158,16 @@ class PtexCachedReader : public PtexReader
         }
     }
 
+    bool trylock()
+    {
+        return AtomicCompareAndSwap(&_refCount, 0, -1);
+    }
+
+    void unlock()
+    {
+        MemoryFence();
+        _refCount = 0;
+    }
 public:
     PtexCachedReader(bool premultiply, PtexInputHandler* handler, PtexReaderCache* cache)
         : PtexReader(premultiply, handler), _cache(cache), _refCount(1), _ioTimestamp(0), _dataTimestamp(0), _memUsedAccountedFor(0)
@@ -184,11 +194,14 @@ public:
         unref();
     }
 
-    bool tryClear() {
-        if (AtomicCompareAndSwap(&_refCount, 0, -1)) {
-            clear();
-            MemoryFence();
-            _refCount = 0;
+    bool tryPrune() {
+        if (trylock()) {
+            prune();
+            unlock();
+            return true;
+        }
+        return false;
+    }
             return true;
         }
         return false;

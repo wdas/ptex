@@ -87,7 +87,7 @@ PtexReader::~PtexReader()
         inflateEnd(&_zstream);
 }
 
-void PtexReader::clear()
+void PtexReader::prune()
 {
     if (_metadata) { delete _metadata; _metadata = 0; }
     for (std::vector<Level*>::iterator i = _levels.begin(); i != _levels.end(); ++i) {
