@@ -65,7 +65,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexInt.h"
 #include <ostream>
 
-#define PtexAPIVersion 3
+#define PtexAPIVersion 4
 #define PtexFileMajorVersion 1
 #define PtexFileMinorVersion 4
 
@@ -728,8 +728,18 @@ class PtexCache {
      */
     virtual void purgeAll() = 0;
 
-    /** Get current estimate of memory used. */
-    virtual size_t memUsed() = 0;
+    struct Stats {
+        uint64_t memUsed;
+        uint64_t peakMemUsed;
+        uint64_t filesOpen;
+        uint64_t peakFilesOpen;
+        uint64_t filesAccessed;
+        uint64_t fileReopens;
+        uint64_t blocksRead;
+    };
+
+    /** Get stats. */
+    virtual void getStats(Stats& stats) = 0;
 };
 
 

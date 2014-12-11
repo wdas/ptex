@@ -181,6 +181,7 @@ void PtexReaderCache::pruneFiles()
     for (std::vector<PtexCachedReader*>::iterator iter = _tmpOpenFiles.begin(); iter != _tmpOpenFiles.end(); ++iter) {
         _openFiles.push_back(ReaderAge(*iter));
     }
+    _fileOpens += _tmpOpenFiles.size();
     _tmpOpenFiles.clear();
 
     uint32_t now = _ioTimestamp;
@@ -188,6 +189,7 @@ void PtexReaderCache::pruneFiles()
         iter->age = now - iter->reader->ioTimestamp();
     }
 
+    _peakFilesOpen = std::max(_peakFilesOpen, _openFiles.size());
     int numToClose = int(_openFiles.size()) - _maxFiles;
     if (numToClose > 0) {
         std::nth_element(_openFiles.begin(), _openFiles.end() - numToClose, _openFiles.end(), compareReaderAge);
@@ -263,6 +265,7 @@ void PtexReaderCache::pruneData()
     std::sort(_activeFiles.begin(), _activeFiles.end(), compareReaderAge); // TODO: (maybe) use nth_element on avg reader size?
     memUsedChange = 0;
     size_t memUsed = _memUsed;
+    _peakMemUsed = std::max(memUsed, _peakMemUsed);
     while (memUsed + memUsedChange > _maxMem && !_activeFiles.empty()) {
         PtexCachedReader* reader = _activeFiles.back().reader;
         _activeFiles.pop_back();
@@ -315,11 +318,13 @@ void PtexReaderCache::purgeAll()
 }
 
 
-namespace {
-    struct SumMemUsed {
-        size_t sum;
-        void operator() (PtexCachedReader* reader) { sum += reader->memUsed(); }
-        SumMemUsed() : sum(0) {}
-    };
-    // e.g. _files.foreach(summer);
+void PtexReaderCache::getStats(Stats& stats)
+{
+    stats.memUsed = _memUsed;
+    stats.peakMemUsed = std::max(stats.memUsed, _peakMemUsed);
+    { AutoSpin locker(_logOpenLock); stats.filesOpen = _openFiles.size(); }
+    stats.peakFilesOpen = _peakFilesOpen;
+    stats.filesAccessed = _files.size();
+    stats.fileReopens = _fileOpens < stats.filesAccessed ? 0 : _fileOpens - stats.filesAccessed;
+    stats.blocksRead = _blocksRead;
 }

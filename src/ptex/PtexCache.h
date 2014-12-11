@@ -53,7 +53,8 @@ class PtexReaderCache : public PtexCache
 public:
     PtexReaderCache(int maxFiles, size_t maxMem, bool premultiply, PtexInputHandler* handler)
 	: _maxFiles(maxFiles), _maxMem(maxMem), _io(handler), _premultiply(premultiply),
-          _ioTimestamp(0), _dataTimestamp(0), _memUsed(sizeof(*this))
+          _ioTimestamp(0), _dataTimestamp(0), _memUsed(sizeof(*this)), _peakMemUsed(0),
+          _peakFilesOpen(0), _fileOpens(0), _blocksRead(0)
     {}
 
     ~PtexReaderCache()
@@ -94,7 +95,7 @@ public:
     virtual void purge(PtexTexture* /*texture*/);
     virtual void purge(const char* /*filename*/);
     virtual void purgeAll();
-    virtual size_t memUsed() { return _memUsed; }
+    virtual void getStats(Stats& stats);
 
     void purge(PtexCachedReader* reader);
     void logOpen(PtexCachedReader* reader);
@@ -142,6 +143,10 @@ private:
     volatile uint32_t _ioTimestamp; PAD(_ioTimestamp);
     uint32_t _dataTimestamp; PAD(_dataTimestamp);
     volatile size_t _memUsed; PAD(_memUsed);
+    size_t _peakMemUsed; PAD(_peakMemUsed);
+    size_t _peakFilesOpen; PAD(_peakFilesOpen);
+    size_t _fileOpens; PAD(_fileOpens);
+    size_t _blocksRead; PAD(_blocksRead);
 };
 
 class PtexCachedReader : public PtexReader
@@ -159,9 +164,7 @@ class PtexCachedReader : public PtexReader
 
     virtual void setIoTimestamp()
     {
-        if (_ioTimestamp !=_cache->ioTimestamp()) {
-            _ioTimestamp = _cache->nextIoTimestamp();
-        }
+        _ioTimestamp = _cache->nextIoTimestamp();
     }
 
     bool trylock()
