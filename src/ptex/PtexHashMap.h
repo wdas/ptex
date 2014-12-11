@@ -179,7 +179,7 @@ class PtexHashMap
         for (size_t i = 0; i < _oldEntries.size(); ++i) {
             delete [] _oldEntries[i];
         }
-        _oldEntries.clear();
+        std::vector<Entry*>().swap(_oldEntries);
     }
 
 public:
