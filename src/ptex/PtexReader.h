@@ -54,6 +54,7 @@ public:
     virtual ~PtexReader();
     virtual void release() { delete this; }
     void prune();
+    bool needToOpen() const { return _needToOpen; }
     bool open(const char* path, Ptex::String& error);
     bool tryClose();
     bool ok() const { return _ok; }
@@ -536,6 +537,7 @@ protected:
     PtexInputHandler* _io;	      // IO handler
     bool _premultiply;		      // true if reader should premultiply the alpha chan
     bool _ok;			      // flag set if read error occurred)
+    bool _needToOpen;                 // true if file needs to be opened (or reopened after a purge)
     std::string _error;		      // error string (if !_ok)
     PtexInputHandler::Handle _fp;     // file pointer
     FilePos _pos;		      // current seek position

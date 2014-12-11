@@ -59,6 +59,7 @@ PtexReader::PtexReader(bool premultiply, PtexInputHandler* io)
     : _io(io ? io : &_defaultIo),
       _premultiply(premultiply),
       _ok(true),
+      _needToOpen(true),
       _fp(0),
       _pos(0),
       _pixelsize(0),
@@ -98,6 +99,9 @@ void PtexReader::prune()
 
 bool PtexReader::open(const char* path, Ptex::String& error)
 {
+    AutoMutex locker(readlock);
+    if (!needToOpen()) return false;
+
     if (!LittleEndian()) {
 	error = "Ptex library doesn't currently support big-endian cpu's";
 	return 0;
@@ -162,7 +166,9 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 	return 0;
     }
 
-    return 1;
+    MemoryFence();
+    _needToOpen = false;
+    return true;
 }
 
 
