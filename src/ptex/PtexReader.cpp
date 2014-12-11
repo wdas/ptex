@@ -70,7 +70,6 @@ PtexReader::PtexReader(bool premultiply, PtexInputHandler* io)
       _baseMemUsed(sizeof(*this)),
       _memUsed(_baseMemUsed)
 {
-    memset(&_header, 0, sizeof(_header));
     memset(&_zstream, 0, sizeof(_zstream));
 }
 
@@ -115,6 +114,7 @@ bool PtexReader::open(const char* path, Ptex::String& error)
         _ok = 0;
 	return 0;
     }
+    memset(&_header, 0, sizeof(_header));
     readBlock(&_header, HeaderSize);
     if (_header.magic != Magic) {
 	std::string errstr = "Not a ptex file: "; errstr += path;
