@@ -19,7 +19,7 @@ ifdef PTEX_STATIC
 DEFINES += -DPTEX_STATIC
 endif
 
-CXXFLAGS = -Wall -pedantic -W -std=c++98 $(DEBUG) $(INCPATH) $(DEFINES) -fPIC
+CXXFLAGS = -Wall -Wconversion -pedantic -W -std=c++98 $(DEBUG) $(INCPATH) $(DEFINES) -fPIC
 LFLAGS   = 
 LIBS     = -lm -lz -lpthread
 

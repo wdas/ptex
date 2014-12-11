@@ -932,7 +932,7 @@ PtexReader::PackedFace::reduce(PtexReader* r, Res newres, PtexUtils::ReduceFn re
     // allocate a new face and reduce image
     DataType dt = r->datatype();
     int nchan = r->nchannels();
-    size_t memsize = _pixelsize * newres.size();
+    int memsize = _pixelsize * newres.size();
     PackedFace* pf = new PackedFace(newres, _pixelsize, memsize);
     newMemUsed = sizeof(PackedFace) + memsize;
     // reduce and copy into new face
@@ -1032,7 +1032,7 @@ PtexReader::TiledFaceBase::reduce(PtexReader* r, Res newres, PtexUtils::ReduceFn
             }
 
             // allocate a new packed face
-            size_t memsize = _pixelsize * newres.size();
+            int memsize = _pixelsize * newres.size();
             newface = new PackedFace(newres, _pixelsize, memsize);
             newMemUsed = sizeof(PackedFace) + memsize;
             // reduce and copy into new face
@@ -1043,7 +1043,7 @@ PtexReader::TiledFaceBase::reduce(PtexReader* r, Res newres, PtexUtils::ReduceFn
         }
 	else {
 	    // allocate a new packed face
-            size_t memsize = _pixelsize * newres.size();
+            int memsize = _pixelsize * newres.size();
 	    newface = new PackedFace(newres, _pixelsize, memsize);
             newMemUsed = sizeof(PackedFace) + memsize;
 
@@ -1129,7 +1129,7 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
     }
     else {
 	// allocate a new packed face for the tile
-        size_t memsize = _pixelsize*_tileres.size();
+        int memsize = _pixelsize*_tileres.size();
 	newface = new PackedFace(_tileres, _pixelsize, memsize);
         newMemUsed = sizeof(PackedFace) + memsize;
 

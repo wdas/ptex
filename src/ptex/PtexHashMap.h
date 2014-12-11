@@ -95,7 +95,7 @@ public:
     StringKey(const char* val)
     {
         _val = val;
-        _len = strlen(val);
+        _len = uint32_t(strlen(val));
         _hash = memHash(_val, _len);
         _ownsVal = false;
     }
