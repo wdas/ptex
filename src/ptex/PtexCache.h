@@ -184,14 +184,14 @@ public:
         }
     }
 
-    void unref() {
-        if (0 == AtomicDecrement(&_refCount)) {
-            _cache->logRecentlyUsed(this);
-        }
+    int32_t unref() {
+        return AtomicDecrement(&_refCount);
     }
 
     virtual void release() {
-        unref();
+        if (0 == unref()) {
+            _cache->logRecentlyUsed(this);
+        }
     }
 
     bool tryPrune() {
