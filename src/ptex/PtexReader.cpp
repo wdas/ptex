@@ -76,15 +76,13 @@ PtexReader::PtexReader(bool premultiply, PtexInputHandler* io)
 
 PtexReader::~PtexReader()
 {
-    if (_fp) _io->close(_fp);
+    closeFP();
     if (_constdata) free(_constdata);
     if (_metadata) delete _metadata;
 
     for (std::vector<Level*>::iterator i = _levels.begin(); i != _levels.end(); ++i) {
         if (*i) delete *i;
     }
-    if (_inflateInitialized)
-        inflateEnd(&_zstream);
 }
 
 void PtexReader::prune()
@@ -118,6 +116,7 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 	std::string errstr = "Not a ptex file: "; errstr += path;
 	error = errstr.c_str();
         _ok = 0;
+        closeFP();
 	return 0;
     }
     if (_header.version != 1) {
@@ -125,6 +124,7 @@ bool PtexReader::open(const char* path, Ptex::String& error)
         s << "Unsupported ptex file version ("<< _header.version << "): " << path;
         error = s.str();
         _ok = 0;
+        closeFP();
         return 0;
     }
     _pixelsize = _header.pixelSize();
@@ -158,6 +158,7 @@ bool PtexReader::open(const char* path, Ptex::String& error)
     // an error occurred while reading the file
     if (!_ok) {
 	error = _error.c_str();
+        closeFP();
 	return 0;
     }
 
@@ -169,21 +170,27 @@ bool PtexReader::tryClose()
 {
     if (_fp) {
         if (!readlock.trylock()) return false;
-        if (_fp) {
-            _io->close(_fp);
-            _fp = 0;
-        }
-        if (_inflateInitialized) {
-            inflateEnd(&_zstream);
-            _inflateInitialized = false;
-        }
+        closeFP();
         readlock.unlock();
     }
     return true;
 }
 
 
-bool PtexReader::reopen()
+void PtexReader::closeFP()
+{
+    if (_fp) {
+        _io->close(_fp);
+        _fp = 0;
+    }
+    if (_inflateInitialized) {
+        inflateEnd(&_zstream);
+        _inflateInitialized = false;
+    }
+}
+
+
+bool PtexReader::reopenFP()
 {
     if (_fp) return true;
 

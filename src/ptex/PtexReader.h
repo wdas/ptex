@@ -56,7 +56,6 @@ public:
     void prune();
     bool open(const char* path, Ptex::String& error);
     bool tryClose();
-    bool reopen();
     bool ok() const { return _ok; }
     bool isOpen() { return _fp; }
     size_t memUsed() { return _memUsed; }
@@ -459,7 +458,7 @@ protected:
     FilePos tell() { return _pos; }
     void seek(FilePos pos)
     {
-        if (!_fp && !reopen()) return;
+        if (!_fp && !reopenFP()) return;
         setIoTimestamp();
 	if (pos != _pos) {
 	    _io->seek(_fp, pos);
@@ -467,6 +466,8 @@ protected:
 	}
     }
 
+    void closeFP();
+    bool reopenFP();
     bool readBlock(void* data, int size, bool reportError=true);
     bool readZipBlock(void* data, int zipsize, int unzipsize);
     Level* getLevel(int levelid)
