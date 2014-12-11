@@ -7,7 +7,7 @@ LINK = $(CXX)
 endif
 
 # DEBUG = -g -DDEBUG
-DEBUG    = -O2 -DNDEBUG
+DEBUG    = -O3 -DNDEBUG -msse4.1
 INCPATH  = -I.
 DEFINES  = 
 
