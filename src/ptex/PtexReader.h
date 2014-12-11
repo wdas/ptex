@@ -611,7 +611,6 @@ protected:
     ReductionMap _reductions;
 
     z_stream_s _zstream;
-    bool _inflateInitialized;
     size_t _baseMemUsed;
     size_t _memUsed;
 };
