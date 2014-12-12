@@ -45,6 +45,7 @@ LIBDIR = lib
 INSTALL = \
 	$(LIBDIR)/libPtex.a \
 	include/Ptexture.h \
+	include/PtexVersion.h \
 	include/PtexHalf.h \
 	include/PtexInt.h \
 	include/PtexUtils.h
