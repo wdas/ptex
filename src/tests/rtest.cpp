@@ -4,6 +4,7 @@
 #include "Ptexture.h"
 #include <cstdlib>
 #include <cstdio> // printf()
+using namespace Ptex;
 
 void DumpData(Ptex::Res res, Ptex::DataType dt, int nchan, void* data, std::string prefix)
 {

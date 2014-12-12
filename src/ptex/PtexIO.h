@@ -38,7 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 #include "Ptexture.h"
 
-struct PtexIO : public Ptex {
+PTEX_NAMESPACE_BEGIN
+
 struct Header {
     uint32_t magic;
     uint32_t version;
@@ -98,25 +99,26 @@ struct EditMetaDataHeader {
     uint32_t metadatamemsize;
 };
 
-static const uint32_t Magic = 'P' | ('t'<<8) | ('e'<<16) | ('x'<<24);
-static const int HeaderSize = sizeof(Header);
-static const int ExtHeaderSize = sizeof(ExtHeader);
-static const int LevelInfoSize = sizeof(LevelInfo);
-static const int FaceDataHeaderSize = sizeof(FaceDataHeader);
-static const int EditFaceDataHeaderSize = sizeof(EditFaceDataHeader);
-static const int EditMetaDataHeaderSize = sizeof(EditMetaDataHeader);
+const uint32_t Magic = 'P' | ('t'<<8) | ('e'<<16) | ('x'<<24);
+const int HeaderSize = sizeof(Header);
+const int ExtHeaderSize = sizeof(ExtHeader);
+const int LevelInfoSize = sizeof(LevelInfo);
+const int FaceDataHeaderSize = sizeof(FaceDataHeader);
+const int EditFaceDataHeaderSize = sizeof(EditFaceDataHeader);
+const int EditMetaDataHeaderSize = sizeof(EditMetaDataHeader);
 
 // these constants can be tuned for performance
-static const int IBuffSize = 8192;         // default input buffer size
-static const int BlockSize = 16384;        // target block size for file I/O
-static const int TileSize  = 65536;        // target tile size (uncompressed)
-static const int AllocaMax = 16384;        // max size for using alloca
-static const int MetaDataThreshold = 1024; // cutoff for large meta data
+const int IBuffSize = 8192;         // default input buffer size
+const int BlockSize = 16384;        // target block size for file I/O
+const int TileSize  = 65536;        // target tile size (uncompressed)
+const int AllocaMax = 16384;        // max size for using alloca
+const int MetaDataThreshold = 1024; // cutoff for large meta data
 
-static bool LittleEndian() {
+inline bool LittleEndian() {
     short word = 0x0201;
     return *(char*)&word == 1;
 }
-};
+
+PTEX_NAMESPACE_END
 
 #endif

@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexHashMap.h"
 #include "PtexReader.h"
 
-using namespace PtexInternal;
+PTEX_NAMESPACE_BEGIN
 
 class PtexCachedReader;
 
@@ -235,5 +235,7 @@ public:
         return result;
     }
 };
+
+PTEX_NAMESPACE_END
 
 #endif

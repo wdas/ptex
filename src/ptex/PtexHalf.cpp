@@ -36,6 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <math.h>
 #include "PtexHalf.h"
 
+PTEX_NAMESPACE_BEGIN
+
 uint16_t PtexHalf::f2hTable[512];
 uint32_t PtexHalf::h2fTable[65536];
 
@@ -103,3 +105,5 @@ uint16_t PtexHalf::fromFloat_except(uint32_t i)
 	// overflow - convert to inf
 	return (uint16_t)(s|0x7c00);
 }
+
+PTEX_NAMESPACE_END

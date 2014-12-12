@@ -78,6 +78,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexCache.h"
 
 
+PTEX_NAMESPACE_BEGIN
+
 bool PtexReaderCache::findFile(const char*& filename, std::string& buffer, Ptex::String& error)
 {
     bool isAbsolute = (filename[0] == '/'
@@ -344,3 +346,5 @@ void PtexReaderCache::getStats(Stats& stats)
     stats.fileReopens = _fileOpens < stats.filesAccessed ? 0 : _fileOpens - stats.filesAccessed;
     stats.blockReads = _blockReads;
 }
+
+PTEX_NAMESPACE_END

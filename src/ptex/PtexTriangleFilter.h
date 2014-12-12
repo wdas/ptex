@@ -37,10 +37,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 */
 
 #include "Ptexture.h"
+
+PTEX_NAMESPACE_BEGIN
+
 class PtexTriangleKernel;
 class PtexTriangleKernelIter;
 
-class PtexTriangleFilter : public PtexFilter, public Ptex
+class PtexTriangleFilter : public PtexFilter
 {
  public:
     PtexTriangleFilter(PtexTexture* tx, const PtexFilter::Options& opts ) :
@@ -74,5 +77,7 @@ class PtexTriangleFilter : public PtexFilter, public Ptex
     int _ntxchan;		// number of channels in texture
     DataType _dt;		// data type of texture
 };
+
+PTEX_NAMESPACE_END
 
 #endif

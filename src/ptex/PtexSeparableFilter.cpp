@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexUtils.h"
 
 
+PTEX_NAMESPACE_BEGIN
+
 void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
 			       int faceid, float u, float v,
 			       float uw1, float vw1, float uw2, float vw2,
@@ -415,3 +417,5 @@ void PtexSeparableFilter::apply(PtexSeparableKernel& k, int faceid, const Ptex::
         for (int i = 2; i < _nchan; i++) _result[i] += result[i];
     }
 }
+
+PTEX_NAMESPACE_END

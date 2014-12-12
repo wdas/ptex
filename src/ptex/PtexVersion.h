@@ -1,5 +1,5 @@
-#ifndef PtexMutex_h
-#define PtexMutex_h
+#ifndef PtexVersion_h
+#define PtexVersion_h
 
 /*
 PTEX SOFTWARE
@@ -36,21 +36,28 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 */
 
-PTEX_NAMESPACE_BEGIN
+#define PtexAPIVersion 4
+#define PtexFileMajorVersion 1
+#define PtexFileMinorVersion 4
+#define PtexLibraryMajorVersion 2
+#define PtexLibraryMinorVersion 2
 
- /** Automatically acquire and release lock within enclosing scope. */
-template <class T>
-class AutoLock {
-public:
-    AutoLock(T& m) : _m(m) { _m.lock(); }
-    ~AutoLock()            { _m.unlock(); }
-private:
-    T& _m;
-};
+#define PTEX_NAMESPACE Ptex
+#ifdef PTEX_VENDOR
+#  define make_version_ns_(major,minor,vendor) v##major##_##minor##_##vendor
+#  define make_version_ns(major,minor,vendor) make_version_ns_(major,minor,vendor)
+#  define PTEX_VERSION_NAMESPACE make_version_ns(PtexLibraryMajorVersion,PtexLibraryMinorVersion,PTEX_VENDOR)
+#else
+#  define make_version_ns_(major,minor) v##major##_##minor
+#  define make_version_ns(major,minor) make_version_ns_(major,minor)
+#  define PTEX_VERSION_NAMESPACE make_version_ns(PtexLibraryMajorVersion,PtexLibraryMinorVersion)
+#endif
 
-typedef AutoLock<Mutex> AutoMutex;
-typedef AutoLock<SpinLock> AutoSpin;
+#define PTEX_NAMESPACE_BEGIN \
+namespace PTEX_NAMESPACE { \
+namespace PTEX_VERSION_NAMESPACE {} \
+using namespace PTEX_VERSION_NAMESPACE; \
+namespace PTEX_VERSION_NAMESPACE {
 
-PTEX_NAMESPACE_END
-
+#define PTEX_NAMESPACE_END }}
 #endif

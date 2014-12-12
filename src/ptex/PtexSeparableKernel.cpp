@@ -37,6 +37,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexHalf.h"
 #include "PtexSeparableKernel.h"
 
+PTEX_NAMESPACE_BEGIN
+
 namespace {
     // apply to 1..4 channels (unrolled channel loop) of packed data (nTxChan==nChan)
     template<class T, int nChan>
@@ -147,3 +149,5 @@ PtexSeparableKernel::applyFunctions[] = {
     ApplyS<uint8_t,3>, ApplyS<uint16_t,3>, ApplyS<PtexHalf,3>, ApplyS<float,3>,
     ApplyS<uint8_t,4>, ApplyS<uint16_t,4>, ApplyS<PtexHalf,4>, ApplyS<float,4>,
 };
+
+PTEX_NAMESPACE_END

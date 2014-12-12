@@ -46,9 +46,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexUtils.h"
 
 #include "PtexHashMap.h"
-using namespace PtexInternal;
 
-class PtexReader : public PtexTexture, public PtexIO {
+PTEX_NAMESPACE_BEGIN
+
+class PtexReader : public PtexTexture {
 public:
     PtexReader(bool premultiply, PtexInputHandler* handler);
     virtual ~PtexReader();
@@ -614,5 +615,7 @@ protected:
     size_t _baseMemUsed;
     size_t _memUsed;
 };
+
+PTEX_NAMESPACE_END
 
 #endif

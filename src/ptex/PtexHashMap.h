@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexPlatform.h"
 #include "PtexMutex.h"
 
-namespace PtexInternal {
+PTEX_NAMESPACE_BEGIN
 
 inline uint32_t memHash(const char* val, int len)
 {
@@ -326,6 +326,6 @@ private:
     std::vector<Entry*> _oldEntries;
 };
 
-}
+PTEX_NAMESPACE_END
 
 #endif

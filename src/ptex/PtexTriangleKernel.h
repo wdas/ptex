@@ -42,14 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "Ptexture.h"
 #include "PtexUtils.h"
 
+PTEX_NAMESPACE_BEGIN
+
 // kernel width as a multiple of filter width (should be between 3 and 4)
 // for values below 3, the gaussian is not close to zero and a contour will be formed
 // larger values are more expensive (proportional to width-squared)
-static const float PtexTriangleKernelWidth = 3.5f;
+const float PtexTriangleKernelWidth = 3.5f;
 
 
 /// Triangle filter kernel iterator (in texel coords)
-class PtexTriangleKernelIter : public Ptex {
+class PtexTriangleKernelIter {
  public:
     int rowlen;			// row length (in u)
     float u, v;		// uv center in texels
@@ -77,7 +79,7 @@ class PtexTriangleKernelIter : public Ptex {
 
 
 /// Triangle filter kernel (in normalized triangle coords)
-class PtexTriangleKernel : public Ptex {
+class PtexTriangleKernel {
  public:
     Res res;			// desired resolution
     float u, v;		// uv filter center
@@ -223,5 +225,7 @@ class PtexTriangleKernel : public Ptex {
 	ko.weight = 0;
     }
 };
+
+PTEX_NAMESPACE_END
 
 #endif

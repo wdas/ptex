@@ -38,9 +38,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 #include "Ptexture.h"
 
+PTEX_NAMESPACE_BEGIN
+
 class PtexSeparableKernel;
 
-class PtexSeparableFilter : public PtexFilter, public Ptex
+class PtexSeparableFilter : public PtexFilter
 {
  public:
     virtual void release() { delete this; }
@@ -84,5 +86,7 @@ class PtexSeparableFilter : public PtexFilter, public Ptex
     BorderMode _uMode, _vMode;	// border modes (clamp,black,periodic)
     EdgeFilterMode _efm; // edge filter mode (rotate when kernel is rotated or not)
 };
+
+PTEX_NAMESPACE_END
 
 #endif

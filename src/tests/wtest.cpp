@@ -4,6 +4,7 @@
 #include "Ptexture.h"
 #include "PtexHalf.h"
 #include <string.h>
+using namespace Ptex;
 
 void writeMeta(PtexWriter* w,
 	       const char* sval, double* dvals, int ndvals, int16_t* ivals, int nivals,

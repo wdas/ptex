@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "Ptexture.h"
+using namespace Ptex;
 
 int main(int argc, char** argv)
 {

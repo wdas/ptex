@@ -43,14 +43,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <smmintrin.h>
 #endif
 
-struct PtexUtils : public Ptex {
+#include "PtexVersion.h"
 
-static bool isPowerOfTwo(int x)
+PTEX_NAMESPACE_BEGIN
+namespace PtexUtils {
+
+inline bool isPowerOfTwo(int x)
 {
     return !(x&(x-1));
 }
 
-static uint32_t ones(uint32_t x)
+inline uint32_t ones(uint32_t x)
 {
     // count number of ones
     x = (x & 0x55555555) + ((x >> 1) & 0x55555555); // add pairs of bits
@@ -61,7 +64,7 @@ static uint32_t ones(uint32_t x)
     return(x & 0xff);
 }
 
-static uint32_t floor_log2(uint32_t x)
+inline uint32_t floor_log2(uint32_t x)
 {
     // floor(log2(n))
     x |= (x >> 1);
@@ -72,7 +75,7 @@ static uint32_t floor_log2(uint32_t x)
     return ones(x>>1);
 }
 
-static uint32_t ceil_log2(uint32_t x)
+inline uint32_t ceil_log2(uint32_t x)
 {
     // ceil(log2(n))
     bool isPow2 = isPowerOfTwo(x);
@@ -84,7 +87,7 @@ static uint32_t ceil_log2(uint32_t x)
     return ones(x>>1) + !isPow2;
 }
 
-static float reciprocalPow2(int power)
+inline float reciprocalPow2(int power)
 {
     // 1.0/pow(2,power)
     union {
@@ -95,7 +98,7 @@ static float reciprocalPow2(int power)
     return f;
 }
 
-static int calcResFromWidth(float w)
+inline int calcResFromWidth(float w)
 {
     // read exponent directly from float32 representation
     // equiv to ceil(log2(1.0/w)) but much faster and no error
@@ -108,7 +111,7 @@ static int calcResFromWidth(float w)
     return result;
 }
 
-static float smoothstep(float x, float a, float b)
+inline float smoothstep(float x, float a, float b)
 {
     if ( x < a ) return 0;
     if ( x >= b ) return 1;
@@ -116,7 +119,7 @@ static float smoothstep(float x, float a, float b)
     return x*x * (3 - 2*x);
 }
 
-static float qsmoothstep(float x, float a, float b)
+inline float qsmoothstep(float x, float a, float b)
 {
     // quintic smoothstep (cubic is only C1)
     if ( x < a ) return 0;
@@ -126,9 +129,9 @@ static float qsmoothstep(float x, float a, float b)
 }
 
 template<typename T>
-static T abs(T x) { return x > 0 ? x : -x; }
+inline T abs(T x) { return x > 0 ? x : -x; }
 
-static float abs(float x)
+inline float abs(float x)
 {
     union {
         float f;
@@ -140,45 +143,44 @@ static float abs(float x)
 }
 
 template<typename T>
-static T min(T a, T b) { return a < b ? a : b; }
+inline T min(T a, T b) { return a < b ? a : b; }
 
 template<typename T>
-static T max(T a, T b) { return a > b ? a : b; }
+inline T max(T a, T b) { return a > b ? a : b; }
 
 template<typename T>
-static T clamp(T x, T lo, T hi) { return min(max(x,lo),hi); }
+inline T clamp(T x, T lo, T hi) { return min(max(x,lo),hi); }
 
-static bool isConstant(const void* data, int stride, int ures, int vres,
-                       int pixelSize);
-static void interleave(const void* src, int sstride, int ures, int vres,
-                       void* dst, int dstride, DataType dt, int nchannels);
-static void deinterleave(const void* src, int sstride, int ures, int vres,
-                         void* dst, int dstride, DataType dt, int nchannels);
-static void encodeDifference(void* data, int size, DataType dt);
-static void decodeDifference(void* data, int size, DataType dt);
+bool isConstant(const void* data, int stride, int ures, int vres, int pixelSize);
+void interleave(const void* src, int sstride, int ures, int vres,
+                void* dst, int dstride, DataType dt, int nchannels);
+void deinterleave(const void* src, int sstride, int ures, int vres,
+                  void* dst, int dstride, DataType dt, int nchannels);
+void encodeDifference(void* data, int size, DataType dt);
+void decodeDifference(void* data, int size, DataType dt);
 typedef void ReduceFn(const void* src, int sstride, int ures, int vres,
                       void* dst, int dstride, DataType dt, int nchannels);
-static void reduce(const void* src, int sstride, int ures, int vres,
-                   void* dst, int dstride, DataType dt, int nchannels);
-static void reduceu(const void* src, int sstride, int ures, int vres,
-                    void* dst, int dstride, DataType dt, int nchannels);
-static void reducev(const void* src, int sstride, int ures, int vres,
-                    void* dst, int dstride, DataType dt, int nchannels);
-static void reduceTri(const void* src, int sstride, int ures, int vres,
-                      void* dst, int dstride, DataType dt, int nchannels);
-static void average(const void* src, int sstride, int ures, int vres,
-                    void* dst, DataType dt, int nchannels);
-static void fill(const void* src, void* dst, int dstride,
-                 int ures, int vres, int pixelsize);
-static void copy(const void* src, int sstride, void* dst, int dstride,
-                 int nrows, int rowlen);
-static void blend(const void* src, float weight, void* dst, bool flip,
-                  int rowlen, DataType dt, int nchannels);
-static void multalpha(void* data, int npixels, DataType dt, int nchannels, int alphachan);
-static void divalpha(void* data, int npixels, DataType dt, int nchannels, int alphachan);
+void reduce(const void* src, int sstride, int ures, int vres,
+            void* dst, int dstride, DataType dt, int nchannels);
+void reduceu(const void* src, int sstride, int ures, int vres,
+             void* dst, int dstride, DataType dt, int nchannels);
+void reducev(const void* src, int sstride, int ures, int vres,
+             void* dst, int dstride, DataType dt, int nchannels);
+void reduceTri(const void* src, int sstride, int ures, int vres,
+               void* dst, int dstride, DataType dt, int nchannels);
+void average(const void* src, int sstride, int ures, int vres,
+             void* dst, DataType dt, int nchannels);
+void fill(const void* src, void* dst, int dstride,
+          int ures, int vres, int pixelsize);
+void copy(const void* src, int sstride, void* dst, int dstride,
+          int nrows, int rowlen);
+void blend(const void* src, float weight, void* dst, bool flip,
+           int rowlen, DataType dt, int nchannels);
+void multalpha(void* data, int npixels, DataType dt, int nchannels, int alphachan);
+void divalpha(void* data, int npixels, DataType dt, int nchannels, int alphachan);
 
-static void genRfaceids(const FaceInfo* faces, int nfaces,
-                        uint32_t* rfaceids, uint32_t* faceids);
+void genRfaceids(const FaceInfo* faces, int nfaces,
+                 uint32_t* rfaceids, uint32_t* faceids);
 
 // fixed length vector accumulator: dst[i] += val[i] * weight
 template<typename T, int n>
@@ -227,8 +229,8 @@ struct VecMultN {
 };
 
 typedef void (*ApplyConstFn)(float weight, float* dst, void* data, int nChan);
-static ApplyConstFn applyConstFunctions[20];
-static void applyConst(float weight, float* dst, void* data, Ptex::DataType dt, int nChan)
+extern ApplyConstFn applyConstFunctions[20];
+inline void applyConst(float weight, float* dst, void* data, Ptex::DataType dt, int nChan)
 {
     // dispatch specialized apply function
     ApplyConstFn fn = applyConstFunctions[((unsigned)nChan<=4)*nChan*4 + dt];
@@ -236,21 +238,23 @@ static void applyConst(float weight, float* dst, void* data, Ptex::DataType dt, 
 }
 
 #ifdef __SSE4_1__
-static float floor(float f) {
+inline float floor(float f) {
     float result;
     _mm_store_ss(&result, _mm_round_ps(_mm_set1_ps(f), (_MM_FROUND_NO_EXC | _MM_FROUND_TO_NEG_INF)));
     return result;
 }
-static float ceil(float f) {
+inline float ceil(float f) {
     float result;
     _mm_store_ss(&result, _mm_round_ps(_mm_set1_ps(f), (_MM_FROUND_NO_EXC | _MM_FROUND_TO_POS_INF)));
     return result;
 }
 #else
-static float floor(float f) { return std::floor(f); }
-static float ceil(float f) { return std::ceil(f); }
+using std::floor;
+using std::ceil;
 #endif
 
-};
+} // end namespace Utils
+
+PTEX_NAMESPACE_END
 
 #endif

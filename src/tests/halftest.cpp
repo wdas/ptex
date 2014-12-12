@@ -68,6 +68,7 @@ typedef half H;
 #else
 
 #include "PtexHalf.h"
+using namespace Ptex;
 
 float h2f(uint16_t h)
 {

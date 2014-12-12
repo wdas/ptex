@@ -65,12 +65,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexInt.h"
 #include <ostream>
 
-#define PtexAPIVersion 4
-#define PtexFileMajorVersion 1
-#define PtexFileMinorVersion 4
+#include "PtexVersion.h"
+PTEX_NAMESPACE_BEGIN
 
-/** Common data structures and enums used throughout the API. */
-struct Ptex {
  /** Type of base mesh for which the textures are defined.  A mesh
      can be triangle-based (with triangular textures) or quad-based
      (with rectangular textures). */
@@ -120,48 +117,48 @@ enum MetaDataType {
 };
 
 /** Look up name of given mesh type. */
-PTEXAPI static const char* MeshTypeName(MeshType mt);
+PTEXAPI const char* MeshTypeName(MeshType mt);
 
 /** Look up name of given data type. */
-PTEXAPI static const char* DataTypeName(DataType dt);
+PTEXAPI const char* DataTypeName(DataType dt);
 
 /** Look up name of given border mode. */
-PTEXAPI static const char* BorderModeName(BorderMode m);
+PTEXAPI const char* BorderModeName(BorderMode m);
 
 /** Look up name of given edge filter mode. */
-PTEXAPI static const char* EdgeFilterModeName(EdgeFilterMode m);
+PTEXAPI const char* EdgeFilterModeName(EdgeFilterMode m);
 
 /** Look up name of given edge ID. */
-PTEXAPI static const char* EdgeIdName(EdgeId eid);
+PTEXAPI const char* EdgeIdName(EdgeId eid);
 
 /** Look up name of given meta data type. */
-PTEXAPI static const char* MetaDataTypeName(MetaDataType mdt);
+PTEXAPI const char* MetaDataTypeName(MetaDataType mdt);
 
 /** Look up size of given data type (in bytes). */
-static int DataSize(DataType dt) {
+inline int DataSize(DataType dt) {
     static const int sizes[] = { 1,2,2,4 };
     return sizes[dt];
 }
 
 /** Look up value of given data type that corresponds to the normalized value of 1.0. */
-static float OneValue(DataType dt) {
+inline float OneValue(DataType dt) {
     static const float one[] = { 255.f, 65535.f, 1.f, 1.f };
     return one[dt];
 }
 
 /** Lookup up inverse value of given data type that corresponds to the normalized value of 1.0. */
-static float OneValueInv(DataType dt) {
+inline float OneValueInv(DataType dt) {
     static const float one[] = { 1.f/255.f, 1.f/65535.f, 1.f, 1.f };
     return one[dt];
 }
 
 /** Convert a number of data values from the given data type to float. */
-PTEXAPI static void ConvertToFloat(float* dst, const void* src,
-                                   Ptex::DataType dt, int numChannels);
+PTEXAPI void ConvertToFloat(float* dst, const void* src,
+                            Ptex::DataType dt, int numChannels);
 
 /** Convert a number of data values from float to the given data type. */
-PTEXAPI static void ConvertFromFloat(void* dst, const float* src,
-                                     Ptex::DataType dt, int numChannels);
+PTEXAPI void ConvertFromFloat(void* dst, const float* src,
+                              Ptex::DataType dt, int numChannels);
 
 /** Pixel resolution of a given texture.
     The resolution is stored in log form: ulog2 = log2(ures), vlog2 = log2(vres)).
@@ -324,11 +321,6 @@ public:
 private:
     char* _str;
 };
-#endif
-
-}
-#ifndef DOXYGEN
-;
 #endif
 
 /// std::stream output operator.  \relates Ptex::String
@@ -1020,5 +1012,7 @@ template <class T> class PtexPtr {
     /// Assignment prohibited
     void operator= (PtexPtr& p);
 };
+
+PTEX_NAMESPACE_END
 
 #endif

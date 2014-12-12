@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexHalf.h"
 #include "PtexTriangleKernel.h"
 
+PTEX_NAMESPACE_BEGIN
 
 namespace {
     inline float gaussian(float x_squared)
@@ -45,10 +46,6 @@ namespace {
 	static const float scale = -0.5f * (PtexTriangleKernelWidth * PtexTriangleKernelWidth);
 	return (float)exp(scale * x_squared);
     }
-}
-
-
-namespace {
 
     // apply to 1..4 channels (unrolled channel loop) of packed data (nTxChan==nChan)
     // the ellipse equation, Q, is calculated via finite differences (Heckbert '89 pg 57)
@@ -177,3 +174,5 @@ void PtexTriangleKernelIter::applyConst(float* dst, void* data, DataType dt, int
     // apply weight to single texel value
     PtexUtils::applyConst(weight, dst, data, dt, nChan);
 }
+
+PTEX_NAMESPACE_END

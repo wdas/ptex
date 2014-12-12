@@ -42,8 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "Ptexture.h"
 #include "PtexUtils.h"
 
+PTEX_NAMESPACE_BEGIN
+
 // Separable convolution kernel
-class PtexSeparableKernel : public Ptex {
+class PtexSeparableKernel {
  public:
     Res res;			// resolution that kernel was built for
     int u, v;			// uv offset within face data
@@ -472,5 +474,7 @@ class PtexSeparableKernel : public Ptex {
 	return result;
     }
 };
+
+PTEX_NAMESPACE_END
 
 #endif

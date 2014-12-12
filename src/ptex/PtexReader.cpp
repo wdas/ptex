@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexUtils.h"
 #include "PtexReader.h"
 
+PTEX_NAMESPACE_BEGIN
 
 PtexTexture* PtexTexture::open(const char* path, Ptex::String& error, bool premultiply)
 {
@@ -1165,3 +1166,5 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
 
     return face;
 }
+
+PTEX_NAMESPACE_END

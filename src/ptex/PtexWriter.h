@@ -45,8 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexIO.h"
 #include "PtexReader.h"
 
+PTEX_NAMESPACE_BEGIN
 
-class PtexWriterBase : public PtexWriter, public PtexIO {
+class PtexWriterBase : public PtexWriter {
 public:
     virtual void setBorderModes(Ptex::BorderMode uBorderMode, Ptex::BorderMode vBorderMode)
     {
@@ -193,5 +194,7 @@ class PtexIncrWriter : public PtexWriterBase {
  private:
     FILE* _fp;		// the file being edited
 };
+
+PTEX_NAMESPACE_END
 
 #endif

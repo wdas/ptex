@@ -39,10 +39,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexSeparableKernel.h"
 #include "PtexTriangleFilter.h"
 
-namespace {
+PTEX_NAMESPACE_BEGIN
 
 /** Point-sampling filter for rectangular textures */
-class PtexPointFilter : public PtexFilter, public Ptex
+class PtexPointFilter : public PtexFilter
 {
  public:
     PtexPointFilter(PtexTexture* tx) : _tx(tx) {}
@@ -67,7 +67,7 @@ class PtexPointFilter : public PtexFilter, public Ptex
 
 
 /** Point-sampling filter for triangular textures */
-class PtexPointFilterTri : public PtexFilter, public Ptex
+class PtexPointFilterTri : public PtexFilter
 {
  public:
     PtexPointFilterTri(PtexTexture* tx) : _tx(tx) {}
@@ -331,7 +331,7 @@ class PtexBoxFilter : public PtexSeparableFilter
 	uint8_t vreslog2 = (uint8_t)PtexUtils::calcResFromWidth(vw);
 	Res res(ureslog2, vreslog2);
 	k.res = res;
-	
+
 	// convert from normalized coords to pixel coords
 	u = u * (float)k.res.u();
 	v = v * (float)k.res.v();
@@ -394,7 +394,7 @@ class PtexBilinearFilter : public PtexSeparableFilter
 	uint8_t vreslog2 = (uint8_t)PtexUtils::calcResFromWidth(vw);
 	Res res(ureslog2, vreslog2);
 	k.res = res;
-	
+
 	// convert from normalized coords to pixel coords
 	float upix = u * (float)k.res.u() - 0.5f;
 	float vpix = v * (float)k.res.v() - 0.5f;
@@ -414,8 +414,6 @@ class PtexBilinearFilter : public PtexSeparableFilter
 	k.kv[1] = vfrac;
     }
 };
-
-} // end local namespace
 
 
 PtexFilter* PtexFilter::getFilter(PtexTexture* tex, const PtexFilter::Options& opts)
@@ -444,3 +442,5 @@ PtexFilter* PtexFilter::getFilter(PtexTexture* tex, const PtexFilter::Options& o
     }
     return 0;
 }
+
+PTEX_NAMESPACE_END

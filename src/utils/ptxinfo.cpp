@@ -36,6 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <iostream>
 #include "Ptexture.h"
 #include "PtexReader.h"
+using namespace Ptex;
+namespace PtexIO = Ptex;
 
 void DumpFaceInfo(const Ptex::FaceInfo& f)
 {
@@ -82,7 +84,7 @@ void DumpTiling(PtexFaceData* dh)
         std::cout << "  (untiled)" << std::endl;
     }
 }
-                        
+
 
 void DumpData(PtexTexture* r, int faceid, bool dumpall)
 {
@@ -310,10 +312,13 @@ int main(int argc, char** argv)
     }
 
     if (showver) {
-#ifndef PTEX_VER
-#define PTEX_VER "Unknown"
+#ifdef PTEX_VENDOR
+#  define str(s) #s
+#  define xstr(s) str(s)
+        std::cout << "Ptex v" << PtexLibraryMajorVersion << "." << PtexLibraryMinorVersion << "-" << xstr(PTEX_VENDOR) << std::endl;
+#else
+        std::cout << "Ptex v" << PtexLibraryMajorVersion << "." << PtexLibraryMinorVersion << std::endl;
 #endif
-        std::cout << "Ptex Version " << PTEX_VER << std::endl;
     }
 
     if (!fname) {

@@ -42,7 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexHalf.h"
 #include "PtexUtils.h"
 
-const char* Ptex::MeshTypeName(MeshType mt)
+
+PTEX_NAMESPACE_BEGIN
+
+const char* MeshTypeName(MeshType mt)
 {
     static const char* names[] = { "triangle", "quad" };
     if (mt < 0 || mt >= int(sizeof(names)/sizeof(const char*)))
@@ -51,7 +54,7 @@ const char* Ptex::MeshTypeName(MeshType mt)
 }
 
 
-const char* Ptex::DataTypeName(DataType dt)
+const char* DataTypeName(DataType dt)
 {
     static const char* names[] = { "uint8", "uint16", "float16", "float32" };
     if (dt < 0 || dt >= int(sizeof(names)/sizeof(const char*)))
@@ -60,7 +63,7 @@ const char* Ptex::DataTypeName(DataType dt)
 }
 
 
-const char* Ptex::BorderModeName(BorderMode m)
+const char* BorderModeName(BorderMode m)
 {
     static const char* names[] = { "clamp", "black", "periodic" };
     if (m < 0 || m >= int(sizeof(names)/sizeof(const char*)))
@@ -68,7 +71,7 @@ const char* Ptex::BorderModeName(BorderMode m)
     return names[m];
 }
 
-const char* Ptex::EdgeFilterModeName(EdgeFilterMode m)
+const char* EdgeFilterModeName(EdgeFilterMode m)
 {
     static const char* names[] = { "none", "tanvec" };
     if (m < 0 || m >= int(sizeof(names)/sizeof(const char*)))
@@ -77,7 +80,7 @@ const char* Ptex::EdgeFilterModeName(EdgeFilterMode m)
 }
 
 
-const char* Ptex::EdgeIdName(EdgeId eid)
+const char* EdgeIdName(EdgeId eid)
 {
     static const char* names[] = { "bottom", "right", "top", "left" };
     if (eid < 0 || eid >= int(sizeof(names)/sizeof(const char*)))
@@ -86,14 +89,13 @@ const char* Ptex::EdgeIdName(EdgeId eid)
 }
 
 
-const char* Ptex::MetaDataTypeName(MetaDataType mdt)
+const char* MetaDataTypeName(MetaDataType mdt)
 {
     static const char* names[] = { "string", "int8", "int16", "int32", "float", "double" };
     if (mdt < 0 || mdt >= int(sizeof(names)/sizeof(const char*)))
 	return "(invalid meta data type)";
     return names[mdt];
 }
-
 
 
 namespace {
@@ -112,7 +114,7 @@ namespace {
     }
 }
 
-void Ptex::ConvertToFloat(float* dst, const void* src, Ptex::DataType dt, int numChannels)
+void ConvertToFloat(float* dst, const void* src, DataType dt, int numChannels)
 {
     switch (dt) {
     case dt_uint8:  ConvertArray(dst, (uint8_t*)src,  numChannels, 1.f/255.f); break;
@@ -123,7 +125,7 @@ void Ptex::ConvertToFloat(float* dst, const void* src, Ptex::DataType dt, int nu
 }
 
 
-void Ptex::ConvertFromFloat(void* dst, const float* src, Ptex::DataType dt, int numChannels)
+void ConvertFromFloat(void* dst, const float* src, DataType dt, int numChannels)
 {
     switch (dt) {
     case dt_uint8:  ConvertArrayClamped((uint8_t*)dst,  src, numChannels, 255.0, 0.5); break;
@@ -134,8 +136,10 @@ void Ptex::ConvertFromFloat(void* dst, const float* src, Ptex::DataType dt, int 
 }
 
 
-bool PtexUtils::isConstant(const void* data, int stride, int ures, int vres,
-			   int pixelSize)
+namespace PtexUtils {
+
+bool isConstant(const void* data, int stride, int ures, int vres,
+                int pixelSize)
 {
     int rowlen = pixelSize * ures;
     const char* p = (const char*) data + stride;
@@ -176,16 +180,16 @@ namespace {
 }
 
 
-void PtexUtils::interleave(const void* src, int sstride, int uw, int vw,
-			   void* dst, int dstride, DataType dt, int nchan)
+void interleave(const void* src, int sstride, int uw, int vw,
+                void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:   ::interleave((const uint8_t*) src, sstride, uw, vw,
+    case dt_uint8:     interleave((const uint8_t*) src, sstride, uw, vw,
 				  (uint8_t*) dst, dstride, nchan); break;
     case dt_half:
-    case dt_uint16:  ::interleave((const uint16_t*) src, sstride, uw, vw,
+    case dt_uint16:    interleave((const uint16_t*) src, sstride, uw, vw,
 				  (uint16_t*) dst, dstride, nchan); break;
-    case dt_float:   ::interleave((const float*) src, sstride, uw, vw,
+    case dt_float:     interleave((const float*) src, sstride, uw, vw,
 				  (float*) dst, dstride, nchan); break;
     }
 }
@@ -213,16 +217,16 @@ namespace {
 }
 
 
-void PtexUtils::deinterleave(const void* src, int sstride, int uw, int vw,
-			     void* dst, int dstride, DataType dt, int nchan)
+void deinterleave(const void* src, int sstride, int uw, int vw,
+                  void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:   ::deinterleave((const uint8_t*) src, sstride, uw, vw,
+    case dt_uint8:     deinterleave((const uint8_t*) src, sstride, uw, vw,
 				    (uint8_t*) dst, dstride, nchan); break;
     case dt_half:
-    case dt_uint16:  ::deinterleave((const uint16_t*) src, sstride, uw, vw,
+    case dt_uint16:    deinterleave((const uint16_t*) src, sstride, uw, vw,
 				    (uint16_t*) dst, dstride, nchan); break;
-    case dt_float:   ::deinterleave((const float*) src, sstride, uw, vw,
+    case dt_float:     deinterleave((const float*) src, sstride, uw, vw,
 				    (float*) dst, dstride, nchan); break;
     }
 }
@@ -238,11 +242,11 @@ namespace {
     }
 }
 
-void PtexUtils::encodeDifference(void* data, int size, DataType dt)
+void encodeDifference(void* data, int size, DataType dt)
 {
     switch (dt) {
-    case dt_uint8:  ::encodeDifference((uint8_t*) data, size); break;
-    case dt_uint16: ::encodeDifference((uint16_t*) data, size); break;
+    case dt_uint8:    encodeDifference((uint8_t*) data, size); break;
+    case dt_uint16:   encodeDifference((uint16_t*) data, size); break;
     default: break; // skip other types
     }
 }
@@ -258,11 +262,11 @@ namespace {
     }
 }
 
-void PtexUtils::decodeDifference(void* data, int size, DataType dt)
+void decodeDifference(void* data, int size, DataType dt)
 {
     switch (dt) {
-    case dt_uint8:  ::decodeDifference((uint8_t*) data, size); break;
-    case dt_uint16: ::decodeDifference((uint16_t*) data, size); break;
+    case dt_uint8:    decodeDifference((uint8_t*) data, size); break;
+    case dt_uint16:   decodeDifference((uint16_t*) data, size); break;
     default: break; // skip other types
     }
 }
@@ -287,17 +291,17 @@ namespace {
     }
 }
 
-void PtexUtils::reduce(const void* src, int sstride, int uw, int vw,
-		       void* dst, int dstride, DataType dt, int nchan)
+void reduce(const void* src, int sstride, int uw, int vw,
+            void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:   ::reduce((const uint8_t*) src, sstride, uw, vw,
+    case dt_uint8:     reduce((const uint8_t*) src, sstride, uw, vw,
 			      (uint8_t*) dst, dstride, nchan); break;
-    case dt_half:    ::reduce((const PtexHalf*) src, sstride, uw, vw,
+    case dt_half:      reduce((const PtexHalf*) src, sstride, uw, vw,
 			      (PtexHalf*) dst, dstride, nchan); break;
-    case dt_uint16:  ::reduce((const uint16_t*) src, sstride, uw, vw,
+    case dt_uint16:    reduce((const uint16_t*) src, sstride, uw, vw,
 			      (uint16_t*) dst, dstride, nchan); break;
-    case dt_float:   ::reduce((const float*) src, sstride, uw, vw,
+    case dt_float:     reduce((const float*) src, sstride, uw, vw,
 			      (float*) dst, dstride, nchan); break;
     }
 }
@@ -321,17 +325,17 @@ namespace {
     }
 }
 
-void PtexUtils::reduceu(const void* src, int sstride, int uw, int vw,
-			void* dst, int dstride, DataType dt, int nchan)
+void reduceu(const void* src, int sstride, int uw, int vw,
+             void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:   ::reduceu((const uint8_t*) src, sstride, uw, vw,
+    case dt_uint8:     reduceu((const uint8_t*) src, sstride, uw, vw,
 			       (uint8_t*) dst, dstride, nchan); break;
-    case dt_half:    ::reduceu((const PtexHalf*) src, sstride, uw, vw,
+    case dt_half:      reduceu((const PtexHalf*) src, sstride, uw, vw,
 			       (PtexHalf*) dst, dstride, nchan); break;
-    case dt_uint16:  ::reduceu((const uint16_t*) src, sstride, uw, vw,
+    case dt_uint16:    reduceu((const uint16_t*) src, sstride, uw, vw,
 			       (uint16_t*) dst, dstride, nchan); break;
-    case dt_float:   ::reduceu((const float*) src, sstride, uw, vw,
+    case dt_float:     reduceu((const float*) src, sstride, uw, vw,
 			       (float*) dst, dstride, nchan); break;
     }
 }
@@ -354,17 +358,17 @@ namespace {
     }
 }
 
-void PtexUtils::reducev(const void* src, int sstride, int uw, int vw,
-			void* dst, int dstride, DataType dt, int nchan)
+void reducev(const void* src, int sstride, int uw, int vw,
+             void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:   ::reducev((const uint8_t*) src, sstride, uw, vw,
+    case dt_uint8:     reducev((const uint8_t*) src, sstride, uw, vw,
 			       (uint8_t*) dst, dstride, nchan); break;
-    case dt_half:    ::reducev((const PtexHalf*) src, sstride, uw, vw,
+    case dt_half:      reducev((const PtexHalf*) src, sstride, uw, vw,
 			       (PtexHalf*) dst, dstride, nchan); break;
-    case dt_uint16:  ::reducev((const uint16_t*) src, sstride, uw, vw,
+    case dt_uint16:    reducev((const uint16_t*) src, sstride, uw, vw,
 			       (uint16_t*) dst, dstride, nchan); break;
-    case dt_float:   ::reducev((const float*) src, sstride, uw, vw,
+    case dt_float:     reducev((const float*) src, sstride, uw, vw,
 			       (float*) dst, dstride, nchan); break;
     }
 }
@@ -394,24 +398,24 @@ namespace {
     }
 }
 
-void PtexUtils::reduceTri(const void* src, int sstride, int w, int /*vw*/,
-			  void* dst, int dstride, DataType dt, int nchan)
+void reduceTri(const void* src, int sstride, int w, int /*vw*/,
+               void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:   ::reduceTri((const uint8_t*) src, sstride, w, 0,
+    case dt_uint8:     reduceTri((const uint8_t*) src, sstride, w, 0,
 				 (uint8_t*) dst, dstride, nchan); break;
-    case dt_half:    ::reduceTri((const PtexHalf*) src, sstride, w, 0,
+    case dt_half:      reduceTri((const PtexHalf*) src, sstride, w, 0,
 				 (PtexHalf*) dst, dstride, nchan); break;
-    case dt_uint16:  ::reduceTri((const uint16_t*) src, sstride, w, 0,
+    case dt_uint16:    reduceTri((const uint16_t*) src, sstride, w, 0,
 				 (uint16_t*) dst, dstride, nchan); break;
-    case dt_float:   ::reduceTri((const float*) src, sstride, w, 0,
+    case dt_float:     reduceTri((const float*) src, sstride, w, 0,
 				 (float*) dst, dstride, nchan); break;
     }
 }
 
 
-void PtexUtils::fill(const void* src, void* dst, int dstride,
-		     int ures, int vres, int pixelsize)
+void fill(const void* src, void* dst, int dstride,
+          int ures, int vres, int pixelsize)
 {
     // fill first row
     int rowlen = ures*pixelsize;
@@ -426,8 +430,8 @@ void PtexUtils::fill(const void* src, void* dst, int dstride,
 }
 
 
-void PtexUtils::copy(const void* src, int sstride, void* dst, int dstride,
-		     int vres, int rowlen)
+void copy(const void* src, int sstride, void* dst, int dstride,
+          int vres, int rowlen)
 {
     // regular non-tiled case
     if (sstride == rowlen && dstride == rowlen) {
@@ -468,25 +472,25 @@ namespace {
 }
 
 
-void PtexUtils::blend(const void* src, float weight, void* dst, bool flip,
-		      int rowlen, DataType dt, int nchan)
+void blend(const void* src, float weight, void* dst, bool flip,
+           int rowlen, DataType dt, int nchan)
 {
     switch ((dt<<1) | int(flip)) {
-    case (dt_uint8<<1):      ::blend((const uint8_t*) src, weight,
+    case (dt_uint8<<1):        blend((const uint8_t*) src, weight,
 				     (uint8_t*) dst, rowlen, nchan); break;
-    case (dt_uint8<<1 | 1):  ::blendflip((const uint8_t*) src, weight,
+    case (dt_uint8<<1 | 1):    blendflip((const uint8_t*) src, weight,
 					 (uint8_t*) dst, rowlen, nchan); break;
-    case (dt_half<<1):       ::blend((const PtexHalf*) src, weight,
+    case (dt_half<<1):         blend((const PtexHalf*) src, weight,
 				     (PtexHalf*) dst, rowlen, nchan); break;
-    case (dt_half<<1 | 1):   ::blendflip((const PtexHalf*) src, weight,
+    case (dt_half<<1 | 1):     blendflip((const PtexHalf*) src, weight,
 					 (PtexHalf*) dst, rowlen, nchan); break;
-    case (dt_uint16<<1):     ::blend((const uint16_t*) src, weight,
+    case (dt_uint16<<1):       blend((const uint16_t*) src, weight,
 				     (uint16_t*) dst, rowlen, nchan); break;
-    case (dt_uint16<<1 | 1): ::blendflip((const uint16_t*) src, weight,
+    case (dt_uint16<<1 | 1):   blendflip((const uint16_t*) src, weight,
 					 (uint16_t*) dst, rowlen, nchan); break;
-    case (dt_float<<1):      ::blend((const float*) src, weight,
+    case (dt_float<<1):        blend((const float*) src, weight,
 				     (float*) dst, rowlen, nchan); break;
-    case (dt_float<<1 | 1):  ::blendflip((const float*) src, weight,
+    case (dt_float<<1 | 1):    blendflip((const float*) src, weight,
 					 (float*) dst, rowlen, nchan); break;
     }
 }
@@ -510,17 +514,17 @@ namespace {
     }
 }
 
-void PtexUtils::average(const void* src, int sstride, int uw, int vw,
-			void* dst, DataType dt, int nchan)
+void average(const void* src, int sstride, int uw, int vw,
+             void* dst, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:   ::average((const uint8_t*) src, sstride, uw, vw,
+    case dt_uint8:     average((const uint8_t*) src, sstride, uw, vw,
 			       (uint8_t*) dst, nchan); break;
-    case dt_half:    ::average((const PtexHalf*) src, sstride, uw, vw,
+    case dt_half:      average((const PtexHalf*) src, sstride, uw, vw,
 			       (PtexHalf*) dst, nchan); break;
-    case dt_uint16:  ::average((const uint16_t*) src, sstride, uw, vw,
+    case dt_uint16:    average((const uint16_t*) src, sstride, uw, vw,
 			       (uint16_t*) dst, nchan); break;
-    case dt_float:   ::average((const float*) src, sstride, uw, vw,
+    case dt_float:     average((const float*) src, sstride, uw, vw,
 			       (float*) dst, nchan); break;
     }
 }
@@ -528,8 +532,8 @@ void PtexUtils::average(const void* src, int sstride, int uw, int vw,
 
 namespace {
     struct CompareRfaceIds {
-	const Ptex::FaceInfo* faces;
-	CompareRfaceIds(const Ptex::FaceInfo* faces) : faces(faces) {}
+	const FaceInfo* faces;
+	CompareRfaceIds(const FaceInfo* faces) : faces(faces) {}
 	bool operator() (uint32_t faceid1, uint32_t faceid2)
 	{
 	    const Ptex::FaceInfo& f1 = faces[faceid1];
@@ -567,14 +571,14 @@ namespace {
     }
 }
 
-void PtexUtils::multalpha(void* data, int npixels, DataType dt, int nchannels, int alphachan)
+void multalpha(void* data, int npixels, DataType dt, int nchannels, int alphachan)
 {
     float scale = OneValueInv(dt);
     switch(dt) {
-    case dt_uint8:  ::multalpha((uint8_t*) data, npixels, nchannels, alphachan, scale); break;
-    case dt_uint16: ::multalpha((uint16_t*) data, npixels, nchannels, alphachan, scale); break;
-    case dt_half:   ::multalpha((PtexHalf*) data, npixels, nchannels, alphachan, scale); break;
-    case dt_float:  ::multalpha((float*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_uint8:    multalpha((uint8_t*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_uint16:   multalpha((uint16_t*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_half:     multalpha((PtexHalf*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_float:    multalpha((float*) data, npixels, nchannels, alphachan, scale); break;
     }
 }
 
@@ -606,20 +610,20 @@ namespace {
     }
 }
 
-void PtexUtils::divalpha(void* data, int npixels, DataType dt, int nchannels, int alphachan)
+void divalpha(void* data, int npixels, DataType dt, int nchannels, int alphachan)
 {
     float scale = OneValue(dt);
     switch(dt) {
-    case dt_uint8:  ::divalpha((uint8_t*) data, npixels, nchannels, alphachan, scale); break;
-    case dt_uint16: ::divalpha((uint16_t*) data, npixels, nchannels, alphachan, scale); break;
-    case dt_half:   ::divalpha((PtexHalf*) data, npixels, nchannels, alphachan, scale); break;
-    case dt_float:  ::divalpha((float*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_uint8:    divalpha((uint8_t*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_uint16:   divalpha((uint16_t*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_half:     divalpha((PtexHalf*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_float:    divalpha((float*) data, npixels, nchannels, alphachan, scale); break;
     }
 }
 
 
-void PtexUtils::genRfaceids(const FaceInfo* faces, int nfaces,
-			    uint32_t* rfaceids, uint32_t* faceids)
+void genRfaceids(const FaceInfo* faces, int nfaces,
+                 uint32_t* rfaceids, uint32_t* faceids)
 {
     // stable_sort faceids by smaller dimension (u or v) in descending order
     // treat const faces as having res of 1
@@ -643,7 +647,7 @@ namespace {
     void ApplyConst(float weight, float* dst, void* data, int /*nChan*/)
     {
 	// dst[i] += data[i] * weight for i in {0..n-1}
-	PtexUtils::VecAccum<T,nChan>()(dst, (T*) data, weight);
+	VecAccum<T,nChan>()(dst, (T*) data, weight);
     }
 
     // apply to N channels (general case)
@@ -651,37 +655,40 @@ namespace {
     void ApplyConstN(float weight, float* dst, void* data, int nChan)
     {
 	// dst[i] += data[i] * weight for i in {0..n-1}
-	PtexUtils::VecAccumN<T>()(dst, (T*) data, nChan, weight);
+	VecAccumN<T>()(dst, (T*) data, nChan, weight);
     }
 }
 
-PtexUtils::ApplyConstFn
-PtexUtils::applyConstFunctions[20] = {
+ApplyConstFn
+applyConstFunctions[20] = {
     ApplyConstN<uint8_t>,  ApplyConstN<uint16_t>,  ApplyConstN<PtexHalf>,  ApplyConstN<float>,
     ApplyConst<uint8_t,1>, ApplyConst<uint16_t,1>, ApplyConst<PtexHalf,1>, ApplyConst<float,1>,
     ApplyConst<uint8_t,2>, ApplyConst<uint16_t,2>, ApplyConst<PtexHalf,2>, ApplyConst<float,2>,
     ApplyConst<uint8_t,3>, ApplyConst<uint16_t,3>, ApplyConst<PtexHalf,3>, ApplyConst<float,3>,
     ApplyConst<uint8_t,4>, ApplyConst<uint16_t,4>, ApplyConst<PtexHalf,4>, ApplyConst<float,4>,
 };
-	
+
 #ifndef PTEX_USE_STDSTRING
-Ptex::String::~String()
+String::~String()
 {
     if (_str) free(_str);
 }
 
 
-Ptex::String& Ptex::String::operator=(const char* str)
+String& String::operator=(const char* str)
 {
     if (_str) free(_str);
     _str = str ? strdup(str) : 0;
     return *this;
 }
 
-std::ostream& operator << (std::ostream& stream, const Ptex::String& str)
+std::ostream& operator << (std::ostream& stream, const String& str)
 {
     stream << str.c_str();
     return stream;
 }
+
 #endif
 
+} // namespace PtexUtils end
+PTEX_NAMESPACE_END

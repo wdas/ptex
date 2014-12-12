@@ -45,6 +45,8 @@ namespace {
     inline float squared(float x) { return x*x; }
 }
 
+PTEX_NAMESPACE_BEGIN
+
 void PtexTriangleFilter::eval(float* result, int firstChan, int nChannels,
 			      int faceid, float u, float v,
 			      float uw1, float vw1, float uw2, float vw2,
@@ -259,3 +261,5 @@ void PtexTriangleFilter::applyIter(PtexTriangleKernelIter& k, PtexFaceData* dh)
 	_weight += k.weight;
     }
 }
+
+PTEX_NAMESPACE_END

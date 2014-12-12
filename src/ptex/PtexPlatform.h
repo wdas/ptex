@@ -87,7 +87,9 @@ typedef __int64 FilePos;
 typedef off_t FilePos;
 #endif
 
-namespace PtexInternal {
+#include "PtexVersion.h"
+
+PTEX_NAMESPACE_BEGIN
 
 /*
  * Mutex
@@ -222,6 +224,6 @@ inline void MemoryFence()
 
 #define PAD(var) char var##_pad[CACHE_LINE_SIZE - sizeof(var)]
 
-}
+PTEX_NAMESPACE_END
 
 #endif // PtexPlatform_h

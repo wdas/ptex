@@ -59,6 +59,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 #include "PtexInt.h"
 
+#include "PtexVersion.h"
+
+PTEX_NAMESPACE_BEGIN
+
 /**
    @class PtexHalf
    @brief Half-precision (16-bit) floating-point type.
@@ -116,5 +120,7 @@ struct PtexHalf {
     PTEXAPI static uint32_t h2fTable[65536];
     PTEXAPI static uint16_t f2hTable[512];
 };
+
+PTEX_NAMESPACE_END
 
 #endif

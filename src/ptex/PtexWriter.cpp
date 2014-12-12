@@ -71,6 +71,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexUtils.h"
 #include "PtexWriter.h"
 
+PTEX_NAMESPACE_BEGIN
 
 namespace {
 
@@ -133,7 +134,7 @@ namespace {
 		     Ptex::String& error)
     {
 	// check to see if given file attributes are valid
-	if (!PtexIO::LittleEndian()) {
+	if (!LittleEndian()) {
 	    error = "PtexWriter doesn't currently support big-endian cpu's";
 	    return 0;
 	}
@@ -1210,7 +1211,7 @@ PtexIncrWriter::PtexIncrWriter(const char* path, FILE* fp,
     // on every save vs. just compressing once.
 
     // make sure existing header matches
-    if (!fread(&_header, PtexIO::HeaderSize, 1, fp) || _header.magic != Magic) {
+    if (!fread(&_header, HeaderSize, 1, fp) || _header.magic != Magic) {
 	std::stringstream str;
 	str << "Not a ptex file: " << path;
 	setError(str.str());
@@ -1398,3 +1399,5 @@ void PtexIncrWriter::finish()
 	fwrite(&_extheader, PtexUtils::min(uint32_t(ExtHeaderSize), _header.extheadersize), 1, _fp);
     }
 }
+
+PTEX_NAMESPACE_END
