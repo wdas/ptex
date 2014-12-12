@@ -54,7 +54,7 @@ public:
     PtexReaderCache(int maxFiles, size_t maxMem, bool premultiply, PtexInputHandler* handler)
 	: _maxFiles(maxFiles), _maxMem(maxMem), _io(handler), _premultiply(premultiply),
           _ioTimestamp(0), _dataTimestamp(0), _memUsed(sizeof(*this)), _peakMemUsed(0),
-          _peakFilesOpen(0), _fileOpens(0), _blocksRead(0)
+          _peakFilesOpen(0), _fileOpens(0), _blockReads(0)
     {}
 
     ~PtexReaderCache()
@@ -99,8 +99,7 @@ public:
 
     void purge(PtexCachedReader* reader);
     void logOpen(PtexCachedReader* reader);
-    uint32_t ioTimestamp() const { return _ioTimestamp; }
-    uint32_t nextIoTimestamp() { return AtomicIncrement(&_ioTimestamp); }
+    void logBlockRead(PtexCachedReader* reader);
 
     void adjustMemUsed(size_t amount) { if (amount) AtomicAdd(&_memUsed, amount); }
     void logRecentlyUsed(PtexCachedReader* reader);
@@ -111,9 +110,13 @@ private:
         Purger() : memUsedChange(0) {}
         void operator() (PtexCachedReader* reader);
     };
+    struct MemUsedSummer {
+        size_t memUsedChange;
+        MemUsedSummer() : memUsedChange(0) {}
+        void operator() (PtexCachedReader* reader);
+    };
 
     bool findFile(const char*& filename, std::string& buffer, Ptex::String& error);
-    uint32_t nextDataTimestamp() { return ++_dataTimestamp; }
     void pruneFiles();
     void pruneData();
     int _maxFiles;
@@ -146,7 +149,7 @@ private:
     size_t _peakMemUsed; PAD(_peakMemUsed);
     size_t _peakFilesOpen; PAD(_peakFilesOpen);
     size_t _fileOpens; PAD(_fileOpens);
-    size_t _blocksRead; PAD(_blocksRead);
+    size_t _blockReads; PAD(_blockReads);
 };
 
 class PtexCachedReader : public PtexReader
@@ -162,9 +165,9 @@ class PtexCachedReader : public PtexReader
         _cache->logOpen(this);
     }
 
-    virtual void setIoTimestamp()
+    virtual void logBlockRead()
     {
-        _ioTimestamp = _cache->nextIoTimestamp();
+        _cache->logBlockRead(this);
     }
 
     bool trylock()
@@ -224,6 +227,7 @@ public:
 
     uint32_t ioTimestamp() const { return _ioTimestamp; }
     uint32_t dataTimestamp() const { return _dataTimestamp; }
+    void setIoTimestamp(uint32_t dataTimestamp) { _dataTimestamp = dataTimestamp; }
     void setDataTimestamp(uint32_t dataTimestamp) { _dataTimestamp = dataTimestamp; }
     size_t memUsedChange() {
         size_t result = _memUsed - _memUsedAccountedFor;

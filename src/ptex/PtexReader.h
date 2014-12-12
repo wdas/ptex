@@ -449,7 +449,7 @@ public:
 
 protected:
     virtual void logOpen() {}
-    virtual void setIoTimestamp() {}
+    virtual void logBlockRead() {}
 
     void setError(const char* error)
     {
@@ -461,7 +461,7 @@ protected:
     void seek(FilePos pos)
     {
         if (!_fp && !reopenFP()) return;
-        setIoTimestamp();
+        logBlockRead();
 	if (pos != _pos) {
 	    _io->seek(_fp, pos);
 	    _pos = pos;

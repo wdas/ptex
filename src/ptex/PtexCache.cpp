@@ -169,6 +169,14 @@ void PtexReaderCache::logOpen(PtexCachedReader* reader)
     }
 }
 
+void PtexReaderCache::logBlockRead(PtexCachedReader* reader)
+{
+    reader->setIoTimestamp(AtomicIncrement(&_ioTimestamp));
+    AtomicIncrement(&_blockReads);
+}
+
+
+
 void PtexReaderCache::pruneFiles()
 {
     if (!_pruneFileLock.trylock()) return;
@@ -238,7 +246,7 @@ void PtexReaderCache::pruneData()
     size_t memUsedChange = 0;
     for (std::vector<PtexCachedReader*>::iterator iter = _tmpRecentFiles.begin(); iter != _tmpRecentFiles.end(); ++iter) {
         PtexCachedReader* reader = *iter;
-        uint32_t timestamp = nextDataTimestamp();
+        uint32_t timestamp = ++_dataTimestamp;
         reader->setDataTimestamp(timestamp);
         _activeFiles.push_back(ReaderAge(reader, timestamp));
         memUsedChange += reader->memUsedChange();
@@ -317,14 +325,22 @@ void PtexReaderCache::purgeAll()
     adjustMemUsed(purger.memUsedChange);
 }
 
+void PtexReaderCache::MemUsedSummer::operator()(PtexCachedReader* reader)
+{
+    memUsedChange += reader->memUsedChange();
+}
 
 void PtexReaderCache::getStats(Stats& stats)
 {
+    MemUsedSummer summer;
+    _files.foreach(summer);
+    adjustMemUsed(summer.memUsedChange);
+
     stats.memUsed = _memUsed;
     stats.peakMemUsed = std::max(stats.memUsed, _peakMemUsed);
     { AutoSpin locker(_logOpenLock); stats.filesOpen = _openFiles.size(); }
     stats.peakFilesOpen = _peakFilesOpen;
     stats.filesAccessed = _files.size();
     stats.fileReopens = _fileOpens < stats.filesAccessed ? 0 : _fileOpens - stats.filesAccessed;
-    stats.blocksRead = _blocksRead;
+    stats.blockReads = _blockReads;
 }

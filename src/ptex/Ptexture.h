@@ -735,7 +735,7 @@ class PtexCache {
         uint64_t peakFilesOpen;
         uint64_t filesAccessed;
         uint64_t fileReopens;
-        uint64_t blocksRead;
+        uint64_t blockReads;
     };
 
     /** Get stats. */
