@@ -1,4 +1,4 @@
-/* 
+/*
 PTEX SOFTWARE
 Copyright 2009 Disney Enterprises, Inc.  All rights reserved
 
@@ -70,7 +70,7 @@ void PtexTriangleFilter::eval(float* result, int firstChan, int nChannels,
 	}
 	return;
     }
-    
+
     // clamp u and v
     u = PtexUtils::clamp(u, 0.0f, 1.0f);
     v = PtexUtils::clamp(v, 0.0f, 1.0f);
@@ -100,7 +100,7 @@ void PtexTriangleFilter::eval(float* result, int firstChan, int nChannels,
 
 
 
-void PtexTriangleFilter::buildKernel(PtexTriangleKernel& k, float u, float v, 
+void PtexTriangleFilter::buildKernel(PtexTriangleKernel& k, float u, float v,
 				     float uw1, float vw1, float uw2, float vw2,
 				     float width, float blur, Res faceRes)
 {
@@ -136,7 +136,7 @@ void PtexTriangleFilter::buildKernel(PtexTriangleKernel& k, float u, float v,
 
     // compute minor radius
     float m = sqrtf(2.0f*(Ac*Cc - 0.25f*Bc*Bc) / (Ac + Cc + X));
-    
+
     // choose desired resolution
     int reslog2 = PtexUtils::max(0, PtexUtils::calcResFromWidth(2.0f*m));
 
@@ -181,11 +181,11 @@ void PtexTriangleFilter::splitAndApply(PtexTriangleKernel& k, int faceid, const 
 	applyAcrossEdge(ka, f, 1);
     }
     // apply to local face
-    apply(k, faceid, f); 
+    apply(k, faceid, f);
 }
 
 
-void PtexTriangleFilter::applyAcrossEdge(PtexTriangleKernel& k, 
+void PtexTriangleFilter::applyAcrossEdge(PtexTriangleKernel& k,
 					 const Ptex::FaceInfo& f, int eid)
 {
     int afid = f.adjface(eid), aeid = f.adjedge(eid);

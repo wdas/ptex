@@ -1,7 +1,7 @@
 #ifndef PtexInt_h
 #define PtexInt_h
 
-/* 
+/*
 PTEX SOFTWARE
 Copyright 2009 Disney Enterprises, Inc.  All rights reserved
 

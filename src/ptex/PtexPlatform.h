@@ -1,7 +1,7 @@
 #ifndef PtexPlatform_h
 #define PtexPlatform_h
 #define PtexPlatform_h
-/* 
+/*
 PTEX SOFTWARE
 Copyright 2014 Disney Enterprises, Inc.  All rights reserved
 
@@ -89,130 +89,130 @@ typedef off_t FilePos;
 
 namespace PtexInternal {
 
-    /*
-     * Mutex
-     */
+/*
+ * Mutex
+ */
 
 #ifdef WINDOWS
 
-    class Mutex {
-    public:
-        Mutex()       { _mutex = CreateMutex(NULL, FALSE, NULL); }
-        ~Mutex()      { CloseHandle(_mutex); }
-        void lock()   { WaitForSingleObject(_mutex, INFINITE); }
-        void unlock() { ReleaseMutex(_mutex); }
-    private:
-	HANDLE _mutex;
-    };
+class Mutex {
+public:
+    Mutex()       { _mutex = CreateMutex(NULL, FALSE, NULL); }
+    ~Mutex()      { CloseHandle(_mutex); }
+    void lock()   { WaitForSingleObject(_mutex, INFINITE); }
+    void unlock() { ReleaseMutex(_mutex); }
+private:
+    HANDLE _mutex;
+};
 
-    class SpinLock {
-    public:
-	SpinLock()    { InitializeCriticalSection(&_spinlock); }
-	~SpinLock()   { DeleteCriticalSection(&_spinlock); }
-	void lock()   { EnterCriticalSection(&_spinlock); }
-	void unlock() { LeaveCriticalSection(&_spinlock); }
-    private:
-	CRITICAL_SECTION spinlock;
-    };
+class SpinLock {
+public:
+    SpinLock()    { InitializeCriticalSection(&_spinlock); }
+    ~SpinLock()   { DeleteCriticalSection(&_spinlock); }
+    void lock()   { EnterCriticalSection(&_spinlock); }
+    void unlock() { LeaveCriticalSection(&_spinlock); }
+private:
+    CRITICAL_SECTION spinlock;
+};
 
 #else
-    // assume linux/unix/posix
+// assume linux/unix/posix
 
-    class Mutex {
-     public:
-        Mutex()      { pthread_mutex_init(&_mutex, 0); }
-        ~Mutex()     { pthread_mutex_destroy(&_mutex); }
-        void lock()   { pthread_mutex_lock(&_mutex); }
-        bool trylock() { return 0 == pthread_mutex_trylock(&_mutex); }
-        void unlock() { pthread_mutex_unlock(&_mutex); }
-    private:
-	pthread_mutex_t _mutex;
-    };
+class Mutex {
+public:
+    Mutex()      { pthread_mutex_init(&_mutex, 0); }
+    ~Mutex()     { pthread_mutex_destroy(&_mutex); }
+    void lock()   { pthread_mutex_lock(&_mutex); }
+    bool trylock() { return 0 == pthread_mutex_trylock(&_mutex); }
+    void unlock() { pthread_mutex_unlock(&_mutex); }
+private:
+    pthread_mutex_t _mutex;
+};
 
 #ifdef __APPLE__
-    class SpinLock {
-    public:
-	SpinLock()   { _spinlock = 0; }
-	~SpinLock()  { }
-	void lock()   { OSSpinLockLock(&_spinlock); }
-	void unlock() { OSSpinLockUnlock(&_spinlock); }
-    private:
-	OSSpinLock _spinlock;
-    };
+class SpinLock {
+public:
+    SpinLock()   { _spinlock = 0; }
+    ~SpinLock()  { }
+    void lock()   { OSSpinLockLock(&_spinlock); }
+    void unlock() { OSSpinLockUnlock(&_spinlock); }
+private:
+    OSSpinLock _spinlock;
+};
 #else
-    class SpinLock {
-    public:
-	SpinLock()   { pthread_spin_init(&_spinlock, PTHREAD_PROCESS_PRIVATE); }
-	~SpinLock()  { pthread_spin_destroy(&_spinlock); }
-	void lock()   { pthread_spin_lock(&_spinlock); }
-        bool trylock() { return 0 == pthread_spin_trylock(&_spinlock); }
-	void unlock() { pthread_spin_unlock(&_spinlock); }
-    private:
-	pthread_spinlock_t _spinlock;
-    };
+class SpinLock {
+public:
+    SpinLock()   { pthread_spin_init(&_spinlock, PTHREAD_PROCESS_PRIVATE); }
+    ~SpinLock()  { pthread_spin_destroy(&_spinlock); }
+    void lock()   { pthread_spin_lock(&_spinlock); }
+    bool trylock() { return 0 == pthread_spin_trylock(&_spinlock); }
+    void unlock() { pthread_spin_unlock(&_spinlock); }
+private:
+    pthread_spinlock_t _spinlock;
+};
 #endif // __APPLE__
 #endif
 
-    /*
-     * Atomics
-     */
+/*
+ * Atomics
+ */
 
 #if defined(WINDOWS)
-    inline void AtomicIncrement(volatile int32_t* target)
-    {
-        InterlockedIncrement(target);
-    }
+inline void AtomicIncrement(volatile int32_t* target)
+{
+    InterlockedIncrement(target);
+}
 
-    inline void AtomicDecrement(volatile int32_t* target)
-    {
-        InterlockedDecrement(target);
-    }
+inline void AtomicDecrement(volatile int32_t* target)
+{
+    InterlockedDecrement(target);
+}
 
-    template <typename T>
-    inline T* AtomicExchangePtr(T* volatile* target, T* value)
-    {
-        return InterlockedExchangePointer(target, value);
-    }
+template <typename T>
+inline T* AtomicExchangePtr(T* volatile* target, T* value)
+{
+    return InterlockedExchangePointer(target, value);
+}
 
 #elif defined(__APPLE__)
-    // TODO OSX atomics
+// TODO OSX atomics
 
 #else
-    // assume linux/unix/posix
-    template <typename T>
-    inline T AtomicExchange(T volatile* target, T value)
-    {
-        return __sync_lock_test_and_set(target, value);
-    }
+// assume linux/unix/posix
+template <typename T>
+inline T AtomicExchange(T volatile* target, T value)
+{
+    return __sync_lock_test_and_set(target, value);
+}
 
-    template <typename T>
-    inline T AtomicIncrement(volatile T* target)
-    {
-        return __sync_add_and_fetch(target, 1);
-    }
+template <typename T>
+inline T AtomicIncrement(volatile T* target)
+{
+    return __sync_add_and_fetch(target, 1);
+}
 
-    template <typename T>
-    inline T AtomicAdd(volatile T* target, T value)
-    {
-        return __sync_add_and_fetch(target, value);
-    }
+template <typename T>
+inline T AtomicAdd(volatile T* target, T value)
+{
+    return __sync_add_and_fetch(target, value);
+}
 
-    template <typename T>
-    inline T AtomicDecrement(volatile T* target)
-    {
-        return __sync_sub_and_fetch(target, 1);
-    }
+template <typename T>
+inline T AtomicDecrement(volatile T* target)
+{
+    return __sync_sub_and_fetch(target, 1);
+}
 
-    template <typename T>
-    inline bool AtomicCompareAndSwap(T volatile* target, T oldvalue, T newvalue)
-    {
-        return __sync_bool_compare_and_swap(target, oldvalue, newvalue);
-    }
+template <typename T>
+inline bool AtomicCompareAndSwap(T volatile* target, T oldvalue, T newvalue)
+{
+    return __sync_bool_compare_and_swap(target, oldvalue, newvalue);
+}
 
-    inline void MemoryFence()
-    {
-        __sync_synchronize();
-    }
+inline void MemoryFence()
+{
+    __sync_synchronize();
+}
 
 #endif
 

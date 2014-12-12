@@ -1,4 +1,4 @@
-/* 
+/*
 PTEX SOFTWARE
 Copyright 2009 Disney Enterprises, Inc.  All rights reserved
 
@@ -155,7 +155,7 @@ bool PtexUtils::isConstant(const void* data, int stride, int ures, int vres,
 
 namespace {
     template<typename T>
-    inline void interleave(const T* src, int sstride, int uw, int vw, 
+    inline void interleave(const T* src, int sstride, int uw, int vw,
 			   T* dst, int dstride, int nchan)
     {
 	sstride /= (int)sizeof(T);
@@ -176,23 +176,23 @@ namespace {
 }
 
 
-void PtexUtils::interleave(const void* src, int sstride, int uw, int vw, 
+void PtexUtils::interleave(const void* src, int sstride, int uw, int vw,
 			   void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:   ::interleave((const uint8_t*) src, sstride, uw, vw, 
+    case dt_uint8:   ::interleave((const uint8_t*) src, sstride, uw, vw,
 				  (uint8_t*) dst, dstride, nchan); break;
     case dt_half:
-    case dt_uint16:  ::interleave((const uint16_t*) src, sstride, uw, vw, 
+    case dt_uint16:  ::interleave((const uint16_t*) src, sstride, uw, vw,
 				  (uint16_t*) dst, dstride, nchan); break;
-    case dt_float:   ::interleave((const float*) src, sstride, uw, vw, 
+    case dt_float:   ::interleave((const float*) src, sstride, uw, vw,
 				  (float*) dst, dstride, nchan); break;
     }
 }
 
 namespace {
     template<typename T>
-    inline void deinterleave(const T* src, int sstride, int uw, int vw, 
+    inline void deinterleave(const T* src, int sstride, int uw, int vw,
 			     T* dst, int dstride, int nchan)
     {
 	sstride /= (int)sizeof(T);
@@ -213,16 +213,16 @@ namespace {
 }
 
 
-void PtexUtils::deinterleave(const void* src, int sstride, int uw, int vw, 
+void PtexUtils::deinterleave(const void* src, int sstride, int uw, int vw,
 			     void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:   ::deinterleave((const uint8_t*) src, sstride, uw, vw, 
+    case dt_uint8:   ::deinterleave((const uint8_t*) src, sstride, uw, vw,
 				    (uint8_t*) dst, dstride, nchan); break;
     case dt_half:
-    case dt_uint16:  ::deinterleave((const uint16_t*) src, sstride, uw, vw, 
+    case dt_uint16:  ::deinterleave((const uint16_t*) src, sstride, uw, vw,
 				    (uint16_t*) dst, dstride, nchan); break;
-    case dt_float:   ::deinterleave((const float*) src, sstride, uw, vw, 
+    case dt_float:   ::deinterleave((const float*) src, sstride, uw, vw,
 				    (float*) dst, dstride, nchan); break;
     }
 }
@@ -270,7 +270,7 @@ void PtexUtils::decodeDifference(void* data, int size, DataType dt)
 
 namespace {
     template<typename T>
-    inline void reduce(const T* src, int sstride, int uw, int vw, 
+    inline void reduce(const T* src, int sstride, int uw, int vw,
 		       T* dst, int dstride, int nchan)
     {
 	sstride /= (int)sizeof(T);
@@ -278,7 +278,7 @@ namespace {
 	int rowlen = uw*nchan;
 	int srowskip = 2*sstride - rowlen;
 	int drowskip = dstride - rowlen/2;
-	for (const T* end = src + vw*sstride; src != end; 
+	for (const T* end = src + vw*sstride; src != end;
 	     src += srowskip, dst += drowskip)
 	    for (const T* rowend = src + rowlen; src != rowend; src += nchan)
 		for (const T* pixend = src+nchan; src != pixend; src++)
@@ -291,13 +291,13 @@ void PtexUtils::reduce(const void* src, int sstride, int uw, int vw,
 		       void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:   ::reduce((const uint8_t*) src, sstride, uw, vw, 
+    case dt_uint8:   ::reduce((const uint8_t*) src, sstride, uw, vw,
 			      (uint8_t*) dst, dstride, nchan); break;
-    case dt_half:    ::reduce((const PtexHalf*) src, sstride, uw, vw, 
+    case dt_half:    ::reduce((const PtexHalf*) src, sstride, uw, vw,
 			      (PtexHalf*) dst, dstride, nchan); break;
-    case dt_uint16:  ::reduce((const uint16_t*) src, sstride, uw, vw, 
+    case dt_uint16:  ::reduce((const uint16_t*) src, sstride, uw, vw,
 			      (uint16_t*) dst, dstride, nchan); break;
-    case dt_float:   ::reduce((const float*) src, sstride, uw, vw, 
+    case dt_float:   ::reduce((const float*) src, sstride, uw, vw,
 			      (float*) dst, dstride, nchan); break;
     }
 }
@@ -305,15 +305,15 @@ void PtexUtils::reduce(const void* src, int sstride, int uw, int vw,
 
 namespace {
     template<typename T>
-    inline void reduceu(const T* src, int sstride, int uw, int vw, 
+    inline void reduceu(const T* src, int sstride, int uw, int vw,
 			T* dst, int dstride, int nchan)
-    {	
+    {
 	sstride /= (int)sizeof(T);
 	dstride /= (int)sizeof(T);
 	int rowlen = uw*nchan;
 	int srowskip = sstride - rowlen;
 	int drowskip = dstride - rowlen/2;
-	for (const T* end = src + vw*sstride; src != end; 
+	for (const T* end = src + vw*sstride; src != end;
 	     src += srowskip, dst += drowskip)
 	    for (const T* rowend = src + rowlen; src != rowend; src += nchan)
 		for (const T* pixend = src+nchan; src != pixend; src++)
@@ -325,13 +325,13 @@ void PtexUtils::reduceu(const void* src, int sstride, int uw, int vw,
 			void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:   ::reduceu((const uint8_t*) src, sstride, uw, vw, 
+    case dt_uint8:   ::reduceu((const uint8_t*) src, sstride, uw, vw,
 			       (uint8_t*) dst, dstride, nchan); break;
-    case dt_half:    ::reduceu((const PtexHalf*) src, sstride, uw, vw, 
+    case dt_half:    ::reduceu((const PtexHalf*) src, sstride, uw, vw,
 			       (PtexHalf*) dst, dstride, nchan); break;
-    case dt_uint16:  ::reduceu((const uint16_t*) src, sstride, uw, vw, 
+    case dt_uint16:  ::reduceu((const uint16_t*) src, sstride, uw, vw,
 			       (uint16_t*) dst, dstride, nchan); break;
-    case dt_float:   ::reduceu((const float*) src, sstride, uw, vw, 
+    case dt_float:   ::reduceu((const float*) src, sstride, uw, vw,
 			       (float*) dst, dstride, nchan); break;
     }
 }
@@ -339,7 +339,7 @@ void PtexUtils::reduceu(const void* src, int sstride, int uw, int vw,
 
 namespace {
     template<typename T>
-    inline void reducev(const T* src, int sstride, int uw, int vw, 
+    inline void reducev(const T* src, int sstride, int uw, int vw,
 			T* dst, int dstride, int nchan)
     {
 	sstride /= (int)sizeof(T);
@@ -347,7 +347,7 @@ namespace {
 	int rowlen = uw*nchan;
 	int srowskip = 2*sstride - rowlen;
 	int drowskip = dstride - rowlen;
-	for (const T* end = src + vw*sstride; src != end; 
+	for (const T* end = src + vw*sstride; src != end;
 	     src += srowskip, dst += drowskip)
 	    for (const T* rowend = src + rowlen; src != rowend; src++)
 		*dst++ = T(0.5 * (src[0] + src[sstride]));
@@ -358,13 +358,13 @@ void PtexUtils::reducev(const void* src, int sstride, int uw, int vw,
 			void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:   ::reducev((const uint8_t*) src, sstride, uw, vw, 
+    case dt_uint8:   ::reducev((const uint8_t*) src, sstride, uw, vw,
 			       (uint8_t*) dst, dstride, nchan); break;
-    case dt_half:    ::reducev((const PtexHalf*) src, sstride, uw, vw, 
+    case dt_half:    ::reducev((const PtexHalf*) src, sstride, uw, vw,
 			       (PtexHalf*) dst, dstride, nchan); break;
-    case dt_uint16:  ::reducev((const uint16_t*) src, sstride, uw, vw, 
+    case dt_uint16:  ::reducev((const uint16_t*) src, sstride, uw, vw,
 			       (uint16_t*) dst, dstride, nchan); break;
-    case dt_float:   ::reducev((const float*) src, sstride, uw, vw, 
+    case dt_float:   ::reducev((const float*) src, sstride, uw, vw,
 			       (float*) dst, dstride, nchan); break;
     }
 }
@@ -375,7 +375,7 @@ namespace {
     // generate a reduction of a packed-triangle texture
     // note: this method won't work for tiled textures
     template<typename T>
-    inline void reduceTri(const T* src, int sstride, int w, int /*vw*/, 
+    inline void reduceTri(const T* src, int sstride, int w, int /*vw*/,
 			  T* dst, int dstride, int nchan)
     {
 	sstride /= (int)sizeof(T);
@@ -386,7 +386,7 @@ namespace {
 	int srowskip = 2*sstride - rowlen;
 	int srowskip2 = w*sstride - 2 * nchan;
 	int drowskip = dstride - rowlen/2;
-	for (const T* end = src + w*sstride; src != end; 
+	for (const T* end = src + w*sstride; src != end;
 	     src += srowskip, src2 += srowskip2, dst += drowskip)
 	    for (const T* rowend = src + rowlen; src != rowend; src += nchan, src2 += srowinc2)
 		for (const T* pixend = src+nchan; src != pixend; src++, src2++)
@@ -398,13 +398,13 @@ void PtexUtils::reduceTri(const void* src, int sstride, int w, int /*vw*/,
 			  void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:   ::reduceTri((const uint8_t*) src, sstride, w, 0, 
+    case dt_uint8:   ::reduceTri((const uint8_t*) src, sstride, w, 0,
 				 (uint8_t*) dst, dstride, nchan); break;
-    case dt_half:    ::reduceTri((const PtexHalf*) src, sstride, w, 0, 
+    case dt_half:    ::reduceTri((const PtexHalf*) src, sstride, w, 0,
 				 (PtexHalf*) dst, dstride, nchan); break;
-    case dt_uint16:  ::reduceTri((const uint16_t*) src, sstride, w, 0, 
+    case dt_uint16:  ::reduceTri((const uint16_t*) src, sstride, w, 0,
 				 (uint16_t*) dst, dstride, nchan); break;
-    case dt_float:   ::reduceTri((const float*) src, sstride, w, 0, 
+    case dt_float:   ::reduceTri((const float*) src, sstride, w, 0,
 				 (float*) dst, dstride, nchan); break;
     }
 }
@@ -494,7 +494,7 @@ void PtexUtils::blend(const void* src, float weight, void* dst, bool flip,
 
 namespace {
     template<typename T>
-    inline void average(const T* src, int sstride, int uw, int vw, 
+    inline void average(const T* src, int sstride, int uw, int vw,
 			T* dst, int nchan)
     {
 	float* buff = (float*) alloca(nchan*sizeof(float));
@@ -514,13 +514,13 @@ void PtexUtils::average(const void* src, int sstride, int uw, int vw,
 			void* dst, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:   ::average((const uint8_t*) src, sstride, uw, vw, 
+    case dt_uint8:   ::average((const uint8_t*) src, sstride, uw, vw,
 			       (uint8_t*) dst, nchan); break;
-    case dt_half:    ::average((const PtexHalf*) src, sstride, uw, vw, 
+    case dt_half:    ::average((const PtexHalf*) src, sstride, uw, vw,
 			       (PtexHalf*) dst, nchan); break;
-    case dt_uint16:  ::average((const uint16_t*) src, sstride, uw, vw, 
+    case dt_uint16:  ::average((const uint16_t*) src, sstride, uw, vw,
 			       (uint16_t*) dst, nchan); break;
-    case dt_float:   ::average((const float*) src, sstride, uw, vw, 
+    case dt_float:   ::average((const float*) src, sstride, uw, vw,
 			       (float*) dst, nchan); break;
     }
 }
@@ -552,14 +552,14 @@ namespace {
 	    // first channel is alpha chan: mult the rest of the channels
 	    data++;
 	    alphaoffset = -1;
-	    nchanmult = nchannels - 1; 
+	    nchanmult = nchannels - 1;
 	}
 	else {
 	    // mult all channels up to alpha chan
 	    alphaoffset = alphachan;
 	    nchanmult = alphachan;
 	}
-	
+
 	for (T* end = data + npixels*nchannels; data != end; data += nchannels) {
 	    float aval = scale * (float)data[alphaoffset];
 	    for (int i = 0; i < nchanmult; i++)	data[i] = T((float)data[i] * aval);
@@ -589,14 +589,14 @@ namespace {
 	    // first channel is alpha chan: div the rest of the channels
 	    data++;
 	    alphaoffset = -1;
-	    nchandiv = nchannels - 1; 
+	    nchandiv = nchannels - 1;
 	}
 	else {
 	    // div all channels up to alpha chan
 	    alphaoffset = alphachan;
 	    nchandiv = alphachan;
 	}
-	
+
 	for (T* end = data + npixels*nchannels; data != end; data += nchannels) {
 	    T alpha = data[alphaoffset];
 	    if (!alpha) continue; // don't divide by zero!

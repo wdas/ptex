@@ -1,7 +1,7 @@
 #ifndef PtexReader_h
 #define PtexReader_h
 
-/* 
+/*
 PTEX SOFTWARE
 Copyright 2009 Disney Enterprises, Inc.  All rights reserved
 

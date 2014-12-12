@@ -1,4 +1,4 @@
-/* 
+/*
 PTEX SOFTWARE
 Copyright 2009 Disney Enterprises, Inc.  All rights reserved
 
@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 
 void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
-			       int faceid, float u, float v, 
+			       int faceid, float u, float v,
 			       float uw1, float vw1, float uw2, float vw2,
 			       float width, float blur)
 {
@@ -138,7 +138,7 @@ void PtexSeparableFilter::splitAndApply(PtexSeparableKernel& k, int faceid, cons
         return;
     }
 
-    if (splitR || splitL || splitT || splitB) { 
+    if (splitR || splitL || splitT || splitB) {
 	PtexSeparableKernel ka, kc;
 	if (splitR) {
 	    if (f.adjface(e_right) >= 0) {
@@ -199,11 +199,11 @@ void PtexSeparableFilter::splitAndApply(PtexSeparableKernel& k, int faceid, cons
     }
 
     // do local face
-    apply(k, faceid, f); 
+    apply(k, faceid, f);
 }
 
 
-void PtexSeparableFilter::applyAcrossEdge(PtexSeparableKernel& k, 
+void PtexSeparableFilter::applyAcrossEdge(PtexSeparableKernel& k,
 					  int faceid, const Ptex::FaceInfo& f, int eid)
 {
     int afid = f.adjface(eid), aeid = f.adjedge(eid);
@@ -245,7 +245,7 @@ void PtexSeparableFilter::applyAcrossEdge(PtexSeparableKernel& k,
 }
 
 
-void PtexSeparableFilter::applyToCorner(PtexSeparableKernel& k, int faceid, 
+void PtexSeparableFilter::applyToCorner(PtexSeparableKernel& k, int faceid,
 					const Ptex::FaceInfo& f, int eid)
 {
     // traverse clockwise around corner vertex and gather corner faces
@@ -282,7 +282,7 @@ void PtexSeparableFilter::applyToCorner(PtexSeparableKernel& k, int faceid,
 
 	// check to see if corner is a subface "tee"
 	bool isSubface = af->isSubface();
-	if (prevIsSubface && !isSubface && af->adjface((aeid+3)%4) == prevFace) 
+	if (prevIsSubface && !isSubface && af->adjface((aeid+3)%4) == prevFace)
 	{
 	    // adjust the eid depending on whether we started from
 	    // the primary or secondary subface.
@@ -328,7 +328,7 @@ void PtexSeparableFilter::applyToCornerFace(PtexSeparableKernel& k, const Ptex::
 	if (cfIsSubface) k.adjustMainToSubface(eid + 3);
 	else k.adjustSubfaceToMain(eid + 3);
     }
-    
+
     // rotate and apply (resplit if going to a subface)
     k.rotate(eid - ceid + 2);
     if (cfIsSubface) splitAndApply(k, cfid, cf);

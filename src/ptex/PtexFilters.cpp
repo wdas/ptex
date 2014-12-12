@@ -1,4 +1,4 @@
-/* 
+/*
 PTEX SOFTWARE
 Copyright 2009 Disney Enterprises, Inc.  All rights reserved
 
@@ -60,7 +60,7 @@ class PtexPointFilter : public PtexFilter, public Ptex
 	int vi = PtexUtils::clamp(int(v*(float)resv), 0, resv-1);
 	_tx->getPixel(faceid, ui, vi, result, firstchan, nchannels);
     }
-    
+
  private:
     PtexTexture* _tx;
 };
@@ -86,7 +86,7 @@ class PtexPointFilterTri : public PtexFilter, public Ptex
 	int ui = PtexUtils::clamp(int(ut), 0, resm1);
 	int vi = PtexUtils::clamp(int(vt), 0, resm1);
 	float uf = ut - (float)ui, vf = vt - (float)vi;
-	
+
 	if (uf + vf <= 1.0f) {
 	    // "even" triangles are stored in lower-left half-texture
 	    _tx->getPixel(faceid, ui, vi, result, firstchan, nchannels);
@@ -96,7 +96,7 @@ class PtexPointFilterTri : public PtexFilter, public Ptex
 	    _tx->getPixel(faceid, resm1-vi, resm1-ui, result, firstchan, nchannels);
 	}
     }
-    
+
  private:
     PtexTexture* _tx;
 };
@@ -118,7 +118,7 @@ class PtexWidth4Filter : public PtexSeparableFilter
  public:
     typedef float KernelFn(float x, const float* c);
 
-    PtexWidth4Filter(PtexTexture* tx, const PtexFilter::Options& opts, KernelFn k, const float* c = 0) 
+    PtexWidth4Filter(PtexTexture* tx, const PtexFilter::Options& opts, KernelFn k, const float* c = 0)
 	: PtexSeparableFilter(tx, opts), _k(k), _c(c) {}
 
     virtual void buildKernel(PtexSeparableKernel& k, float u, float v, float uw, float vw,

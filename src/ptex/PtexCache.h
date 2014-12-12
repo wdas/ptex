@@ -1,7 +1,7 @@
 #ifndef PtexCache_h
 #define PtexCache_h
 
-/* 
+/*
 PTEX SOFTWARE
 Copyright 2009 Disney Enterprises, Inc.  All rights reserved
 

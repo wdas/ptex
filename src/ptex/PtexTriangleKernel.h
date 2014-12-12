@@ -1,7 +1,7 @@
 #ifndef PtexTriangleKernel_h
 #define PtexTriangleKernel_h
 
-/* 
+/*
 PTEX SOFTWARE
 Copyright 2009 Disney Enterprises, Inc.  All rights reserved
 
@@ -166,7 +166,7 @@ class PtexTriangleKernel : public Ptex {
 #undef C
 	}
     }
-    
+
     void clampRes(Res fres)
     {
 	res.ulog2 = PtexUtils::min(res.ulog2, fres.ulog2);

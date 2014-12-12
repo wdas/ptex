@@ -1,7 +1,7 @@
 #ifndef PtexSeparableKernel_h
 #define PtexSeparableKernel_h
 
-/* 
+/*
 PTEX SOFTWARE
 Copyright 2009 Disney Enterprises, Inc.  All rights reserved
 
@@ -54,7 +54,7 @@ class PtexSeparableKernel : public Ptex {
     float kubuff[kmax];
     float kvbuff[kmax];
     int rot;
-    
+
     PtexSeparableKernel()
 	: res(0), u(0), v(0), uw(0), vw(0), ku(kubuff), kv(kvbuff), rot(0) {}
 
@@ -62,7 +62,7 @@ class PtexSeparableKernel : public Ptex {
     {
 	set(k.res, k.u, k.v, k.uw, k.vw, k.ku, k.kv, k.rot);
     }
-    
+
     PtexSeparableKernel& operator= (const PtexSeparableKernel& k)
     {
 	set(k.res, k.u, k.v, k.uw, k.vw, k.ku, k.kv, k.rot);
@@ -148,7 +148,7 @@ class PtexSeparableKernel : public Ptex {
 	    // normal case - split off a portion
 	    //    res  u          v  uw vw  ku  kv
 	    k.set(res, res.u()-w, v, w, vw, ku, kv);
-	    
+
 	    // update local
 	    u = 0;
 	    uw -= w;

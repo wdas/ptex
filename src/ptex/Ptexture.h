@@ -1,7 +1,7 @@
 #ifndef Ptexture_h
 #define Ptexture_h
 
-/* 
+/*
 PTEX SOFTWARE
 Copyright 2009 Disney Enterprises, Inc.  All rights reserved
 
@@ -71,259 +71,259 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 /** Common data structures and enums used throughout the API. */
 struct Ptex {
-    /** Type of base mesh for which the textures are defined.  A mesh
-	can be triangle-based (with triangular textures) or quad-based
-	(with rectangular textures). */
-    enum MeshType {
-	mt_triangle,		///< Mesh is triangle-based.
-	mt_quad			///< Mesh is quad-based.
-    };
+ /** Type of base mesh for which the textures are defined.  A mesh
+     can be triangle-based (with triangular textures) or quad-based
+     (with rectangular textures). */
+enum MeshType {
+     mt_triangle,		///< Mesh is triangle-based.
+     mt_quad			///< Mesh is quad-based.
+ };
 
-    /** Type of data stored in texture file. */
-    enum DataType {
-	dt_uint8,		///< Unsigned, 8-bit integer.
-	dt_uint16,		///< Unsigned, 16-bit integer.
-	dt_half,		///< Half-precision (16-bit) floating point.
-	dt_float		///< Single-precision (32-bit) floating point.
-    };
+/** Type of data stored in texture file. */
+enum DataType {
+    dt_uint8,		///< Unsigned, 8-bit integer.
+    dt_uint16,		///< Unsigned, 16-bit integer.
+    dt_half,		///< Half-precision (16-bit) floating point.
+    dt_float		///< Single-precision (32-bit) floating point.
+};
 
-    /** How to handle transformation across edges when filtering */
-    enum EdgeFilterMode {
-	efm_none,		///< Don't do anything with the values.
-	efm_tanvec		///< Values are vectors in tangent space; rotate values.
-    };
+/** How to handle transformation across edges when filtering */
+enum EdgeFilterMode {
+    efm_none,		///< Don't do anything with the values.
+    efm_tanvec		///< Values are vectors in tangent space; rotate values.
+};
 
-    /** How to handle mesh border when filtering. */
-    enum BorderMode {
-	m_clamp,		///< texel access is clamped to border
-	m_black,		///< texel beyond border are assumed to be black
-	m_periodic		///< texel access wraps to other side of face
-    };
+/** How to handle mesh border when filtering. */
+enum BorderMode {
+    m_clamp,		///< texel access is clamped to border
+    m_black,		///< texel beyond border are assumed to be black
+    m_periodic		///< texel access wraps to other side of face
+};
 
-    /** Edge IDs used in adjacency data in the Ptex::FaceInfo struct.
-	Edge ID usage for triangle meshes is TBD. */
-    enum EdgeId {
-	e_bottom,		///< Bottom edge, from UV (0,0) to (1,0)
-	e_right,		///< Right edge, from UV (1,0) to (1,1)
-	e_top,			///< Top edge, from UV (1,1) to (0,1)
-	e_left			///< Left edge, from UV (0,1) to (0,0)
-    };
+/** Edge IDs used in adjacency data in the Ptex::FaceInfo struct.
+    Edge ID usage for triangle meshes is TBD. */
+enum EdgeId {
+    e_bottom,		///< Bottom edge, from UV (0,0) to (1,0)
+    e_right,		///< Right edge, from UV (1,0) to (1,1)
+    e_top,			///< Top edge, from UV (1,1) to (0,1)
+    e_left			///< Left edge, from UV (0,1) to (0,0)
+};
 
-    /** Type of meta data entry. */
-    enum MetaDataType {
-	mdt_string,		///< Null-terminated string.
-	mdt_int8,		///< Signed 8-bit integer.
-	mdt_int16,		///< Signed 16-bit integer.
-	mdt_int32,		///< Signed 32-bit integer.
-	mdt_float,		///< Single-precision (32-bit) floating point.
-	mdt_double		///< Double-precision (32-bit) floating point.
-    };
+/** Type of meta data entry. */
+enum MetaDataType {
+    mdt_string,		///< Null-terminated string.
+    mdt_int8,		///< Signed 8-bit integer.
+    mdt_int16,		///< Signed 16-bit integer.
+    mdt_int32,		///< Signed 32-bit integer.
+    mdt_float,		///< Single-precision (32-bit) floating point.
+    mdt_double		///< Double-precision (32-bit) floating point.
+};
 
-    /** Look up name of given mesh type. */
-    PTEXAPI static const char* MeshTypeName(MeshType mt);
+/** Look up name of given mesh type. */
+PTEXAPI static const char* MeshTypeName(MeshType mt);
 
-    /** Look up name of given data type. */
-    PTEXAPI static const char* DataTypeName(DataType dt);
+/** Look up name of given data type. */
+PTEXAPI static const char* DataTypeName(DataType dt);
 
-    /** Look up name of given border mode. */
-    PTEXAPI static const char* BorderModeName(BorderMode m);
+/** Look up name of given border mode. */
+PTEXAPI static const char* BorderModeName(BorderMode m);
 
-    /** Look up name of given edge filter mode. */
-    PTEXAPI static const char* EdgeFilterModeName(EdgeFilterMode m);
+/** Look up name of given edge filter mode. */
+PTEXAPI static const char* EdgeFilterModeName(EdgeFilterMode m);
 
-    /** Look up name of given edge ID. */
-    PTEXAPI static const char* EdgeIdName(EdgeId eid);
+/** Look up name of given edge ID. */
+PTEXAPI static const char* EdgeIdName(EdgeId eid);
 
-    /** Look up name of given meta data type. */
-    PTEXAPI static const char* MetaDataTypeName(MetaDataType mdt);
+/** Look up name of given meta data type. */
+PTEXAPI static const char* MetaDataTypeName(MetaDataType mdt);
 
-    /** Look up size of given data type (in bytes). */
-    static int DataSize(DataType dt) {
-	static const int sizes[] = { 1,2,2,4 };
-	return sizes[dt]; 
+/** Look up size of given data type (in bytes). */
+static int DataSize(DataType dt) {
+    static const int sizes[] = { 1,2,2,4 };
+    return sizes[dt];
+}
+
+/** Look up value of given data type that corresponds to the normalized value of 1.0. */
+static float OneValue(DataType dt) {
+    static const float one[] = { 255.f, 65535.f, 1.f, 1.f };
+    return one[dt];
+}
+
+/** Lookup up inverse value of given data type that corresponds to the normalized value of 1.0. */
+static float OneValueInv(DataType dt) {
+    static const float one[] = { 1.f/255.f, 1.f/65535.f, 1.f, 1.f };
+    return one[dt];
+}
+
+/** Convert a number of data values from the given data type to float. */
+PTEXAPI static void ConvertToFloat(float* dst, const void* src,
+                                   Ptex::DataType dt, int numChannels);
+
+/** Convert a number of data values from float to the given data type. */
+PTEXAPI static void ConvertFromFloat(void* dst, const float* src,
+                                     Ptex::DataType dt, int numChannels);
+
+/** Pixel resolution of a given texture.
+    The resolution is stored in log form: ulog2 = log2(ures), vlog2 = log2(vres)).
+    Note: negative ulog2 or vlog2 values are reserved for internal use.
+*/
+struct Res {
+    int8_t ulog2;		///< log base 2 of u resolution, in texels
+    int8_t vlog2;		///< log base 2 of v resolution, in texels
+
+    /// Default constructor, sets res to 0 (1x1 texel).
+    Res() : ulog2(0), vlog2(0) {}
+
+    /// Constructor.
+    Res(int8_t ulog2_, int8_t vlog2_) : ulog2(ulog2_), vlog2(vlog2_) {}
+
+    /// Constructor from 16-bit integer
+    Res(uint16_t value) {
+        ulog2 = *(uint8_t *)&value;
+        vlog2 = *((uint8_t *)&value + 1);
     }
 
-    /** Look up value of given data type that corresponds to the normalized value of 1.0. */
-    static float OneValue(DataType dt) {
-	static const float one[] = { 255.f, 65535.f, 1.f, 1.f };
-	return one[dt]; 
+    /// U resolution in texels.
+    int u() const { return 1<<(unsigned)ulog2; }
+
+    /// V resolution in texels.
+    int v() const { return 1<<(unsigned)vlog2; }
+
+    /// Resolution as a single 16-bit integer value.
+    uint16_t& val() { return *(uint16_t*)this; }
+
+    /// Resolution as a single 16-bit integer value.
+    const uint16_t& val() const { return *(const uint16_t*)this; }
+
+    /// Total size of specified texture in texels (u * v).
+    int size() const { return u() * v(); }
+
+    /// Comparison operator.
+    bool operator==(const Res& r) const { return val() == r.val(); }
+
+    /// Comparison operator.
+    bool operator!=(const Res& r) const { return val() != r.val(); }
+
+    /// True if res is >= given res in both u and v directions.
+    bool operator>=(const Res& r) const { return ulog2 >= r.ulog2 && vlog2 >= r.vlog2; }
+
+    /// Get value of resolution with u and v swapped.
+    Res swappeduv() const { return Res(vlog2, ulog2); }
+
+    /// Swap the u and v resolution values in place.
+    void swapuv() { *this = swappeduv(); }
+
+    /// Clamp the resolution value against the given value.
+    void clamp(const Res& r) {
+        if (ulog2 > r.ulog2) ulog2 = r.ulog2;
+        if (vlog2 > r.vlog2) vlog2 = r.vlog2;
     }
 
-    /** Lookup up inverse value of given data type that corresponds to the normalized value of 1.0. */
-    static float OneValueInv(DataType dt) {
-	static const float one[] = { 1.f/255.f, 1.f/65535.f, 1.f, 1.f };
-	return one[dt]; 
-    }
+    /// Determine the number of tiles in the u direction for the given tile res.
+    int ntilesu(Res tileres) const { return 1<<(ulog2-tileres.ulog2); }
 
-    /** Convert a number of data values from the given data type to float. */
-    PTEXAPI static void ConvertToFloat(float* dst, const void* src,
-				       Ptex::DataType dt, int numChannels);
+    /// Determine the number of tiles in the v direction for the given tile res.
+    int ntilesv(Res tileres) const { return 1<<(vlog2-tileres.vlog2); }
 
-    /** Convert a number of data values from float to the given data type. */
-    PTEXAPI static void ConvertFromFloat(void* dst, const float* src,
-					 Ptex::DataType dt, int numChannels);
+    /// Determine the total number of tiles for the given tile res.
+    int ntiles(Res tileres) const { return ntilesu(tileres) * ntilesv(tileres); }
+};
 
-    /** Pixel resolution of a given texture.
-	The resolution is stored in log form: ulog2 = log2(ures), vlog2 = log2(vres)).
-	Note: negative ulog2 or vlog2 values are reserved for internal use.
-     */
-    struct Res {
-	int8_t ulog2;		///< log base 2 of u resolution, in texels
-	int8_t vlog2;		///< log base 2 of v resolution, in texels
+/** Information about a face, as stored in the Ptex file header.
+    The FaceInfo data contains the face resolution and neighboring face
+    adjacency information as well as a set of flags describing the face.
 
-	/// Default constructor, sets res to 0 (1x1 texel).
-	Res() : ulog2(0), vlog2(0) {}
+    The adjfaces data member contains the face ids of the four neighboring faces.
+    The neighbors are accessed in EdgeId order, CCW, starting with the bottom edge.
+    The adjedges data member contains the corresponding edge id for each neighboring face.
 
-	/// Constructor.
-	Res(int8_t ulog2_, int8_t vlog2_) : ulog2(ulog2_), vlog2(vlog2_) {}
+    If a face has no neighbor for a given edge, the adjface id should be -1, and the
+    adjedge id doesn't matter (but is typically zero).
 
-	/// Constructor from 16-bit integer
-	Res(uint16_t value) {
-	    ulog2 = *(uint8_t *)&value;
-	    vlog2 = *((uint8_t *)&value + 1);
-	}
+    If an adjacent face is a pair of subfaces, the id of the first subface as encountered
+    in a CCW traversal should be stored as the adjface id.
+*/
+struct FaceInfo {
+    Res res;		///< Resolution of face.
+    uint8_t adjedges;       ///< Adjacent edges, 2 bits per edge.
+    uint8_t flags;		///< Flags.
+    int32_t adjfaces[4];	///< Adjacent faces (-1 == no adjacent face).
 
-	/// U resolution in texels.
-	int u() const { return 1<<(unsigned)ulog2; }
-
-	/// V resolution in texels.
-	int v() const { return 1<<(unsigned)vlog2; }
-
-	/// Resolution as a single 16-bit integer value.
-	uint16_t& val() { return *(uint16_t*)this; }
-
-	/// Resolution as a single 16-bit integer value.
-	const uint16_t& val() const { return *(const uint16_t*)this; }
-
-	/// Total size of specified texture in texels (u * v).
-	int size() const { return u() * v(); }
-
-	/// Comparison operator.
-	bool operator==(const Res& r) const { return val() == r.val(); }
-
-	/// Comparison operator.
-	bool operator!=(const Res& r) const { return val() != r.val(); }
-
-	/// True if res is >= given res in both u and v directions.
-	bool operator>=(const Res& r) const { return ulog2 >= r.ulog2 && vlog2 >= r.vlog2; }
-
-	/// Get value of resolution with u and v swapped.
-	Res swappeduv() const { return Res(vlog2, ulog2); }
-
-	/// Swap the u and v resolution values in place.
-	void swapuv() { *this = swappeduv(); }
-
-	/// Clamp the resolution value against the given value.
-	void clamp(const Res& r) { 
-	    if (ulog2 > r.ulog2) ulog2 = r.ulog2;
-	    if (vlog2 > r.vlog2) vlog2 = r.vlog2;
-	}
-
-	/// Determine the number of tiles in the u direction for the given tile res.
-	int ntilesu(Res tileres) const { return 1<<(ulog2-tileres.ulog2); }
-
-	/// Determine the number of tiles in the v direction for the given tile res.
-	int ntilesv(Res tileres) const { return 1<<(vlog2-tileres.vlog2); }
-
-	/// Determine the total number of tiles for the given tile res.
-	int ntiles(Res tileres) const { return ntilesu(tileres) * ntilesv(tileres); }
-    };
-
-    /** Information about a face, as stored in the Ptex file header.
-	The FaceInfo data contains the face resolution and neighboring face
-	adjacency information as well as a set of flags describing the face.
-
-	The adjfaces data member contains the face ids of the four neighboring faces.
-	The neighbors are accessed in EdgeId order, CCW, starting with the bottom edge.
-	The adjedges data member contains the corresponding edge id for each neighboring face.
-
-	If a face has no neighbor for a given edge, the adjface id should be -1, and the
-	adjedge id doesn't matter (but is typically zero).
-
-	If an adjacent face is a pair of subfaces, the id of the first subface as encountered
-	in a CCW traversal should be stored as the adjface id.
-     */
-    struct FaceInfo {
-	Res res;		///< Resolution of face.
-	uint8_t adjedges;       ///< Adjacent edges, 2 bits per edge.
-	uint8_t flags;		///< Flags.
-	int32_t adjfaces[4];	///< Adjacent faces (-1 == no adjacent face).
-
-	/// Default constructor, sets all members to zero.
-	FaceInfo() : res(), adjedges(0), flags(0) 
-	{ 
-	    adjfaces[0] = adjfaces[1] = adjfaces[2] = adjfaces[3] = -1; 
-	}
-
-	/// Constructor.
-	FaceInfo(Res res_) : res(res_), adjedges(0), flags(0) 
-	{ 
-	    adjfaces[0] = adjfaces[1] = adjfaces[2] = adjfaces[3] = -1; 
-	}
-
-	/// Constructor.
-	FaceInfo(Res res_, int adjfaces_[4], int adjedges_[4], bool isSubface_=false)
-	    : res(res_), flags(isSubface_ ? flag_subface : 0)
-	{
-	    setadjfaces(adjfaces_[0], adjfaces_[1], adjfaces_[2], adjfaces_[3]);
-	    setadjedges(adjedges_[0], adjedges_[1], adjedges_[2], adjedges_[3]);
-	}
-
-	/// Access an adjacent edge id.  The eid value must be 0..3.
-	EdgeId adjedge(int eid) const { return EdgeId((adjedges >> (2*eid)) & 3); }
-
-	/// Access an adjacent face id.  The eid value must be 0..3.
-	int adjface(int eid) const { return adjfaces[eid]; }
-
-	/// Determine if face is constant (by checking a flag).
-	bool isConstant() const { return (flags & flag_constant) != 0; }
-
-	/// Determine if neighborhood of face is constant (by checking a flag).
-	bool isNeighborhoodConstant() const { return (flags & flag_nbconstant) != 0; }
-
-	/// Determine if face has edits in the file (by checking a flag).
-	bool hasEdits() const { return (flags & flag_hasedits) != 0; }
-
-	/// Determine if face is a subface (by checking a flag).
-	bool isSubface() const { return (flags & flag_subface) != 0; }
-
-	/// Set the adjfaces data.
-	void setadjfaces(int f0, int f1, int f2, int f3)
-	{ adjfaces[0] = f0, adjfaces[1] = f1, adjfaces[2] = f2; adjfaces[3] = f3; }
-
-	/// Set the adjedges data.
-	void setadjedges(int e0, int e1, int e2, int e3)
-	{ adjedges = (uint8_t)((e0&3) | ((e1&3)<<2) | ((e2&3)<<4) | ((e3&3)<<6)); }
-
-	/// Flag bit values (for internal use).
-	enum { flag_constant = 1, flag_hasedits = 2, flag_nbconstant = 4, flag_subface = 8 };
-    };
-
-
-    /** Memory-managed string. Used for returning error messages from
-	API functions.  On most platforms, this is a typedef to
-	std::string.  For Windows, this is a custom class that
-	implements a subset of std::string.  (Note: std::string cannot
-	be passed through a Windows DLL interface).
-     */
-#ifdef PTEX_USE_STDSTRING
-    typedef std::string String;
-#else
-    class String
+    /// Default constructor, sets all members to zero.
+    FaceInfo() : res(), adjedges(0), flags(0)
     {
-     public:
-	String() : _str(0) {}
-	String(const String& str) : _str(0) { *this = str; }
-	PTEXAPI ~String();
-	PTEXAPI String& operator=(const char* str);
-	String& operator=(const String& str) { *this = str._str; return *this; }
-	String& operator=(const std::string& str) { *this = str.c_str(); return *this; }
-	const char* c_str() const { return _str ? _str : ""; }
-	bool empty() const { return _str == 0; }
+        adjfaces[0] = adjfaces[1] = adjfaces[2] = adjfaces[3] = -1;
+    }
 
-     private:
-	char* _str;
-    };
+    /// Constructor.
+    FaceInfo(Res res_) : res(res_), adjedges(0), flags(0)
+    {
+        adjfaces[0] = adjfaces[1] = adjfaces[2] = adjfaces[3] = -1;
+    }
+
+    /// Constructor.
+    FaceInfo(Res res_, int adjfaces_[4], int adjedges_[4], bool isSubface_=false)
+        : res(res_), flags(isSubface_ ? flag_subface : 0)
+    {
+        setadjfaces(adjfaces_[0], adjfaces_[1], adjfaces_[2], adjfaces_[3]);
+        setadjedges(adjedges_[0], adjedges_[1], adjedges_[2], adjedges_[3]);
+    }
+
+    /// Access an adjacent edge id.  The eid value must be 0..3.
+    EdgeId adjedge(int eid) const { return EdgeId((adjedges >> (2*eid)) & 3); }
+
+    /// Access an adjacent face id.  The eid value must be 0..3.
+    int adjface(int eid) const { return adjfaces[eid]; }
+
+    /// Determine if face is constant (by checking a flag).
+    bool isConstant() const { return (flags & flag_constant) != 0; }
+
+    /// Determine if neighborhood of face is constant (by checking a flag).
+    bool isNeighborhoodConstant() const { return (flags & flag_nbconstant) != 0; }
+
+    /// Determine if face has edits in the file (by checking a flag).
+    bool hasEdits() const { return (flags & flag_hasedits) != 0; }
+
+    /// Determine if face is a subface (by checking a flag).
+    bool isSubface() const { return (flags & flag_subface) != 0; }
+
+    /// Set the adjfaces data.
+    void setadjfaces(int f0, int f1, int f2, int f3)
+    { adjfaces[0] = f0, adjfaces[1] = f1, adjfaces[2] = f2; adjfaces[3] = f3; }
+
+    /// Set the adjedges data.
+    void setadjedges(int e0, int e1, int e2, int e3)
+    { adjedges = (uint8_t)((e0&3) | ((e1&3)<<2) | ((e2&3)<<4) | ((e3&3)<<6)); }
+
+    /// Flag bit values (for internal use).
+    enum { flag_constant = 1, flag_hasedits = 2, flag_nbconstant = 4, flag_subface = 8 };
+};
+
+
+/** Memory-managed string. Used for returning error messages from
+    API functions.  On most platforms, this is a typedef to
+    std::string.  For Windows, this is a custom class that
+    implements a subset of std::string.  (Note: std::string cannot
+    be passed through a Windows DLL interface).
+*/
+#ifdef PTEX_USE_STDSTRING
+typedef std::string String;
+#else
+class String
+{
+public:
+    String() : _str(0) {}
+    String(const String& str) : _str(0) { *this = str; }
+    PTEXAPI ~String();
+    PTEXAPI String& operator=(const char* str);
+    String& operator=(const String& str) { *this = str._str; return *this; }
+    String& operator=(const std::string& str) { *this = str.c_str(); return *this; }
+    const char* c_str() const { return _str ? _str : ""; }
+    bool empty() const { return _str == 0; }
+
+private:
+    char* _str;
+};
 #endif
 
 }
@@ -397,7 +397,7 @@ class PtexMetaData {
 class PtexFaceData {
  protected:
     /// Destructor not for public use.  Use release() instead.
-    virtual ~PtexFaceData() {} 
+    virtual ~PtexFaceData() {}
 
  public:
     /// Release resources held by this pointer (pointer becomes invalid).
@@ -448,7 +448,7 @@ class PtexFaceData {
 class PtexTexture {
  protected:
     /// Destructor not for public use.  Use release() instead.
-    virtual ~PtexTexture() {} 
+    virtual ~PtexTexture() {}
 
  public:
     /** Open a ptex file for reading.
@@ -601,7 +601,7 @@ class PtexInputHandler {
  public:
     typedef void* Handle;
 
-    /** Open a file in read mode.  
+    /** Open a file in read mode.
 	Returns null if there was an error.
 	If an error occurs, the error string is available via lastError().
     */
@@ -610,10 +610,10 @@ class PtexInputHandler {
     /** Seek to an absolute byte position in the input stream. */
     virtual void seek(Handle handle, int64_t pos) = 0;
 
-    /** Read a number of bytes from the file. 
+    /** Read a number of bytes from the file.
 	Returns the number of bytes successfully read.
 	If less than the requested number of bytes is read, the error string
-	is available via lastError(). 
+	is available via lastError().
     */
     virtual size_t read(void* buffer, size_t size, Handle handle) = 0;
 
@@ -646,7 +646,7 @@ class PtexInputHandler {
 class PtexCache {
  protected:
     /// Destructor not for public use.  Use release() instead.
-    virtual ~PtexCache() {} 
+    virtual ~PtexCache() {}
 
  public:
     /** Create a cache with the specified limits.
@@ -660,7 +660,7 @@ class PtexCache {
 	@param premultiply If true, textures will be premultiplied by the alpha
         channel (if any) when read from disk.  See PtexTexture and PtexWriter
 	for more details.
-	
+
 	@param handler If specified, all input calls made through this cache will
 	be directed through the handler.
      */
@@ -762,7 +762,7 @@ class PtexCache {
 class PtexWriter {
  protected:
     /// Destructor not for public use.  Use release() instead.
-    virtual ~PtexWriter() {} 
+    virtual ~PtexWriter() {}
 
  public:
     /** Open a new texture file for writing.
@@ -817,7 +817,7 @@ class PtexWriter {
 
     /** Release resources held by this pointer (pointer becomes invalid). */
     virtual void release() = 0;
-    
+
     /** Set border modes */
     virtual void setBorderModes(Ptex::BorderMode uBorderMode, Ptex::BorderMode vBorderMode) = 0;
 

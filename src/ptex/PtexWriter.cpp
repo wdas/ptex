@@ -1,4 +1,4 @@
-/* 
+/*
 PTEX SOFTWARE
 Copyright 2009 Disney Enterprises, Inc.  All rights reserved
 
@@ -91,7 +91,7 @@ namespace {
 		std::vector<TCHAR> tempPath(result + 1);
 		result = ::GetTempPath(static_cast<DWORD>(tempPath.size()), &tempPath[0]);
 		if (result > 0 && result <= tempPath.size())
-		    tmpdir = std::string(tempPath.begin(), 
+		    tmpdir = std::string(tempPath.begin(),
 					 tempPath.begin() + static_cast<std::size_t>(result));
 		else
 		    tmpdir = ".";
@@ -1141,7 +1141,7 @@ void PtexMainWriter::writeMetaData(FILE* fp)
 	    // skip large items, but record for later
 	    lmdEntries.push_back(&e);
 	}
-	else 
+	else
 #endif
     {
 	    // add small item to zip block

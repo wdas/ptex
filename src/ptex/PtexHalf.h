@@ -1,7 +1,7 @@
 #ifndef PtexHalf_h
 #define PtexHalf_h
 
-/* 
+/*
 PTEX SOFTWARE
 Copyright 2009 Disney Enterprises, Inc.  All rights reserved
 

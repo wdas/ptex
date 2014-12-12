@@ -1,7 +1,7 @@
 #ifndef PtexMutex_h
 #define PtexMutex_h
 
-/* 
+/*
 PTEX SOFTWARE
 Copyright 2009 Disney Enterprises, Inc.  All rights reserved
 
@@ -40,18 +40,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 /** For internal use only */
 namespace PtexInternal {
-    /** Automatically acquire and release lock within enclosing scope. */
-    template <class T>
-    class AutoLock {
-    public:
-	AutoLock(T& m) : _m(m) { _m.lock(); }
-	~AutoLock()            { _m.unlock(); }
-    private:
-	T& _m;
-    };
+ /** Automatically acquire and release lock within enclosing scope. */
+template <class T>
+class AutoLock {
+public:
+    AutoLock(T& m) : _m(m) { _m.lock(); }
+    ~AutoLock()            { _m.unlock(); }
+private:
+    T& _m;
+};
 
-    typedef AutoLock<Mutex> AutoMutex;
-    typedef AutoLock<SpinLock> AutoSpin;
+typedef AutoLock<Mutex> AutoMutex;
+typedef AutoLock<SpinLock> AutoSpin;
 }
 
 #endif
