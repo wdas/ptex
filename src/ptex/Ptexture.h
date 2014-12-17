@@ -1015,4 +1015,8 @@ template <class T> class PtexPtr {
 
 PTEX_NAMESPACE_END
 
+#ifdef ISSUE_USING_NAMESPACE_PTEX
+using namespace Ptex;
+#endif
+
 #endif
