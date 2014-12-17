@@ -115,36 +115,47 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
     // lookup reader in map
     StringKey key(filename);
     PtexCachedReader* reader = _files.get(key);
+    bool isNew = false;
 
     if (reader) {
         if (!reader->ok()) return 0;
         reader->ref();
     } else {
-        PtexCachedReader* newreader = new PtexCachedReader(_premultiply, _io, this);
+        reader = new PtexCachedReader(_premultiply, _io, this);
+        isNew = true;
+    }
+
+    bool ok = true;
+    bool needOpen = reader->needToOpen();
+    if (needOpen) {
+	std::string buffer;
+	const char* pathToOpen = filename;
+	if (!_io) ok = findFile(pathToOpen, buffer, error);
+        if (ok) ok = reader->open(pathToOpen, error);
+    }
+
+    if (ok && isNew) {
         size_t newMemUsed = 0;
-        reader = _files.tryInsert(key, newreader, newMemUsed);
+        PtexCachedReader* newreader = reader;
+        reader = _files.tryInsert(key, reader, newMemUsed);
         adjustMemUsed(newMemUsed);
         if (reader != newreader) {
             // another thread got here first
             reader->ref();
             delete newreader;
+            isNew = false;
         }
     }
 
-    if (reader->needToOpen()) {
-	bool ok = true;
-	std::string buffer;
-	const char* pathToOpen = filename;
-	if (!_io) ok = findFile(pathToOpen, buffer, error);
-        if (ok && reader->open(pathToOpen, error)) {
-            logOpen(reader);
-        }
-    }
-
-    if (!reader->ok()) {
+    if (!ok) {
         reader->unref();
         return 0;
     }
+
+    if (needOpen) {
+        logOpen(reader);
+    }
+
     return reader;
 }
 
