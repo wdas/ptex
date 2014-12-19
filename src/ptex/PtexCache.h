@@ -229,8 +229,9 @@ public:
     void setIoTimestamp(uint32_t dataTimestamp) { _dataTimestamp = dataTimestamp; }
     void setDataTimestamp(uint32_t dataTimestamp) { _dataTimestamp = dataTimestamp; }
     size_t memUsedChange() {
-        size_t result = _memUsed - _memUsedAccountedFor;
-        _memUsedAccountedFor = _memUsed;
+        size_t memUsed = _memUsed;
+        size_t result = memUsed - _memUsedAccountedFor;
+        _memUsedAccountedFor = memUsed;
         return result;
     }
 };
