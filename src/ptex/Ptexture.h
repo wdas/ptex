@@ -1015,8 +1015,13 @@ template <class T> class PtexPtr {
 
 PTEX_NAMESPACE_END
 
-#ifdef ISSUE_USING_NAMESPACE_PTEX
-using namespace Ptex;
-#endif
+using Ptex::PtexMetaData;
+using Ptex::PtexFaceData;
+using Ptex::PtexTexture;
+using Ptex::PtexInputHandler;
+using Ptex::PtexCache;
+using Ptex::PtexWriter;
+using Ptex::PtexFilter;
+using Ptex::PtexPtr;
 
 #endif
