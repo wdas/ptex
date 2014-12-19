@@ -211,6 +211,13 @@ inline bool AtomicCompareAndSwap(T volatile* target, T oldvalue, T newvalue)
     return __sync_bool_compare_and_swap(target, oldvalue, newvalue);
 }
 
+template <typename T>
+inline void AtomicStore(T volatile* target, T value)
+{
+    __sync_synchronize();
+    *target = value;
+}
+
 inline void MemoryFence()
 {
     __sync_synchronize();

@@ -185,8 +185,7 @@ bool PtexReader::open(const char* path, Ptex::String& error)
         closeFP();
 	return 0;
     }
-    MemoryFence();
-    _needToOpen = false;
+    AtomicStore(&_needToOpen, false);
     return true;
 }
 
@@ -382,8 +381,7 @@ void PtexReader::readMetaData()
 			  _metaedits[i].zipsize, _metaedits[i].memsize, metaDataMemUsed);
 
     // store meta data
-    MemoryFence();
-    _metadata = newmeta;
+    AtomicStore(&_metadata, newmeta);
     increaseMemUsed(newmeta->selfDataSize() + metaDataMemUsed);
 }
 
@@ -598,8 +596,7 @@ void PtexReader::readLevel(int levelid, Level*& level)
     }
 
     // don't assign to result until level data is fully initialized
-    MemoryFence();
-    level = newlevel;
+    AtomicStore(&level, newlevel);
     increaseMemUsed(level->memUsed());
 }
 
@@ -681,8 +678,7 @@ void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int leve
 	break;
     }
 
-    MemoryFence();
-    face = newface;
+    AtomicStore(&face, newface);
     increaseMemUsed(newMemUsed);
 }
 

@@ -280,8 +280,7 @@ private:
 
     void unlockEntries(Entry* entries)
     {
-        MemoryFence();
-        _entries = entries;
+        AtomicStore(&_entries, entries);
     }
 
     Entry* lockEntriesAndGrowIfNeeded(size_t& newMemUsed)

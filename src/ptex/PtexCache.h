@@ -177,8 +177,7 @@ class PtexCachedReader : public PtexReader
 
     void unlock()
     {
-        MemoryFence();
-        _refCount = 0;
+        AtomicStore(&_refCount, 0);
     }
 
 public:
