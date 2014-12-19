@@ -65,6 +65,20 @@ public:
     void increaseMemUsed(size_t amount) { if (amount) AtomicAdd(&_memUsed, amount); }
 
     virtual const char* path() { return _path.c_str(); }
+
+    virtual Info getInfo() {
+        Info info;
+        info.meshType = _header.meshtype;
+        info.dataType = _header.datatype;
+        info.uBorderMode = _extheader.ubordermode;
+        info.vBorderMode = _extheader.vbordermode;
+        info.edgeFilterMode = _extheader.edgefiltermode;
+        info.alphaChannel = _header.alphachan;
+        info.numChannels = _header.nchannels;
+        info.numFaces = _header.nfaces;
+        return info;
+    }
+
     virtual Ptex::MeshType meshType() { return MeshType(_header.meshtype); }
     virtual Ptex::DataType dataType() { return DataType(_header.datatype); }
     virtual Ptex::BorderMode uBorderMode() { return BorderMode(_extheader.ubordermode); }

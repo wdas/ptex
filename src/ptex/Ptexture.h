@@ -465,6 +465,19 @@ class PtexTexture {
 	the path as supplied to open. */
     virtual const char* path() = 0;
 
+    /** Get most commonly used info in a single call for convenience / efficiency */
+    struct Info {
+        MeshType meshType;
+        DataType dataType;
+        BorderMode uBorderMode;
+        BorderMode vBorderMode;
+        EdgeFilterMode edgeFilterMode;
+        int alphaChannel;
+        int numChannels;
+        int numFaces;
+    };
+    virtual Info getInfo() = 0;
+
     /** Type of mesh for which texture data is defined. */
     virtual Ptex::MeshType meshType() = 0;
 
