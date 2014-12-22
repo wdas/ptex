@@ -45,15 +45,64 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 PTEX_NAMESPACE_BEGIN
 
+class PtexLruItem
+{
+    PtexLruItem* _prev;
+    PtexLruItem* _next;
+
+public:
+    PtexLruItem() : _prev(this), _next(this) {}
+
+    void extract() {
+        _next->_prev = _prev;
+        _prev->_next = _next;
+        _next = _prev = this;
+    }
+    void push(PtexLruItem* item) {
+        item->extract();
+        _prev->_next = item;
+        item->_next = this;
+        item->_prev = _prev;
+        _prev = item;
+    }
+    PtexLruItem* pop() {
+        if (_next == this) return 0;
+        PtexLruItem* item = _next;
+        _next->extract();
+        return item;
+    }
+};
+
+template<class T, PtexLruItem T::*item>
+class PtexLruList
+{
+    PtexLruItem _end;
+
+public:
+    void push(T* node)
+    {
+        _end.push(&(node->*item));
+    }
+
+    T* pop()
+    {
+        PtexLruItem* it = _end.pop();
+        return it ? (T*) ((char*)it - (char*)&(((T*)0)->*item)) : 0;
+    }
+};
+
 class PtexReaderCache;
 
 class PtexCachedReader : public PtexReader
 {
     PtexReaderCache* _cache;
     volatile int32_t _refCount;
-    uint32_t _ioTimestamp;
-    uint32_t _dataTimestamp;
     size_t _memUsedAccountedFor;
+    size_t _opensAccountedFor;
+    size_t _blockReadsAccountedFor;
+    PtexLruItem _openFilesItem;
+    PtexLruItem _activeFilesItem;
+    friend class PtexReaderCache;
 
     bool trylock()
     {
@@ -67,7 +116,8 @@ class PtexCachedReader : public PtexReader
 
 public:
     PtexCachedReader(bool premultiply, PtexInputHandler* handler, PtexReaderCache* cache)
-        : PtexReader(premultiply, handler), _cache(cache), _refCount(1), _ioTimestamp(0), _dataTimestamp(0), _memUsedAccountedFor(0)
+        : PtexReader(premultiply, handler), _cache(cache), _refCount(1),
+          _memUsedAccountedFor(0), _opensAccountedFor(0), _blockReadsAccountedFor(0)
     {
     }
 
@@ -105,17 +155,28 @@ public:
         return false;
     }
 
-    uint32_t ioTimestamp() const { return _ioTimestamp; }
-    uint32_t dataTimestamp() const { return _dataTimestamp; }
-    void setIoTimestamp(uint32_t dataTimestamp) { _dataTimestamp = dataTimestamp; }
-    void setDataTimestamp(uint32_t dataTimestamp) { _dataTimestamp = dataTimestamp; }
-    size_t memUsedChange() {
-        size_t memUsed = _memUsed;
-        size_t result = memUsed - _memUsedAccountedFor;
-        _memUsedAccountedFor = memUsed;
+    size_t getMemUsedChange() {
+        size_t memUsedTmp = _memUsed;
+        size_t result = memUsedTmp - _memUsedAccountedFor;
+        _memUsedAccountedFor = memUsedTmp;
+        return result;
+    }
+
+    size_t getOpensChange() {
+        size_t opensTmp = _opens;
+        size_t result = opensTmp - _opensAccountedFor;
+        _opensAccountedFor = opensTmp;
+        return result;
+    }
+
+    size_t getBlockReadsChange() {
+        size_t blockReadsTmp = _blockReads;
+        size_t result = blockReadsTmp - _blockReadsAccountedFor;
+        _blockReadsAccountedFor = blockReadsTmp;
         return result;
     }
 };
+
 
 /** Cache for reading Ptex texture files */
 class PtexReaderCache : public PtexCache
@@ -123,9 +184,11 @@ class PtexReaderCache : public PtexCache
 public:
     PtexReaderCache(int maxFiles, size_t maxMem, bool premultiply, PtexInputHandler* handler)
 	: _maxFiles(maxFiles), _maxMem(maxMem), _io(handler), _premultiply(premultiply),
-          _ioTimestamp(0), _dataTimestamp(0), _memUsed(sizeof(*this)), _peakMemUsed(0),
-          _peakFilesOpen(0), _fileOpens(0), _blockReads(0)
-    {}
+          _memUsed(sizeof(*this)), _mruList(&_mruLists[0]), _prevMruList(&_mruLists[1]),
+          _peakMemUsed(0), _peakFilesOpen(0), _fileOpens(0), _blockReads(0)
+    {
+        memset((void*)&_mruLists[0], 0, sizeof(_mruLists));
+    }
 
     ~PtexReaderCache()
     {}
@@ -168,10 +231,19 @@ public:
     virtual void getStats(Stats& stats);
 
     void purge(PtexCachedReader* reader);
-    void logOpen(PtexCachedReader* reader);
-    void logBlockRead(PtexCachedReader* reader);
 
-    void adjustMemUsed(size_t amount) { if (amount) AtomicAdd(&_memUsed, amount); }
+    void adjustMemUsed(size_t amount) {
+        if (amount) {
+            size_t memUsed = AtomicAdd(&_memUsed, amount);
+            _peakMemUsed = std::max(_peakMemUsed, memUsed);
+        }
+    }
+    void adjustFilesOpen(size_t amount) {
+        if (amount) {
+            size_t filesOpen = AtomicAdd(&_filesOpen, amount);
+            _peakFilesOpen = std::max(_peakFilesOpen, filesOpen);
+        }
+    }
     void logRecentlyUsed(PtexCachedReader* reader);
 
 private:
@@ -187,9 +259,10 @@ private:
     };
 
     bool findFile(const char*& filename, std::string& buffer, Ptex::String& error);
+    void processMru();
     void pruneFiles();
     void pruneData();
-    int _maxFiles;
+    size_t _maxFiles;
     size_t _maxMem;
     PtexInputHandler* _io;
     std::string _searchpath;
@@ -197,29 +270,26 @@ private:
     typedef PtexHashMap<StringKey,PtexCachedReader*> FileMap;
     FileMap _files;
     bool _premultiply;
-    struct ReaderAge {
-        PtexCachedReader* reader;
-        uint32_t age, timestamp;
-        ReaderAge(PtexCachedReader* reader, uint32_t timestamp=0) : reader(reader), age(0), timestamp(timestamp) {}
-    };
-    static bool compareReaderAge(const ReaderAge& a, const ReaderAge& b) { return a.age < b.age; }
-    std::vector<PtexCachedReader*> _newOpenFiles; PAD(_newOpenFiles);
-    std::vector<PtexCachedReader*> _tmpOpenFiles; PAD(_tmpOpenFiles);
-    std::vector<ReaderAge> _openFiles; PAD(_openFiles);
-    std::vector<PtexCachedReader*> _newRecentFiles; PAD(_newRecentFiles);
-    std::vector<PtexCachedReader*> _tmpRecentFiles; PAD(_tmpRecentFiles);
-    std::vector<ReaderAge> _activeFiles; PAD(_activeFiles);
-    SpinLock _logOpenLock; PAD(_logOpenLock);
-    SpinLock _logRecentLock; PAD(_logRecentLock);
-    SpinLock _pruneFileLock; PAD(_pruneFileLock);
-    SpinLock _pruneDataLock; PAD(_pruneDataLock);
-    volatile uint32_t _ioTimestamp; PAD(_ioTimestamp);
-    uint32_t _dataTimestamp; PAD(_dataTimestamp);
     volatile size_t _memUsed; PAD(_memUsed);
-    size_t _peakMemUsed; PAD(_peakMemUsed);
-    size_t _peakFilesOpen; PAD(_peakFilesOpen);
-    size_t _fileOpens; PAD(_fileOpens);
-    size_t _blockReads; PAD(_blockReads);
+    volatile size_t _filesOpen; PAD(_filesOpen);
+    Mutex _mruLock; PAD(_mruLock);
+
+    static const int numMruFiles = 50;
+    struct MruList {
+        volatile int next;
+        PtexCachedReader* volatile files[numMruFiles];
+    };
+    MruList _mruLists[2];
+    MruList* volatile _mruList;
+    MruList* volatile _prevMruList;
+
+    PtexLruList<PtexCachedReader, &PtexCachedReader::_openFilesItem> _openFiles;
+    PtexLruList<PtexCachedReader, &PtexCachedReader::_activeFilesItem> _activeFiles;
+
+    size_t _peakMemUsed;
+    size_t _peakFilesOpen;
+    size_t _fileOpens;
+    size_t _blockReads;
 };
 
 PTEX_NAMESPACE_END

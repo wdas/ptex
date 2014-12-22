@@ -161,7 +161,7 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
     }
 
     if (needOpen) {
-        logOpen(reader);
+        reader->logOpen();
     }
 
     return reader;
@@ -177,135 +177,99 @@ PtexCache* PtexCache::create(int maxFiles, size_t maxMem, bool premultiply,
 }
 
 
-void PtexReaderCache::logOpen(PtexCachedReader* reader)
+void PtexReaderCache::logRecentlyUsed(PtexCachedReader* reader)
 {
-    bool shouldPrune;
-    {
-        AutoSpin locker(_logOpenLock);
-        _newOpenFiles.push_back(reader);
-        shouldPrune = _newOpenFiles.size() >= 16;
+    while (1) {
+        MruList* mruList = _mruList;
+        int slot = AtomicIncrement(&mruList->next)-1;
+        if (slot < numMruFiles) {
+            mruList->files[slot] = reader;
+            return;
+        }
+        // no mru slot available, process mru list and try again
+        do processMru();
+        while (_mruList->next >= numMruFiles);
     }
-    if (shouldPrune) {
+}
+
+void PtexReaderCache::processMru()
+{
+    if (!_mruLock.trylock()) return;
+    if (_mruList->next < numMruFiles) {
+        _mruLock.unlock();
+        return;
+    }
+
+    // switch mru buffers and reset slot counter so other threads can proceed immediately
+    MruList* mruList = _mruList;
+    AtomicStore(&_mruList, _prevMruList);
+    _prevMruList = mruList;
+
+    // extract relevant stats and add to open/active list
+    size_t memUsedChange = 0, filesOpenChange = 0;
+    for (int i = 0; i < numMruFiles; ++i) {
+        PtexCachedReader* reader;
+        do { reader = mruList->files[i]; } while (!reader); // loop on (unlikely) race condition
+        mruList->files[i] = 0;
+        memUsedChange += reader->getMemUsedChange();
+        size_t opens = reader->getOpensChange();
+        size_t blockReads = reader->getBlockReadsChange();
+        filesOpenChange += opens;
+        if (opens || blockReads) {
+            _fileOpens += opens;
+            _blockReads += blockReads;
+            _openFiles.push(reader);
+        }
+        if (_maxMem) {
+            _activeFiles.push(reader);
+        }
+    }
+    AtomicStore(&mruList->next, 0);
+    adjustMemUsed(memUsedChange);
+    adjustFilesOpen(filesOpenChange);
+
+    bool shouldPruneFiles = _filesOpen > _maxFiles;
+    bool shouldPruneData = _maxMem && _memUsed > _maxMem;
+
+    if (shouldPruneFiles) {
         pruneFiles();
     }
+    if (shouldPruneData) {
+        pruneData();
+    }
+    _mruLock.unlock();
 }
-
-void PtexReaderCache::logBlockRead(PtexCachedReader* reader)
-{
-    reader->setIoTimestamp(AtomicIncrement(&_ioTimestamp));
-    AtomicIncrement(&_blockReads);
-}
-
 
 
 void PtexReaderCache::pruneFiles()
 {
-    if (!_pruneFileLock.trylock()) return;
-
-    {
-        AutoSpin locker(_logOpenLock);
-        std::swap(_tmpOpenFiles, _newOpenFiles);
-    }
-
-    for (std::vector<PtexCachedReader*>::iterator iter = _tmpOpenFiles.begin(); iter != _tmpOpenFiles.end(); ++iter) {
-        _openFiles.push_back(ReaderAge(*iter));
-    }
-    _fileOpens += _tmpOpenFiles.size();
-    _tmpOpenFiles.clear();
-
-    uint32_t now = _ioTimestamp;
-    for (std::vector<ReaderAge>::iterator iter = _openFiles.begin(); iter != _openFiles.end(); ++iter) {
-        iter->age = now - iter->reader->ioTimestamp();
-    }
-
-    _peakFilesOpen = std::max(_peakFilesOpen, _openFiles.size());
-    int numToClose = int(_openFiles.size()) - _maxFiles;
+    size_t numToClose = _filesOpen - _maxFiles;
     if (numToClose > 0) {
-        std::nth_element(_openFiles.begin(), _openFiles.end() - numToClose, _openFiles.end(), compareReaderAge);
-        std::vector<ReaderAge> keep;
-
-        while (numToClose && !_openFiles.empty()) {
-            ReaderAge file = _openFiles.back();
-            _openFiles.pop_back();
-            if (file.reader->tryClose()) {
-                numToClose--;
-            } else {
-                keep.push_back(file);
+        while (numToClose) {
+            PtexCachedReader* reader = _openFiles.pop();
+            if (!reader) { _filesOpen = 0; break; }
+            if (reader->tryClose()) {
+                --numToClose;
+                --_filesOpen;
             }
         }
-    }
-
-    _pruneFileLock.unlock();
-}
-
-
-void PtexReaderCache::logRecentlyUsed(PtexCachedReader* reader)
-{
-    if (!_maxMem) return;
-    bool shouldPrune;
-    {
-        AutoSpin locker(_logRecentLock);
-        _newRecentFiles.push_back(reader);
-        shouldPrune = _newRecentFiles.size() >= 16;
-    }
-    if (shouldPrune) {
-        pruneData();
     }
 }
 
 
 void PtexReaderCache::pruneData()
 {
-    if (!_pruneDataLock.trylock()) return;
-
-    {
-        AutoSpin locker(_logRecentLock);
-        std::swap(_tmpRecentFiles, _newRecentFiles);
-    }
-
-    // migrate recent additions to active file list, updating time stamp and accounting for new memory use
     size_t memUsedChange = 0;
-    for (std::vector<PtexCachedReader*>::iterator iter = _tmpRecentFiles.begin(); iter != _tmpRecentFiles.end(); ++iter) {
-        PtexCachedReader* reader = *iter;
-        uint32_t timestamp = ++_dataTimestamp;
-        reader->setDataTimestamp(timestamp);
-        _activeFiles.push_back(ReaderAge(reader, timestamp));
-        memUsedChange += reader->memUsedChange();
-    }
-    adjustMemUsed(memUsedChange);
-    _tmpRecentFiles.clear();
-
-    // compute age of active entries (skip stale entries - old readers that have been accessed again more recently)
-    uint32_t now = _dataTimestamp;
-    std::vector<ReaderAge>::iterator keep = _activeFiles.begin();
-    for (std::vector<ReaderAge>::iterator iter = _activeFiles.begin(); iter != _activeFiles.end(); ++iter) {
-        if (iter->reader->dataTimestamp() == iter->timestamp) {
-            *keep = *iter;
-            keep->age = now - iter->timestamp;
-            ++keep;
-        }
-    }
-
-    // remove skipped entries
-    _activeFiles.erase(keep, _activeFiles.end());
-
-
-    // pop and prune least recent files
-    std::sort(_activeFiles.begin(), _activeFiles.end(), compareReaderAge); // TODO: (maybe) use nth_element on avg reader size?
-    memUsedChange = 0;
     size_t memUsed = _memUsed;
-    _peakMemUsed = std::max(memUsed, _peakMemUsed);
-    while (memUsed + memUsedChange > _maxMem && !_activeFiles.empty()) {
-        PtexCachedReader* reader = _activeFiles.back().reader;
-        _activeFiles.pop_back();
+    while (memUsed + memUsedChange > _maxMem) {
+        PtexCachedReader* reader = _activeFiles.pop();
+        if (!reader) break;
         if (reader->tryPrune()) {
             // Note: after clearing, memUsedChange is negative
-            memUsedChange += reader->memUsedChange();
+            memUsedChange += reader->getMemUsedChange();
         }
     }
     adjustMemUsed(memUsedChange);
-
-    _pruneDataLock.unlock();
 }
 
 
@@ -328,14 +292,14 @@ void PtexReaderCache::purge(const char* filename)
 void PtexReaderCache::purge(PtexCachedReader* reader)
 {
     if (reader->tryPurge()) {
-        adjustMemUsed(reader->memUsedChange());
+        adjustMemUsed(reader->getMemUsedChange());
     }
 }
 
 void PtexReaderCache::Purger::operator()(PtexCachedReader* reader)
 {
     if (reader->tryPurge()) {
-        memUsedChange += reader->memUsedChange();
+        memUsedChange += reader->getMemUsedChange();
     }
 }
 
@@ -348,7 +312,7 @@ void PtexReaderCache::purgeAll()
 
 void PtexReaderCache::MemUsedSummer::operator()(PtexCachedReader* reader)
 {
-    memUsedChange += reader->memUsedChange();
+    memUsedChange += reader->getMemUsedChange();
 }
 
 void PtexReaderCache::getStats(Stats& stats)
@@ -359,7 +323,7 @@ void PtexReaderCache::getStats(Stats& stats)
 
     stats.memUsed = _memUsed;
     stats.peakMemUsed = std::max(stats.memUsed, _peakMemUsed);
-    { AutoSpin locker(_logOpenLock); stats.filesOpen = _openFiles.size(); }
+    stats.filesOpen = _filesOpen;
     stats.peakFilesOpen = _peakFilesOpen;
     stats.filesAccessed = _files.size();
     stats.fileReopens = _fileOpens < stats.filesAccessed ? 0 : _fileOpens - stats.filesAccessed;
