@@ -160,16 +160,6 @@ class PtexCachedReader : public PtexReader
     uint32_t _dataTimestamp;
     size_t _memUsedAccountedFor;
 
-    virtual void logOpen()
-    {
-        _cache->logOpen(this);
-    }
-
-    virtual void logBlockRead()
-    {
-        _cache->logBlockRead(this);
-    }
-
     bool trylock()
     {
         return AtomicCompareAndSwap(&_refCount, 0, -1);

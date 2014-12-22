@@ -61,7 +61,10 @@ public:
     bool tryClose();
     bool ok() const { return _ok; }
     bool isOpen() { return _fp; }
+
     void increaseMemUsed(size_t amount) { if (amount) AtomicAdd(&_memUsed, amount); }
+    void logOpen() { AtomicIncrement(&_opens); }
+    void logBlockRead() { AtomicIncrement(&_blockReads); }
 
     virtual const char* path() { return _path.c_str(); }
 
@@ -461,10 +464,8 @@ public:
         }
     };
 
-protected:
-    virtual void logOpen() {}
-    virtual void logBlockRead() {}
 
+protected:
     void setError(const char* error)
     {
 	_error = error; _error += " PtexFile: "; _error += _path;
@@ -626,7 +627,9 @@ protected:
 
     z_stream_s _zstream;
     size_t _baseMemUsed;
-    size_t _memUsed;
+    volatile size_t _memUsed;
+    volatile size_t _opens;
+    volatile size_t _blockReads;
 };
 
 PTEX_NAMESPACE_END

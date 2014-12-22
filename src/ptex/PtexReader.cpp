@@ -68,7 +68,9 @@ PtexReader::PtexReader(bool premultiply, PtexInputHandler* io)
       _metadata(0),
       _hasEdits(false),
       _baseMemUsed(sizeof(*this)),
-      _memUsed(_baseMemUsed)
+      _memUsed(_baseMemUsed),
+      _opens(0),
+      _blockReads(0)
 {
     memset(&_zstream, 0, sizeof(_zstream));
 }
