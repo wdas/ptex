@@ -80,6 +80,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 PTEX_NAMESPACE_BEGIN
 
+void PtexCachedReader::release()
+{
+    if (0 == unref()) {
+        _cache->logRecentlyUsed(this);
+    }
+}
+
+
 bool PtexReaderCache::findFile(const char*& filename, std::string& buffer, Ptex::String& error)
 {
     bool isAbsolute = (filename[0] == '/'

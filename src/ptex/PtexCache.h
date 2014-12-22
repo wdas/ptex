@@ -45,7 +45,77 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 PTEX_NAMESPACE_BEGIN
 
-class PtexCachedReader;
+class PtexReaderCache;
+
+class PtexCachedReader : public PtexReader
+{
+    PtexReaderCache* _cache;
+    volatile int32_t _refCount;
+    uint32_t _ioTimestamp;
+    uint32_t _dataTimestamp;
+    size_t _memUsedAccountedFor;
+
+    bool trylock()
+    {
+        return AtomicCompareAndSwap(&_refCount, 0, -1);
+    }
+
+    void unlock()
+    {
+        AtomicStore(&_refCount, 0);
+    }
+
+public:
+    PtexCachedReader(bool premultiply, PtexInputHandler* handler, PtexReaderCache* cache)
+        : PtexReader(premultiply, handler), _cache(cache), _refCount(1), _ioTimestamp(0), _dataTimestamp(0), _memUsedAccountedFor(0)
+    {
+    }
+
+    ~PtexCachedReader() {}
+
+    void ref() {
+        while (1) {
+            int32_t oldCount = _refCount;
+            if (oldCount >= 0 && AtomicCompareAndSwap(&_refCount, oldCount, oldCount+1))
+                return;
+        }
+    }
+
+    int32_t unref() {
+        return AtomicDecrement(&_refCount);
+    }
+
+    virtual void release();
+
+    bool tryPrune() {
+        if (trylock()) {
+            prune();
+            unlock();
+            return true;
+        }
+        return false;
+    }
+
+    bool tryPurge() {
+        if (trylock()) {
+            purge();
+            unlock();
+            return true;
+        }
+        return false;
+    }
+
+    uint32_t ioTimestamp() const { return _ioTimestamp; }
+    uint32_t dataTimestamp() const { return _dataTimestamp; }
+    void setIoTimestamp(uint32_t dataTimestamp) { _dataTimestamp = dataTimestamp; }
+    void setDataTimestamp(uint32_t dataTimestamp) { _dataTimestamp = dataTimestamp; }
+    size_t memUsedChange() {
+        size_t memUsed = _memUsed;
+        size_t result = memUsed - _memUsedAccountedFor;
+        _memUsedAccountedFor = memUsed;
+        return result;
+    }
+};
 
 /** Cache for reading Ptex texture files */
 class PtexReaderCache : public PtexCache
@@ -150,80 +220,6 @@ private:
     size_t _peakFilesOpen; PAD(_peakFilesOpen);
     size_t _fileOpens; PAD(_fileOpens);
     size_t _blockReads; PAD(_blockReads);
-};
-
-class PtexCachedReader : public PtexReader
-{
-    PtexReaderCache* _cache;
-    volatile int32_t _refCount;
-    uint32_t _ioTimestamp;
-    uint32_t _dataTimestamp;
-    size_t _memUsedAccountedFor;
-
-    bool trylock()
-    {
-        return AtomicCompareAndSwap(&_refCount, 0, -1);
-    }
-
-    void unlock()
-    {
-        AtomicStore(&_refCount, 0);
-    }
-
-public:
-    PtexCachedReader(bool premultiply, PtexInputHandler* handler, PtexReaderCache* cache)
-        : PtexReader(premultiply, handler), _cache(cache), _refCount(1), _ioTimestamp(0), _dataTimestamp(0), _memUsedAccountedFor(0)
-    {
-    }
-
-    ~PtexCachedReader() {}
-
-    void ref() {
-        while (1) {
-            int32_t oldCount = _refCount;
-            if (oldCount >= 0 && AtomicCompareAndSwap(&_refCount, oldCount, oldCount+1))
-                return;
-        }
-    }
-
-    int32_t unref() {
-        return AtomicDecrement(&_refCount);
-    }
-
-    virtual void release() {
-        if (0 == unref()) {
-            _cache->logRecentlyUsed(this);
-        }
-    }
-
-    bool tryPrune() {
-        if (trylock()) {
-            prune();
-            unlock();
-            return true;
-        }
-        return false;
-    }
-
-    bool tryPurge() {
-        if (trylock()) {
-            purge();
-            unlock();
-            return true;
-        }
-        return false;
-    }
-
-    uint32_t ioTimestamp() const { return _ioTimestamp; }
-    uint32_t dataTimestamp() const { return _dataTimestamp; }
-    void setIoTimestamp(uint32_t dataTimestamp) { _dataTimestamp = dataTimestamp; }
-    void setDataTimestamp(uint32_t dataTimestamp) { _dataTimestamp = dataTimestamp; }
-    size_t memUsedChange() {
-        size_t memUsed = _memUsed;
-        size_t result = memUsed - _memUsedAccountedFor;
-        _memUsedAccountedFor = memUsed;
-        return result;
-    }
 };
 
 PTEX_NAMESPACE_END
