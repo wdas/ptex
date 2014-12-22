@@ -61,7 +61,6 @@ public:
     bool tryClose();
     bool ok() const { return _ok; }
     bool isOpen() { return _fp; }
-    size_t memUsed() { return _memUsed; }
     void increaseMemUsed(size_t amount) { if (amount) AtomicAdd(&_memUsed, amount); }
 
     virtual const char* path() { return _path.c_str(); }
