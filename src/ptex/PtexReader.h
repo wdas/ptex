@@ -336,8 +336,7 @@ public:
 	    : PackedFace(0, pixelsize, pixelsize) {}
 	virtual bool isConstant() { return true; }
 	virtual void getPixel(int, int, void* result) { memcpy(result, _data, _pixelsize); }
-	virtual FaceData* reduce(PtexReader*,
-			    Res newres, PtexUtils::ReduceFn);
+	virtual FaceData* reduce(PtexReader*, Res newres, PtexUtils::ReduceFn, size_t& newMemUsed);
     };
 
 

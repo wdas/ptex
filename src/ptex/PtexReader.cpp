@@ -942,13 +942,13 @@ PtexReader::PackedFace::reduce(PtexReader* r, Res newres, PtexUtils::ReduceFn re
 
 
 
-PtexReader::FaceData* PtexReader::ConstantFace::reduce(PtexReader*,
-				      Res, PtexUtils::ReduceFn)
+PtexReader::FaceData* PtexReader::ConstantFace::reduce(PtexReader*, Res, PtexUtils::ReduceFn, size_t& newMemUsed)
 {
     // must make a new constant face (even though it's identical to this one)
     // because it will be owned by a different reduction level
     // and will therefore have a different parent
     ConstantFace* pf = new ConstantFace(_pixelsize);
+    newMemUsed = sizeof(ConstantFace) + _pixelsize;
     memcpy(pf->_data, _data, _pixelsize);
     return pf;
 }
