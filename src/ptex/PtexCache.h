@@ -184,10 +184,13 @@ class PtexReaderCache : public PtexCache
 public:
     PtexReaderCache(int maxFiles, size_t maxMem, bool premultiply, PtexInputHandler* handler)
 	: _maxFiles(maxFiles), _maxMem(maxMem), _io(handler), _premultiply(premultiply),
-          _memUsed(sizeof(*this)), _mruList(&_mruLists[0]), _prevMruList(&_mruLists[1]),
+          _memUsed(sizeof(*this)), _filesOpen(0), _mruList(&_mruLists[0]), _prevMruList(&_mruLists[1]),
           _peakMemUsed(0), _peakFilesOpen(0), _fileOpens(0), _blockReads(0)
     {
         memset((void*)&_mruLists[0], 0, sizeof(_mruLists));
+        PAD_INIT(_memUsed); // keep cppcheck happy
+        PAD_INIT(_filesOpen);
+        PAD_INIT(_mruLock);
     }
 
     ~PtexReaderCache()

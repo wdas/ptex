@@ -151,7 +151,6 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
             // another thread got here first
             reader->ref();
             delete newreader;
-            isNew = false;
         }
     }
 

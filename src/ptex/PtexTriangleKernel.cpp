@@ -62,7 +62,7 @@ namespace {
 	    float V = (float)vi - k.v;
 	    float DQ = k.A*(2.0f*U+1.0f)+k.B*V;
 	    float Q = k.A*U*U + (k.B*U + k.C*V)*V;
-	    T* p = (T*)data + (vi * k.rowlen + x1) * nTxChan;
+	    T* p = static_cast<T*>(data) + (vi * k.rowlen + x1) * nTxChan;
 	    T* pEnd = p + (x2-x1)*nTxChan;
 	    for (; p < pEnd; p += nTxChan) {
 		if (Q < 1.0f) {
@@ -89,7 +89,7 @@ namespace {
 	    float V = (float)vi - k.v;
 	    float DQ = k.A*(2.0f*U+1.0f)+k.B*V;
 	    float Q = k.A*U*U + (k.B*U + k.C*V)*V;
-	    T* p = (T*)data + (vi * k.rowlen + x1) * nTxChan;
+	    T* p = static_cast<T*>(data) + (vi * k.rowlen + x1) * nTxChan;
 	    T* pEnd = p + (x2-x1)*nTxChan;
 	    for (; p < pEnd; p += nTxChan) {
 		if (Q < 1.0f) {
@@ -116,7 +116,7 @@ namespace {
 	    float V = (float)vi - k.v;
 	    float DQ = k.A*(2.0f*U+1.0f)+k.B*V;
 	    float Q = k.A*U*U + (k.B*U + k.C*V)*V;
-	    T* p = (T*)data + (vi * k.rowlen + x1) * nTxChan;
+	    T* p = static_cast<T*>(data) + (vi * k.rowlen + x1) * nTxChan;
 	    T* pEnd = p + (x2-x1)*nTxChan;
 	    for (; p < pEnd; p += nTxChan) {
 		if (Q < 1.0f) {

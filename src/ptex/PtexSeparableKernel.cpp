@@ -49,7 +49,7 @@ namespace {
 	int datalen = k.uw * nChan;
 	int rowskip = rowlen - datalen;
 	float* kvp = k.kv;
-	T* p = (T*)data + (k.v * k.res.u() + k.u) * nChan;
+	T* p = static_cast<T*>(data) + (k.v * k.res.u() + k.u) * nChan;
 	T* pEnd = p + k.vw * rowlen;
 	while (p != pEnd)
 	{
@@ -79,7 +79,7 @@ namespace {
 	int datalen = k.uw * nTxChan;
 	int rowskip = rowlen - datalen;
 	float* kvp = k.kv;
-	T* p = (T*)data + (k.v * k.res.u() + k.u) * nTxChan;
+	T* p = static_cast<T*>(data) + (k.v * k.res.u() + k.u) * nTxChan;
 	T* pEnd = p + k.vw * rowlen;
 	while (p != pEnd)
 	{
@@ -109,7 +109,7 @@ namespace {
 	int datalen = k.uw * nTxChan;
 	int rowskip = rowlen - datalen;
 	float* kvp = k.kv;
-	T* p = (T*)data + (k.v * k.res.u() + k.u) * nTxChan;
+	T* p = static_cast<T*>(data) + (k.v * k.res.u() + k.u) * nTxChan;
 	T* pEnd = p + k.vw * rowlen;
 	while (p != pEnd)
 	{

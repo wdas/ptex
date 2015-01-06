@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 */
 
 #include "PtexPlatform.h"
-#include <math.h>
+#include <cmath>
 #include <assert.h>
 
 #include "PtexTriangleFilter.h"

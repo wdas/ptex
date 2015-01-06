@@ -83,9 +83,9 @@ struct FaceDataHeader {
     uint32_t blocksize() const { return data & 0x3fffffff; }
     Encoding encoding() const { return Encoding((data >> 30) & 0x3); }
     uint32_t& val() { return *(uint32_t*) this; }
-    const uint32_t& val() const { return *(uint32_t*) this; }
-    void set(uint32_t blocksize, Encoding encoding)
-    { data = (blocksize & 0x3fffffff) | ((encoding & 0x3) << 30); }
+    const uint32_t& val() const { return *(const uint32_t*) this; }
+    void set(uint32_t blocksizeArg, Encoding encodingArg)
+    { data = (blocksizeArg & 0x3fffffff) | ((encodingArg & 0x3) << 30); }
     FaceDataHeader() : data(0) {}
 };
 enum EditType { et_editfacedata, et_editmetadata };

@@ -74,7 +74,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 // general includes
 #include <stdio.h>
-#include <math.h>
+#include <cmath>
 #include <assert.h>
 
 // missing functions on Windows
@@ -230,6 +230,7 @@ inline void MemoryFence()
 #endif
 
 #define PAD(var) char var##_pad[CACHE_LINE_SIZE - sizeof(var)]
+#define PAD_INIT(var) memset(&var##_pad[0], 0, sizeof(var##_pad))
 
 PTEX_NAMESPACE_END
 

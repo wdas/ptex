@@ -220,6 +220,7 @@ public:
 	    virtual ~LargeMetaData() { free(_data); }
 	    void* data() { return _data; }
         private:
+            LargeMetaData(const LargeMetaData&);
 	    void* _data;
 	};
 
@@ -256,8 +257,8 @@ public:
 	    std::pair<MetaMap::iterator,bool> result =
 		_map.insert(std::make_pair(std::string(key, keysize), Entry()));
 	    Entry* e = &result.first->second;
-	    bool newEntry = result.second;
-	    if (newEntry) _entries.push_back(e);
+	    bool newentry = result.second;
+	    if (newentry) _entries.push_back(e);
 	    else e->clear();
 	    e->key = result.first->first.c_str();
 	    e->type = MetaDataType(datatype);
@@ -296,8 +297,8 @@ public:
 
     class FaceData : public PtexFaceData {
     public:
-	FaceData(Res res)
-	    : _res(res) {}
+	FaceData(Res resArg)
+	    : _res(resArg) {}
         virtual ~FaceData() {}
 	virtual void release() { }
 	virtual Ptex::Res res() { return _res; }
@@ -308,8 +309,8 @@ public:
 
     class PackedFace : public FaceData {
     public:
-	PackedFace(Res res, int pixelsize, int size)
-	    : FaceData(res),
+	PackedFace(Res resArg, int pixelsize, int size)
+	    : FaceData(resArg),
 	      _pixelsize(pixelsize), _data(malloc(size)) {}
 	void* data() { return _data; }
 	virtual bool isConstant() { return false; }
@@ -342,16 +343,16 @@ public:
 
     class TiledFaceBase : public FaceData {
     public:
-	TiledFaceBase(PtexReader* reader, Res res, Res tileres)
-	    : FaceData(res),
+	TiledFaceBase(PtexReader* reader, Res resArg, Res tileresArg)
+	    : FaceData(resArg),
               _reader(reader),
-	      _tileres(tileres)
+	      _tileres(tileresArg)
 	{
             _dt = reader->datatype();
             _nchan = reader->nchannels();
             _pixelsize = DataSize(_dt)*_nchan;
-	    _ntilesu = _res.ntilesu(tileres);
-	    _ntilesv = _res.ntilesv(tileres);
+	    _ntilesu = _res.ntilesu(tileresArg);
+	    _ntilesv = _res.ntilesv(tileresArg);
 	    _ntiles = _ntilesu*_ntilesv;
 	    _tiles.resize(_ntiles);
 	}
@@ -391,8 +392,8 @@ public:
 
     class TiledFace : public TiledFaceBase {
     public:
-	TiledFace(PtexReader* reader, Res res, Res tileres, int levelid)
-	    : TiledFaceBase(reader, res, tileres),
+	TiledFace(PtexReader* reader, Res resArg, Res tileresArg, int levelid)
+	    : TiledFaceBase(reader, resArg, tileresArg),
 	      _levelid(levelid)
 	{
 	    _fdh.resize(_ntiles),
@@ -419,9 +420,9 @@ public:
 
     class TiledReducedFace : public TiledFaceBase {
     public:
-	TiledReducedFace(PtexReader* reader, Res res, Res tileres,
+	TiledReducedFace(PtexReader* reader, Res resArg, Res tileresArg,
                          TiledFaceBase* parentface, PtexUtils::ReduceFn reducefn)
-	    : TiledFaceBase(reader, res, tileres),
+	    : TiledFaceBase(reader, resArg, tileresArg),
 	      _parentface(parentface),
 	      _reducefn(reducefn)
 	{
@@ -535,8 +536,8 @@ protected:
             return (Handle) fp;
         }
         virtual void seek(Handle handle, int64_t pos) { fseeko((FILE*)handle, pos, SEEK_SET); }
-        virtual size_t read(void* buffer, size_t size, Handle handle) {
-            return fread(buffer, size, 1, (FILE*)handle) == 1 ? size : 0;
+        virtual size_t read(void* bufferArg, size_t size, Handle handle) {
+            return fread(bufferArg, size, 1, (FILE*)handle) == 1 ? size : 0;
         }
         virtual bool close(Handle handle) {
             bool ok = handle && (fclose((FILE*)handle) == 0);

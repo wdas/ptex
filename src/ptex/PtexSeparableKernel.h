@@ -58,7 +58,11 @@ class PtexSeparableKernel {
     int rot;
 
     PtexSeparableKernel()
-	: res(0), u(0), v(0), uw(0), vw(0), ku(kubuff), kv(kvbuff), rot(0) {}
+	: res(0), u(0), v(0), uw(0), vw(0), ku(kubuff), kv(kvbuff), rot(0)
+    {
+        kubuff[0] = 0; // keep cppcheck happy
+        kvbuff[0] = 0;
+    }
 
     PtexSeparableKernel(const PtexSeparableKernel& k)
     {

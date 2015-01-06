@@ -118,7 +118,7 @@ void PtexReader::purge()
 }
 
 
-bool PtexReader::open(const char* path, Ptex::String& error)
+bool PtexReader::open(const char* pathArg, Ptex::String& error)
 {
     AutoMutex locker(readlock);
     if (!needToOpen()) return false;
@@ -127,11 +127,11 @@ bool PtexReader::open(const char* path, Ptex::String& error)
 	error = "Ptex library doesn't currently support big-endian cpu's";
 	return 0;
     }
-    _path = path;
-    _fp = _io->open(path);
+    _path = pathArg;
+    _fp = _io->open(pathArg);
     if (!_fp) {
 	std::string errstr = "Can't open ptex file: ";
-	errstr += path; errstr += "\n"; errstr += _io->lastError();
+	errstr += pathArg; errstr += "\n"; errstr += _io->lastError();
 	error = errstr.c_str();
         _ok = 0;
 	return 0;
@@ -139,7 +139,7 @@ bool PtexReader::open(const char* path, Ptex::String& error)
     memset(&_header, 0, sizeof(_header));
     readBlock(&_header, HeaderSize);
     if (_header.magic != Magic) {
-	std::string errstr = "Not a ptex file: "; errstr += path;
+	std::string errstr = "Not a ptex file: "; errstr += pathArg;
 	error = errstr.c_str();
         _ok = 0;
         closeFP();
@@ -147,7 +147,7 @@ bool PtexReader::open(const char* path, Ptex::String& error)
     }
     if (_header.version != 1) {
         std::stringstream s;
-        s << "Unsupported ptex file version ("<< _header.version << "): " << path;
+        s << "Unsupported ptex file version ("<< _header.version << "): " << pathArg;
         error = s.str();
         _ok = 0;
         closeFP();
@@ -223,13 +223,13 @@ bool PtexReader::reopenFP()
 	return false;
     }
     _pos = 0;
-    Header header;
-    ExtHeader extheader;
-    readBlock(&header, HeaderSize);
-    memset(&extheader, 0, sizeof(extheader));
-    readBlock(&extheader, PtexUtils::min(uint32_t(ExtHeaderSize), header.extheadersize));
-    if (0 != memcmp(&header, &_header, sizeof(header)) ||
-        0 != memcmp(&extheader, &_extheader, sizeof(extheader)))
+    Header headerval;
+    ExtHeader extheaderval;
+    readBlock(&headerval, HeaderSize);
+    memset(&extheaderval, 0, sizeof(extheaderval));
+    readBlock(&extheaderval, PtexUtils::min(uint32_t(ExtHeaderSize), headerval.extheadersize));
+    if (0 != memcmp(&headerval, &_header, sizeof(headerval)) ||
+        0 != memcmp(&extheaderval, &_extheader, sizeof(extheaderval)))
     {
         setError("Header mismatch on reopen of");
 	return false;
@@ -403,11 +403,11 @@ void PtexReader::readMetaDataBlock(MetaData* metadata, FilePos pos, int zipsize,
 	    uint8_t keysize = *ptr++;
 	    char* key = (char*)ptr; ptr += keysize;
 	    key[keysize-1] = '\0';
-	    uint8_t datatype = *ptr++;
+	    uint8_t datatypeval = *ptr++;
 	    uint32_t datasize; memcpy(&datasize, ptr, sizeof(datasize));
 	    ptr += sizeof(datasize);
 	    char* data = ptr; ptr += datasize;
-	    metadata->addEntry((uint8_t)(keysize-1), key, datatype, datasize, data, metaDataMemUsed);
+	    metadata->addEntry((uint8_t)(keysize-1), key, datatypeval, datasize, data, metaDataMemUsed);
 	}
     }
     if (useMalloc) free(buff);
@@ -430,13 +430,13 @@ void PtexReader::readLargeMetaDataHeaders(MetaData* metadata, FilePos pos, int z
 	while (ptr < end) {
 	    uint8_t keysize = *ptr++;
 	    char* key = (char*)ptr; ptr += keysize;
-	    uint8_t datatype = *ptr++;
+	    uint8_t datatypeval = *ptr++;
 	    uint32_t datasize; memcpy(&datasize, ptr, sizeof(datasize));
 	    ptr += sizeof(datasize);
-	    uint32_t zipsize; memcpy(&zipsize, ptr, sizeof(zipsize));
-	    ptr += sizeof(zipsize);
-	    metadata->addLmdEntry((uint8_t)(keysize-1), key, datatype, datasize, pos, zipsize, metaDataMemUsed);
-	    pos += zipsize;
+	    uint32_t zipsizeval; memcpy(&zipsizeval, ptr, sizeof(zipsizeval));
+	    ptr += sizeof(zipsizeval);
+	    metadata->addLmdEntry((uint8_t)(keysize-1), key, datatypeval, datasize, pos, zipsizeval, metaDataMemUsed);
+	    pos += zipsizeval;
 	}
     }
     if (useMalloc) free(buff);
@@ -866,14 +866,13 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 
 
 void PtexReader::getPixel(int faceid, int u, int v,
-			  float* result, int firstchan, int nchannels)
+			  float* result, int firstchan, int nchannelsArg)
 {
-    memset(result, 0, sizeof(*result)*nchannels);
+    memset(result, 0, sizeof(*result)*nchannelsArg);
 
     // clip nchannels against actual number available
-    nchannels = PtexUtils::min(nchannels,
-			       _header.nchannels-firstchan);
-    if (nchannels <= 0) return;
+    nchannelsArg = PtexUtils::min(nchannelsArg, _header.nchannels-firstchan);
+    if (nchannelsArg <= 0) return;
 
     // get raw pixel data
     PtexPtr<PtexFaceData> data ( getData(faceid) );
@@ -888,22 +887,21 @@ void PtexReader::getPixel(int faceid, int u, int v,
 
     // convert/copy to result as needed
     if (_header.datatype == dt_float)
-	memcpy(result, pixel, datasize * nchannels);
+	memcpy(result, pixel, datasize * nchannelsArg);
     else
-	ConvertToFloat(result, pixel, _header.datatype, nchannels);
+	ConvertToFloat(result, pixel, _header.datatype, nchannelsArg);
 }
 
 
 void PtexReader::getPixel(int faceid, int u, int v,
-			  float* result, int firstchan, int nchannels,
+			  float* result, int firstchan, int nchannelsArg,
 			  Ptex::Res res)
 {
-    memset(result, 0, nchannels);
+    memset(result, 0, nchannelsArg);
 
     // clip nchannels against actual number available
-    nchannels = PtexUtils::min(nchannels,
-			       _header.nchannels-firstchan);
-    if (nchannels <= 0) return;
+    nchannelsArg = PtexUtils::min(nchannelsArg, _header.nchannels-firstchan);
+    if (nchannelsArg <= 0) return;
 
     // get raw pixel data
     PtexPtr<PtexFaceData> data ( getData(faceid, res) );
@@ -918,9 +916,9 @@ void PtexReader::getPixel(int faceid, int u, int v,
 
     // convert/copy to result as needed
     if (_header.datatype == dt_float)
-	memcpy(result, pixel, datasize * nchannels);
+	memcpy(result, pixel, datasize * nchannelsArg);
     else
-	ConvertToFloat(result, pixel, _header.datatype, nchannels);
+	ConvertToFloat(result, pixel, _header.datatype, nchannelsArg);
 }
 
 
@@ -1027,7 +1025,7 @@ PtexReader::TiledFaceBase::reduce(PtexReader* r, Res newres, PtexUtils::ReduceFn
                 else
                     PtexUtils::copy(tile->getData(), sstride, tmpptr, dstride, tilevres, sstride);
                 i++;
-                tmpptr += i%_ntilesu ? sstride : dstepv;
+                tmpptr += (i%_ntilesu) ? sstride : dstepv;
             }
 
             // allocate a new packed face
@@ -1064,7 +1062,7 @@ PtexReader::TiledFaceBase::reduce(PtexReader* r, Res newres, PtexUtils::ReduceFn
 		    reducefn(tile->getData(), sstride, tileures, tilevres,
 			     dst, dstride, _dt, _nchan);
 		i++;
-		dst += i%_ntilesu ? dstepu : dstepv;
+		dst += (i%_ntilesu) ? dstepu : dstepv;
 	    }
 	}
 	// release the tiles
@@ -1105,17 +1103,17 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
     int nu = pntilesu / _ntilesu; // num parent tiles for this tile in u dir
     int nv = pntilesv / _ntilesv; // num parent tiles for this tile in v dir
 
-    int ntiles = nu*nv; // num parent tiles for this tile
-    PtexFaceData** tiles = (PtexFaceData**) alloca(ntiles * sizeof(PtexFaceData*));
+    int ntilesval = nu*nv; // num parent tiles for this tile
+    PtexFaceData** tiles = (PtexFaceData**) alloca(ntilesval * sizeof(PtexFaceData*));
     bool allConstant = true;
     int ptile = (tile/_ntilesu) * nv * pntilesu + (tile%_ntilesu) * nu;
-    for (int i = 0; i < ntiles;) {
-	PtexFaceData* tile = tiles[i] = _parentface->getTile(ptile);
-	allConstant = (allConstant && tile->isConstant() &&
-		       (i==0 || (0 == memcmp(tiles[0]->getData(), tile->getData(),
+    for (int i = 0; i < ntilesval;) {
+	PtexFaceData* tileval = tiles[i] = _parentface->getTile(ptile);
+	allConstant = (allConstant && tileval->isConstant() &&
+		       (i==0 || (0 == memcmp(tiles[0]->getData(), tileval->getData(),
 					     _pixelsize))));
 	i++;
-	ptile += i%nu? 1 : pntilesu - nu + 1;
+	ptile += (i%nu)? 1 : pntilesu - nu + 1;
     }
 
     FaceData* newface = 0;
@@ -1141,17 +1139,17 @@ PtexFaceData* PtexReader::TiledReducedFace::getTile(int tile)
 	int dstepv = dstride*_tileres.v()/nv - dstepu*(nu-1);
 
 	char* dst = (char*) newface->getData();
-	for (int i = 0; i < ntiles;) {
-	    PtexFaceData* tile = tiles[i];
-	    if (tile->isConstant())
-		PtexUtils::fill(tile->getData(), dst, dstride,
+	for (int i = 0; i < ntilesval;) {
+	    PtexFaceData* tileval = tiles[i];
+	    if (tileval->isConstant())
+		PtexUtils::fill(tileval->getData(), dst, dstride,
 				_tileres.u()/nu, _tileres.v()/nv,
 				_pixelsize);
 	    else
-		_reducefn(tile->getData(), sstride, ptileures, ptilevres,
+		_reducefn(tileval->getData(), sstride, ptileures, ptilevres,
 			  dst, dstride, _dt, _nchan);
 	    i++;
-	    dst += i%nu ? dstepu : dstepv;
+	    dst += (i%nu) ? dstepu : dstepv;
 	}
     }
 

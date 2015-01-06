@@ -117,9 +117,9 @@ namespace {
 void ConvertToFloat(float* dst, const void* src, DataType dt, int numChannels)
 {
     switch (dt) {
-    case dt_uint8:  ConvertArray(dst, (uint8_t*)src,  numChannels, 1.f/255.f); break;
-    case dt_uint16: ConvertArray(dst, (uint16_t*)src, numChannels, 1.f/65535.f); break;
-    case dt_half:   ConvertArray(dst, (PtexHalf*)src, numChannels, 1.f); break;
+    case dt_uint8:  ConvertArray(dst, static_cast<const uint8_t*>(src),  numChannels, 1.f/255.f); break;
+    case dt_uint16: ConvertArray(dst, static_cast<const uint16_t*>(src), numChannels, 1.f/65535.f); break;
+    case dt_half:   ConvertArray(dst, static_cast<const PtexHalf*>(src), numChannels, 1.f); break;
     case dt_float:  memcpy(dst, src, sizeof(float)*numChannels); break;
     }
 }
@@ -128,9 +128,9 @@ void ConvertToFloat(float* dst, const void* src, DataType dt, int numChannels)
 void ConvertFromFloat(void* dst, const float* src, DataType dt, int numChannels)
 {
     switch (dt) {
-    case dt_uint8:  ConvertArrayClamped((uint8_t*)dst,  src, numChannels, 255.0, 0.5); break;
-    case dt_uint16: ConvertArrayClamped((uint16_t*)dst, src, numChannels, 65535.0, 0.5); break;
-    case dt_half:   ConvertArray((PtexHalf*)dst, src, numChannels, 1.0); break;
+    case dt_uint8:  ConvertArrayClamped(static_cast<uint8_t*>(dst),  src, numChannels, 255.0, 0.5); break;
+    case dt_uint16: ConvertArrayClamped(static_cast<uint16_t*>(dst), src, numChannels, 65535.0, 0.5); break;
+    case dt_half:   ConvertArray(static_cast<PtexHalf*>(dst), src, numChannels, 1.0); break;
     case dt_float:  memcpy(dst, src, sizeof(float)*numChannels); break;
     }
 }
@@ -237,7 +237,7 @@ namespace {
     void encodeDifference(T* data, int size)
     {
 	size /= (int)sizeof(T);
-	T* p = (T*) data, * end = p + size, tmp, prev = 0;
+	T* p = static_cast<T*>(data), * end = p + size, tmp, prev = 0;
 	while (p != end) { tmp = prev; prev = *p; *p = T(*p - tmp); p++; }
     }
 }
@@ -245,8 +245,8 @@ namespace {
 void encodeDifference(void* data, int size, DataType dt)
 {
     switch (dt) {
-    case dt_uint8:    encodeDifference((uint8_t*) data, size); break;
-    case dt_uint16:   encodeDifference((uint16_t*) data, size); break;
+    case dt_uint8:    encodeDifference(static_cast<uint8_t*>(data), size); break;
+    case dt_uint16:   encodeDifference(static_cast<uint16_t*>(data), size); break;
     default: break; // skip other types
     }
 }
@@ -257,7 +257,7 @@ namespace {
     void decodeDifference(T* data, int size)
     {
 	size /= (int)sizeof(T);
-	T* p = (T*) data, * end = p + size, prev = 0;
+	T* p = static_cast<T*>(data), * end = p + size, prev = 0;
 	while (p != end) { *p = T(*p + prev); prev = *p++; }
     }
 }
@@ -265,8 +265,8 @@ namespace {
 void decodeDifference(void* data, int size, DataType dt)
 {
     switch (dt) {
-    case dt_uint8:    decodeDifference((uint8_t*) data, size); break;
-    case dt_uint16:   decodeDifference((uint16_t*) data, size); break;
+    case dt_uint8:    decodeDifference(static_cast<uint8_t*>(data), size); break;
+    case dt_uint16:   decodeDifference(static_cast<uint16_t*>(data), size); break;
     default: break; // skip other types
     }
 }
@@ -286,8 +286,7 @@ namespace {
 	     src += srowskip, dst += drowskip)
 	    for (const T* rowend = src + rowlen; src != rowend; src += nchan)
 		for (const T* pixend = src+nchan; src != pixend; src++)
-		    *dst++ = T(0.25 * (src[0] + src[nchan] +
-				       src[sstride] + src[sstride+nchan]));
+		    *dst++ = T(0.25f * (src[0] + src[nchan] + src[sstride] + src[sstride+nchan]));
     }
 }
 
@@ -295,14 +294,14 @@ void reduce(const void* src, int sstride, int uw, int vw,
             void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:     reduce((const uint8_t*) src, sstride, uw, vw,
-			      (uint8_t*) dst, dstride, nchan); break;
-    case dt_half:      reduce((const PtexHalf*) src, sstride, uw, vw,
-			      (PtexHalf*) dst, dstride, nchan); break;
-    case dt_uint16:    reduce((const uint16_t*) src, sstride, uw, vw,
-			      (uint16_t*) dst, dstride, nchan); break;
-    case dt_float:     reduce((const float*) src, sstride, uw, vw,
-			      (float*) dst, dstride, nchan); break;
+    case dt_uint8:     reduce(static_cast<const uint8_t*>(src), sstride, uw, vw,
+                              static_cast<uint8_t*>(dst), dstride, nchan); break;
+    case dt_half:      reduce(static_cast<const PtexHalf*>(src), sstride, uw, vw,
+                              static_cast<PtexHalf*>(dst), dstride, nchan); break;
+    case dt_uint16:    reduce(static_cast<const uint16_t*>(src), sstride, uw, vw,
+                              static_cast<uint16_t*>(dst), dstride, nchan); break;
+    case dt_float:     reduce(static_cast<const float*>(src), sstride, uw, vw,
+                              static_cast<float*>(dst), dstride, nchan); break;
     }
 }
 
@@ -321,7 +320,7 @@ namespace {
 	     src += srowskip, dst += drowskip)
 	    for (const T* rowend = src + rowlen; src != rowend; src += nchan)
 		for (const T* pixend = src+nchan; src != pixend; src++)
-		    *dst++ = T(0.5 * (src[0] + src[nchan]));
+		    *dst++ = T(0.5f * (src[0] + src[nchan]));
     }
 }
 
@@ -329,14 +328,14 @@ void reduceu(const void* src, int sstride, int uw, int vw,
              void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:     reduceu((const uint8_t*) src, sstride, uw, vw,
-			       (uint8_t*) dst, dstride, nchan); break;
-    case dt_half:      reduceu((const PtexHalf*) src, sstride, uw, vw,
-			       (PtexHalf*) dst, dstride, nchan); break;
-    case dt_uint16:    reduceu((const uint16_t*) src, sstride, uw, vw,
-			       (uint16_t*) dst, dstride, nchan); break;
-    case dt_float:     reduceu((const float*) src, sstride, uw, vw,
-			       (float*) dst, dstride, nchan); break;
+    case dt_uint8:     reduceu(static_cast<const uint8_t*>(src), sstride, uw, vw,
+                               static_cast<uint8_t*>(dst), dstride, nchan); break;
+    case dt_half:      reduceu(static_cast<const PtexHalf*>(src), sstride, uw, vw,
+                               static_cast<PtexHalf*>(dst), dstride, nchan); break;
+    case dt_uint16:    reduceu(static_cast<const uint16_t*>(src), sstride, uw, vw,
+                               static_cast<uint16_t*>(dst), dstride, nchan); break;
+    case dt_float:     reduceu(static_cast<const float*>(src), sstride, uw, vw,
+                               static_cast<float*>(dst), dstride, nchan); break;
     }
 }
 
@@ -354,7 +353,7 @@ namespace {
 	for (const T* end = src + vw*sstride; src != end;
 	     src += srowskip, dst += drowskip)
 	    for (const T* rowend = src + rowlen; src != rowend; src++)
-		*dst++ = T(0.5 * (src[0] + src[sstride]));
+		*dst++ = T(0.5f * (src[0] + src[sstride]));
     }
 }
 
@@ -362,14 +361,14 @@ void reducev(const void* src, int sstride, int uw, int vw,
              void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:     reducev((const uint8_t*) src, sstride, uw, vw,
-			       (uint8_t*) dst, dstride, nchan); break;
-    case dt_half:      reducev((const PtexHalf*) src, sstride, uw, vw,
-			       (PtexHalf*) dst, dstride, nchan); break;
-    case dt_uint16:    reducev((const uint16_t*) src, sstride, uw, vw,
-			       (uint16_t*) dst, dstride, nchan); break;
-    case dt_float:     reducev((const float*) src, sstride, uw, vw,
-			       (float*) dst, dstride, nchan); break;
+    case dt_uint8:     reducev(static_cast<const uint8_t*>(src), sstride, uw, vw,
+                               static_cast<uint8_t*>(dst), dstride, nchan); break;
+    case dt_half:      reducev(static_cast<const PtexHalf*>(src), sstride, uw, vw,
+                               static_cast<PtexHalf*>(dst), dstride, nchan); break;
+    case dt_uint16:    reducev(static_cast<const uint16_t*>(src), sstride, uw, vw,
+                               static_cast<uint16_t*>(dst), dstride, nchan); break;
+    case dt_float:     reducev(static_cast<const float*>(src), sstride, uw, vw,
+                               static_cast<float*>(dst), dstride, nchan); break;
     }
 }
 
@@ -394,7 +393,7 @@ namespace {
 	     src += srowskip, src2 += srowskip2, dst += drowskip)
 	    for (const T* rowend = src + rowlen; src != rowend; src += nchan, src2 += srowinc2)
 		for (const T* pixend = src+nchan; src != pixend; src++, src2++)
-		    *dst++ = T(0.25 * (src[0] + src[nchan] + src[sstride] + src2[0]));
+		    *dst++ = T(0.25f * (src[0] + src[nchan] + src[sstride] + src2[0]));
     }
 }
 
@@ -402,14 +401,14 @@ void reduceTri(const void* src, int sstride, int w, int /*vw*/,
                void* dst, int dstride, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:     reduceTri((const uint8_t*) src, sstride, w, 0,
-				 (uint8_t*) dst, dstride, nchan); break;
-    case dt_half:      reduceTri((const PtexHalf*) src, sstride, w, 0,
-				 (PtexHalf*) dst, dstride, nchan); break;
-    case dt_uint16:    reduceTri((const uint16_t*) src, sstride, w, 0,
-				 (uint16_t*) dst, dstride, nchan); break;
-    case dt_float:     reduceTri((const float*) src, sstride, w, 0,
-				 (float*) dst, dstride, nchan); break;
+    case dt_uint8:     reduceTri(static_cast<const uint8_t*>(src), sstride, w, 0,
+                                 static_cast<uint8_t*>(dst), dstride, nchan); break;
+    case dt_half:      reduceTri(static_cast<const PtexHalf*>(src), sstride, w, 0,
+                                 static_cast<PtexHalf*>(dst), dstride, nchan); break;
+    case dt_uint16:    reduceTri(static_cast<const uint16_t*>(src), sstride, w, 0,
+                                 static_cast<uint16_t*>(dst), dstride, nchan); break;
+    case dt_float:     reduceTri(static_cast<const float*>(src), sstride, w, 0,
+                                 static_cast<float*>(dst), dstride, nchan); break;
     }
 }
 
@@ -439,9 +438,9 @@ void copy(const void* src, int sstride, void* dst, int dstride,
 	memcpy(dst, src, vres*rowlen);
     } else {
 	// copy a row at a time
-	char* sptr = (char*) src;
+	const char* sptr = (const char*) src;
 	char* dptr = (char*) dst;
-	for (char* end = sptr + vres*sstride; sptr != end;) {
+	for (const char* end = sptr + vres*sstride; sptr != end;) {
 	    memcpy(dptr, sptr, rowlen);
 	    dptr += dstride;
 	    sptr += sstride;
@@ -476,22 +475,22 @@ void blend(const void* src, float weight, void* dst, bool flip,
            int rowlen, DataType dt, int nchan)
 {
     switch ((dt<<1) | int(flip)) {
-    case (dt_uint8<<1):        blend((const uint8_t*) src, weight,
-				     (uint8_t*) dst, rowlen, nchan); break;
-    case (dt_uint8<<1 | 1):    blendflip((const uint8_t*) src, weight,
-					 (uint8_t*) dst, rowlen, nchan); break;
-    case (dt_half<<1):         blend((const PtexHalf*) src, weight,
-				     (PtexHalf*) dst, rowlen, nchan); break;
-    case (dt_half<<1 | 1):     blendflip((const PtexHalf*) src, weight,
-					 (PtexHalf*) dst, rowlen, nchan); break;
-    case (dt_uint16<<1):       blend((const uint16_t*) src, weight,
-				     (uint16_t*) dst, rowlen, nchan); break;
-    case (dt_uint16<<1 | 1):   blendflip((const uint16_t*) src, weight,
-					 (uint16_t*) dst, rowlen, nchan); break;
-    case (dt_float<<1):        blend((const float*) src, weight,
-				     (float*) dst, rowlen, nchan); break;
-    case (dt_float<<1 | 1):    blendflip((const float*) src, weight,
-					 (float*) dst, rowlen, nchan); break;
+    case (dt_uint8<<1):        blend(static_cast<const uint8_t*>(src), weight,
+                                     static_cast<uint8_t*>(dst), rowlen, nchan); break;
+    case (dt_uint8<<1 | 1):    blendflip(static_cast<const uint8_t*>(src), weight,
+                                         static_cast<uint8_t*>(dst), rowlen, nchan); break;
+    case (dt_half<<1):         blend(static_cast<const PtexHalf*>(src), weight,
+                                     static_cast<PtexHalf*>(dst), rowlen, nchan); break;
+    case (dt_half<<1 | 1):     blendflip(static_cast<const PtexHalf*>(src), weight,
+                                         static_cast<PtexHalf*>(dst), rowlen, nchan); break;
+    case (dt_uint16<<1):       blend(static_cast<const uint16_t*>(src), weight,
+                                     static_cast<uint16_t*>(dst), rowlen, nchan); break;
+    case (dt_uint16<<1 | 1):   blendflip(static_cast<const uint16_t*>(src), weight,
+                                         static_cast<uint16_t*>(dst), rowlen, nchan); break;
+    case (dt_float<<1):        blend(static_cast<const float*>(src), weight,
+                                     static_cast<float*>(dst), rowlen, nchan); break;
+    case (dt_float<<1 | 1):    blendflip(static_cast<const float*>(src), weight,
+                                         static_cast<float*>(dst), rowlen, nchan); break;
     }
 }
 
@@ -518,14 +517,14 @@ void average(const void* src, int sstride, int uw, int vw,
              void* dst, DataType dt, int nchan)
 {
     switch (dt) {
-    case dt_uint8:     average((const uint8_t*) src, sstride, uw, vw,
-			       (uint8_t*) dst, nchan); break;
-    case dt_half:      average((const PtexHalf*) src, sstride, uw, vw,
-			       (PtexHalf*) dst, nchan); break;
-    case dt_uint16:    average((const uint16_t*) src, sstride, uw, vw,
-			       (uint16_t*) dst, nchan); break;
-    case dt_float:     average((const float*) src, sstride, uw, vw,
-			       (float*) dst, nchan); break;
+    case dt_uint8:     average(static_cast<const uint8_t*>(src), sstride, uw, vw,
+                               static_cast<uint8_t*>(dst), nchan); break;
+    case dt_half:      average(static_cast<const PtexHalf*>(src), sstride, uw, vw,
+                               static_cast<PtexHalf*>(dst), nchan); break;
+    case dt_uint16:    average(static_cast<const uint16_t*>(src), sstride, uw, vw,
+                               static_cast<uint16_t*>(dst), nchan); break;
+    case dt_float:     average(static_cast<const float*>(src), sstride, uw, vw,
+                               static_cast<float*>(dst), nchan); break;
     }
 }
 
@@ -533,7 +532,7 @@ void average(const void* src, int sstride, int uw, int vw,
 namespace {
     struct CompareRfaceIds {
 	const FaceInfo* faces;
-	CompareRfaceIds(const FaceInfo* faces) : faces(faces) {}
+	CompareRfaceIds(const FaceInfo* facesArg) : faces(facesArg) {}
 	bool operator() (uint32_t faceid1, uint32_t faceid2)
 	{
 	    const Ptex::FaceInfo& f1 = faces[faceid1];
@@ -575,10 +574,10 @@ void multalpha(void* data, int npixels, DataType dt, int nchannels, int alphacha
 {
     float scale = OneValueInv(dt);
     switch(dt) {
-    case dt_uint8:    multalpha((uint8_t*) data, npixels, nchannels, alphachan, scale); break;
-    case dt_uint16:   multalpha((uint16_t*) data, npixels, nchannels, alphachan, scale); break;
-    case dt_half:     multalpha((PtexHalf*) data, npixels, nchannels, alphachan, scale); break;
-    case dt_float:    multalpha((float*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_uint8:    multalpha(static_cast<uint8_t*>(data), npixels, nchannels, alphachan, scale); break;
+    case dt_uint16:   multalpha(static_cast<uint16_t*>(data), npixels, nchannels, alphachan, scale); break;
+    case dt_half:     multalpha(static_cast<PtexHalf*>(data), npixels, nchannels, alphachan, scale); break;
+    case dt_float:    multalpha(static_cast<float*>(data), npixels, nchannels, alphachan, scale); break;
     }
 }
 
@@ -614,10 +613,10 @@ void divalpha(void* data, int npixels, DataType dt, int nchannels, int alphachan
 {
     float scale = OneValue(dt);
     switch(dt) {
-    case dt_uint8:    divalpha((uint8_t*) data, npixels, nchannels, alphachan, scale); break;
-    case dt_uint16:   divalpha((uint16_t*) data, npixels, nchannels, alphachan, scale); break;
-    case dt_half:     divalpha((PtexHalf*) data, npixels, nchannels, alphachan, scale); break;
-    case dt_float:    divalpha((float*) data, npixels, nchannels, alphachan, scale); break;
+    case dt_uint8:    divalpha(static_cast<uint8_t*>(data), npixels, nchannels, alphachan, scale); break;
+    case dt_uint16:   divalpha(static_cast<uint16_t*>(data), npixels, nchannels, alphachan, scale); break;
+    case dt_half:     divalpha(static_cast<PtexHalf*>(data), npixels, nchannels, alphachan, scale); break;
+    case dt_float:    divalpha(static_cast<float*>(data), npixels, nchannels, alphachan, scale); break;
     }
 }
 
@@ -647,7 +646,7 @@ namespace {
     void ApplyConst(float weight, float* dst, void* data, int /*nChan*/)
     {
 	// dst[i] += data[i] * weight for i in {0..n-1}
-	VecAccum<T,nChan>()(dst, (T*) data, weight);
+	VecAccum<T,nChan>()(dst, static_cast<T*>(data), weight);
     }
 
     // apply to N channels (general case)
@@ -655,7 +654,7 @@ namespace {
     void ApplyConstN(float weight, float* dst, void* data, int nChan)
     {
 	// dst[i] += data[i] * weight for i in {0..n-1}
-	VecAccumN<T>()(dst, (T*) data, nChan, weight);
+	VecAccumN<T>()(dst, static_cast<T*>(data), nChan, weight);
     }
 }
 

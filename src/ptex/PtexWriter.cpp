@@ -118,7 +118,7 @@ namespace {
 #else
 	// use mkstemp to open unique file
 	tmppath = tmpdir + "/PtexTmpXXXXXX";
-	int fd = mkstemp((char*) tmppath.c_str());
+	int fd = mkstemp(&tmppath[0]);
 	return fdopen(fd, "w+");
 #endif
     }
@@ -175,7 +175,6 @@ PtexWriter* PtexWriter::open(const char* path,
     PtexMainWriter* w = new PtexMainWriter(path, 0,
 					   mt, dt, nchannels, alphachan, nfaces,
 					   genmipmaps);
-    std::string errstr;
     if (!w->ok(error)) {
 	w->release();
 	return 0;
@@ -292,7 +291,6 @@ PtexWriterBase::PtexWriterBase(const char* path,
 
     // create temp file for writing tiles
     // (must compress each tile before assembling a tiled face)
-    std::string error;
     _tilefp = OpenTempFile(_tilepath);
     if (!_tilefp) {
 	setError(fileError("Error creating temp file: ", _tilepath.c_str()));
@@ -509,30 +507,30 @@ int PtexWriterBase::writeBlock(FILE* fp, const void* data, int size)
 }
 
 
-int PtexWriterBase::writeZipBlock(FILE* fp, const void* data, int size, bool finish)
+int PtexWriterBase::writeZipBlock(FILE* fp, const void* data, int size, bool finishArg)
 {
     if (!_ok) return 0;
     void* buff = alloca(BlockSize);
-    _zstream.next_in = (Bytef*)data;
+    _zstream.next_in = (Bytef*) const_cast<void*>(data);
     _zstream.avail_in = size;
 
     while (1) {
 	_zstream.next_out = (Bytef*)buff;
 	_zstream.avail_out = BlockSize;
-	int zresult = deflate(&_zstream, finish ? Z_FINISH : Z_NO_FLUSH);
-	int size = BlockSize - _zstream.avail_out;
-	if (size > 0) writeBlock(fp, buff, size);
+	int zresult = deflate(&_zstream, finishArg ? Z_FINISH : Z_NO_FLUSH);
+	int sizeval = BlockSize - _zstream.avail_out;
+	if (sizeval > 0) writeBlock(fp, buff, sizeval);
 	if (zresult == Z_STREAM_END) break;
 	if (zresult != Z_OK) {
 	    setError("PtexWriter error: data compression internal error");
 	    break;
 	}
-	if (!finish && _zstream.avail_out != 0)
+	if (!finishArg && _zstream.avail_out != 0)
 	    // waiting for more input
 	    break;
     }
 
-    if (!finish) return 0;
+    if (!finishArg) return 0;
 
     int total = (int)_zstream.total_out;
     deflateReset(&_zstream);
