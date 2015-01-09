@@ -286,7 +286,7 @@ namespace {
 	     src += srowskip, dst += drowskip)
 	    for (const T* rowend = src + rowlen; src != rowend; src += nchan)
 		for (const T* pixend = src+nchan; src != pixend; src++)
-		    *dst++ = T(0.25f * (src[0] + src[nchan] + src[sstride] + src[sstride+nchan]));
+		    *dst++ = T(quarter(src[0] + src[nchan] + src[sstride] + src[sstride+nchan]));
     }
 }
 
@@ -320,7 +320,7 @@ namespace {
 	     src += srowskip, dst += drowskip)
 	    for (const T* rowend = src + rowlen; src != rowend; src += nchan)
 		for (const T* pixend = src+nchan; src != pixend; src++)
-		    *dst++ = T(0.5f * (src[0] + src[nchan]));
+		    *dst++ = T(halve(src[0] + src[nchan]));
     }
 }
 
@@ -353,7 +353,7 @@ namespace {
 	for (const T* end = src + vw*sstride; src != end;
 	     src += srowskip, dst += drowskip)
 	    for (const T* rowend = src + rowlen; src != rowend; src++)
-		*dst++ = T(0.5f * (src[0] + src[sstride]));
+		*dst++ = T(halve(src[0] + src[sstride]));
     }
 }
 
@@ -393,7 +393,7 @@ namespace {
 	     src += srowskip, src2 += srowskip2, dst += drowskip)
 	    for (const T* rowend = src + rowlen; src != rowend; src += nchan, src2 += srowinc2)
 		for (const T* pixend = src+nchan; src != pixend; src++, src2++)
-		    *dst++ = T(0.25f * (src[0] + src[nchan] + src[sstride] + src2[0]));
+		    *dst++ = T(quarter(src[0] + src[nchan] + src[sstride] + src2[0]));
     }
 }
 

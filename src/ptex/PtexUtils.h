@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 #include <cmath>
 #include "Ptexture.h"
+#include "PtexHalf.h"
 
 #ifdef __SSE4_1__
 #include <smmintrin.h>
@@ -150,6 +151,18 @@ inline T max(T a, T b) { return a > b ? a : b; }
 
 template<typename T>
 inline T clamp(T x, T lo, T hi) { return min(max(x,lo),hi); }
+
+template<typename T>
+inline T halve(T val) { return T(val>>1); }
+
+inline float halve(float val) { return 0.5f * val; }
+inline PtexHalf halve(PtexHalf val) { return 0.5f * val; }
+
+template<typename T>
+inline T quarter(T val) { return T(val>>2); }
+
+inline float quarter(float val) { return 0.25f * val; }
+inline PtexHalf quarter(PtexHalf val) { return 0.25f * val; }
 
 bool isConstant(const void* data, int stride, int ures, int vres, int pixelSize);
 void interleave(const void* src, int sstride, int ures, int vres,
