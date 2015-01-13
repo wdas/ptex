@@ -434,10 +434,10 @@ PtexFilter* PtexFilter::getFilter(PtexTexture* tex, const PtexFilter::Options& o
 	break;
 
     case Ptex::mt_triangle:
- 	switch (opts.filter) {
- 	case f_point:       return new PtexPointFilterTri(tex);
+	switch (opts.filter) {
+	case f_point:       return new PtexPointFilterTri(tex);
 	default:            return new PtexTriangleFilter(tex, opts);
- 	}
+	}
 	break;
     }
     return 0;

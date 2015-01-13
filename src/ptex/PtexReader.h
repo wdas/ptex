@@ -123,7 +123,7 @@ public:
 	virtual void release() {
 	}
 
- 	virtual int numKeys() { return int(_entries.size()); }
+	virtual int numKeys() { return int(_entries.size()); }
 	virtual void getKey(int n, const char*& key, MetaDataType& type)
 	{
 	    Entry* e = _entries[n];

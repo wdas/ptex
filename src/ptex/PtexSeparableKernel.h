@@ -332,7 +332,7 @@ class PtexSeparableKernel {
 	if (uw & 1) {
 	    *dst++ = *src++;
 	}
-	
+
 	// update state
 	u /= 2;
 	uw = int(dst - ku);
@@ -361,7 +361,7 @@ class PtexSeparableKernel {
 	if (vw & 1) {
 	    *dst++ = *src++;
 	}
-	
+
 	// update state
 	v /= 2;
 	vw = int(dst - kv);
