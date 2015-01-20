@@ -166,6 +166,7 @@ public:
             unlock();
             return true;
         }
+        setPendingPurge();
         return false;
     }
 

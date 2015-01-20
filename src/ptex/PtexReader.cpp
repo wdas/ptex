@@ -74,6 +74,7 @@ PtexReader::PtexReader(bool premultiply, PtexInputHandler* io, PtexErrorHandler*
       _premultiply(premultiply),
       _ok(true),
       _needToOpen(true),
+      _pendingPurge(false),
       _fp(0),
       _pos(0),
       _pixelsize(0),
@@ -128,6 +129,7 @@ void PtexReader::purge()
     // reset initial state
     _ok = true;
     _needToOpen = true;
+    _pendingPurge = false;
     _memUsed = _baseMemUsed = sizeof(*this);
 }
 

@@ -58,6 +58,8 @@ public:
     bool open(const char* path, Ptex::String& error);
     void prune();
     void purge();
+    void setPendingPurge() { _pendingPurge = true; }
+    bool pendingPurge() const { return _pendingPurge; }
     bool tryClose();
     bool ok() const { return _ok; }
     bool isOpen() { return _fp; }
@@ -573,6 +575,7 @@ protected:
     bool _premultiply;		      // true if reader should premultiply the alpha chan
     bool _ok;			      // flag set to false if open or read error occurred
     bool _needToOpen;                 // true if file needs to be opened (or reopened after a purge)
+    bool _pendingPurge;               // true if a purge attempt was made but file was busy
     PtexInputHandler::Handle _fp;     // file pointer
     FilePos _pos;		      // current seek position
     std::string _path;		      // current file path

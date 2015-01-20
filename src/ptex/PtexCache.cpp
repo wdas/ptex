@@ -127,6 +127,10 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 
     if (reader) {
         if (!reader->ok()) return 0;
+        if (reader->pendingPurge()) {
+            // a previous purge attempt was made and file was busy.  Try again now.
+            purge(reader);
+        }
         reader->ref();
     } else {
         reader = new PtexCachedReader(_premultiply, _io, _err, this);
