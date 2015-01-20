@@ -340,6 +340,16 @@ public:
 	virtual FaceData* reduce(PtexReader*, Res newres, PtexUtils::ReduceFn, size_t& newMemUsed);
     };
 
+    class ErrorFace : public ConstantFace {
+        bool _deleteOnRelease;
+    public:
+	ErrorFace(void* errorPixel, int pixelsize, bool deleteOnRelease)
+	    : ConstantFace(pixelsize), _deleteOnRelease(deleteOnRelease)
+        {
+            memcpy(_data, errorPixel, pixelsize);
+        }
+        virtual void release() { if (_deleteOnRelease) delete this; }
+    };
 
     class TiledFaceBase : public FaceData {
     public:
@@ -515,6 +525,11 @@ protected:
     void readEditFaceData();
     void readEditMetaData();
 
+    FaceData* errorData(bool deleteOnRelease=false)
+    {
+        return new ErrorFace(&_errorPixel[0], _pixelsize, deleteOnRelease);
+    }
+
     void computeOffsets(FilePos pos, int noffsets, const FaceDataHeader* fdh, FilePos* offsets)
     {
 	FilePos* end = offsets + noffsets;
@@ -624,6 +639,7 @@ protected:
     };
     typedef PtexHashMap<ReductionKey, FaceData*> ReductionMap;
     ReductionMap _reductions;
+    std::vector<char> _errorPixel; // referenced by errorData() and errorDataPtr()
 
     z_stream_s _zstream;
     size_t _baseMemUsed;

@@ -154,6 +154,7 @@ bool PtexReader::open(const char* pathArg, Ptex::String& error)
         return 0;
     }
     _pixelsize = _header.pixelSize();
+    _errorPixel.resize(_pixelsize);
 
     // read extended header
     memset(&_extheader, 0, sizeof(_extheader));
@@ -680,6 +681,8 @@ void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int leve
 	break;
     }
 
+    if (!newface) newface = errorData();
+
     AtomicStore(&face, newface);
     increaseMemUsed(newMemUsed);
 }
@@ -687,15 +690,17 @@ void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int leve
 
 void PtexReader::getData(int faceid, void* buffer, int stride)
 {
-    if (!_ok) return;
-    FaceInfo& f = _faceinfo[faceid];
+    const FaceInfo& f = getFaceInfo(faceid);
     getData(faceid, buffer, stride, f.res);
 }
 
 
 void PtexReader::getData(int faceid, void* buffer, int stride, Res res)
 {
-    if (!_ok) return;
+    if (!_ok || faceid < 0 || size_t(faceid) >= _header.nfaces) {
+        PtexUtils::fill(&_errorPixel[0], buffer, stride, res.u(), res.v(), _pixelsize);
+        return;
+    }
 
     // note - all locking is handled in called getData methods
     int resu = res.u(), resv = res.v();
@@ -703,7 +708,6 @@ void PtexReader::getData(int faceid, void* buffer, int stride, Res res)
     if (stride == 0) stride = rowlen;
 
     PtexPtr<PtexFaceData> d ( getData(faceid, res) );
-    if (!d) return;
     if (d->isConstant()) {
 	// fill dest buffer with pixel value
 	PtexUtils::fill(d->getData(), buffer, stride,
@@ -723,7 +727,6 @@ void PtexReader::getData(int faceid, void* buffer, int stride, Res res)
 	    char* dsttile = dsttilerow;
 	    for (int j = 0; j < ntilesu; j++) {
 		PtexPtr<PtexFaceData> t ( d->getTile(tile++) );
-		if (!t) { i = ntilesv; break; }
 		if (t->isConstant())
 		    PtexUtils::fill(t->getData(), dsttile, stride,
 				    tileures, tilevres, _pixelsize);
@@ -743,8 +746,9 @@ void PtexReader::getData(int faceid, void* buffer, int stride, Res res)
 
 PtexFaceData* PtexReader::getData(int faceid)
 {
-    if (faceid < 0 || size_t(faceid) >= _header.nfaces) return 0;
-    if (!_ok) return 0;
+    if (!_ok || faceid < 0 || size_t(faceid) >= _header.nfaces) {
+        return errorData(/*deleteOnRelease*/ true);
+    }
 
     FaceInfo& fi = _faceinfo[faceid];
     if (fi.isConstant() || fi.res == 0) {
@@ -760,8 +764,9 @@ PtexFaceData* PtexReader::getData(int faceid)
 
 PtexFaceData* PtexReader::getData(int faceid, Res res)
 {
-    if (!_ok) return 0;
-    if (faceid < 0 || size_t(faceid) >= _header.nfaces) return 0;
+    if (!_ok || faceid < 0 || size_t(faceid) >= _header.nfaces) {
+        return errorData(/*deleteOnRelease*/ true);
+    }
 
     FaceInfo& fi = _faceinfo[faceid];
     if ((fi.isConstant() && res >= 0) || res == 0) {
@@ -811,22 +816,23 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 
     if (res.ulog2 < 0 || res.vlog2 < 0) {
 	std::cerr << "PtexReader::getData - reductions below 1 pixel not supported" << std::endl;
-	return 0;
+        newface = errorData();
     }
-    if (redu < 0 || redv < 0) {
+    else if (redu < 0 || redv < 0) {
 	std::cerr << "PtexReader::getData - enlargements not supported" << std::endl;
-	return 0;
+        newface = errorData();
     }
-    if (_header.meshtype == mt_triangle)
+    else if (_header.meshtype == mt_triangle)
     {
 	if (redu != redv) {
 	    std::cerr << "PtexReader::getData - anisotropic reductions not supported for triangle mesh" << std::endl;
-	    return 0;
+	    newface = errorData();
 	}
-	PtexPtr<PtexFaceData> psrc ( getData(faceid, Res((int8_t)(res.ulog2+1), (int8_t)(res.vlog2+1))) );
-	FaceData* src = static_cast<FaceData*>(psrc.get());
-	assert(src);
-        newface = src->reduce(this, res, PtexUtils::reduceTri, newMemUsed);
+        else {
+            PtexPtr<PtexFaceData> psrc ( getData(faceid, Res((int8_t)(res.ulog2+1), (int8_t)(res.vlog2+1))) );
+            FaceData* src = static_cast<FaceData*>(psrc.get());
+            newface = src->reduce(this, res, PtexUtils::reduceTri, newMemUsed);
+        }
     }
     else {
         // determine which direction to blend
@@ -841,14 +847,12 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
             // get next-higher u-res and reduce in u
             PtexPtr<PtexFaceData> psrc ( getData(faceid, Res((int8_t)(res.ulog2+1), (int8_t)res.vlog2)) );
             FaceData* src = static_cast<FaceData*>(psrc.get());
-            assert(src);
             newface = src->reduce(this, res, PtexUtils::reduceu, newMemUsed);
         }
         else {
             // get next-higher v-res and reduce in v
             PtexPtr<PtexFaceData> psrc ( getData(faceid, Res((int8_t)res.ulog2, (int8_t)(res.vlog2+1))) );
             FaceData* src = static_cast<FaceData*>(psrc.get());
-            assert(src);
             newface = src->reduce(this, res, PtexUtils::reducev, newMemUsed);
         }
     }
@@ -876,7 +880,6 @@ void PtexReader::getPixel(int faceid, int u, int v,
 
     // get raw pixel data
     PtexPtr<PtexFaceData> data ( getData(faceid) );
-    if (!data) return;
     void* pixel = alloca(_pixelsize);
     data->getPixel(u, v, pixel);
 
@@ -905,7 +908,6 @@ void PtexReader::getPixel(int faceid, int u, int v,
 
     // get raw pixel data
     PtexPtr<PtexFaceData> data ( getData(faceid, res) );
-    if (!data) return;
     void* pixel = alloca(_pixelsize);
     data->getPixel(u, v, pixel);
 
