@@ -259,17 +259,18 @@ void PtexReaderCache::pruneFiles()
 
 void PtexReaderCache::pruneData()
 {
-    size_t memUsedChange = 0;
+    size_t memUsedChangeTotal = 0;
     size_t memUsed = _memUsed;
-    while (memUsed + memUsedChange > _maxMem) {
+    while (memUsed + memUsedChangeTotal > _maxMem) {
         PtexCachedReader* reader = _activeFiles.pop();
         if (!reader) break;
-        if (reader->tryPrune()) {
+        size_t memUsedChange;
+        if (reader->tryPrune(memUsedChange)) {
             // Note: after clearing, memUsedChange is negative
-            memUsedChange += reader->getMemUsedChange();
+            memUsedChangeTotal += memUsedChange;
         }
     }
-    adjustMemUsed(memUsedChange);
+    adjustMemUsed(memUsedChangeTotal);
 }
 
 
@@ -291,15 +292,17 @@ void PtexReaderCache::purge(const char* filename)
 
 void PtexReaderCache::purge(PtexCachedReader* reader)
 {
-    if (reader->tryPurge()) {
-        adjustMemUsed(reader->getMemUsedChange());
+    size_t memUsedChange;
+    if (reader->tryPurge(memUsedChange)) {
+        adjustMemUsed(memUsedChange);
     }
 }
 
 void PtexReaderCache::Purger::operator()(PtexCachedReader* reader)
 {
-    if (reader->tryPurge()) {
-        memUsedChange += reader->getMemUsedChange();
+    size_t memUsedChange;
+    if (reader->tryPurge(memUsedChange)) {
+        memUsedChangeTotal += memUsedChange;
     }
 }
 
@@ -307,22 +310,13 @@ void PtexReaderCache::purgeAll()
 {
     Purger purger;
     _files.foreach(purger);
-    adjustMemUsed(purger.memUsedChange);
-}
-
-void PtexReaderCache::MemUsedSummer::operator()(PtexCachedReader* reader)
-{
-    memUsedChange += reader->getMemUsedChange();
+    adjustMemUsed(purger.memUsedChangeTotal);
 }
 
 void PtexReaderCache::getStats(Stats& stats)
 {
-    MemUsedSummer summer;
-    _files.foreach(summer);
-    adjustMemUsed(summer.memUsedChange);
-
     stats.memUsed = _memUsed;
-    stats.peakMemUsed = std::max(stats.memUsed, _peakMemUsed);
+    stats.peakMemUsed = _peakMemUsed;
     stats.filesOpen = _filesOpen;
     stats.peakFilesOpen = _peakFilesOpen;
     stats.filesAccessed = _files.size();

@@ -137,18 +137,20 @@ public:
 
     virtual void release();
 
-    bool tryPrune() {
+    bool tryPrune(size_t& memUsedChange) {
         if (trylock()) {
             prune();
+            memUsedChange = getMemUsedChange();
             unlock();
             return true;
         }
         return false;
     }
 
-    bool tryPurge() {
+    bool tryPurge(size_t& memUsedChange) {
         if (trylock()) {
             purge();
+            memUsedChange = getMemUsedChange();
             unlock();
             return true;
         }
@@ -251,13 +253,8 @@ public:
 
 private:
     struct Purger {
-        size_t memUsedChange;
-        Purger() : memUsedChange(0) {}
-        void operator() (PtexCachedReader* reader);
-    };
-    struct MemUsedSummer {
-        size_t memUsedChange;
-        MemUsedSummer() : memUsedChange(0) {}
+        size_t memUsedChangeTotal;
+        Purger() : memUsedChangeTotal(0) {}
         void operator() (PtexCachedReader* reader);
     };
 
