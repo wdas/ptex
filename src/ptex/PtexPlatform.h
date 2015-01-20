@@ -160,32 +160,13 @@ private:
  */
 
 #if defined(WINDOWS)
-inline void AtomicIncrement(volatile int32_t* target)
-{
-    InterlockedIncrement(target);
-}
-
-inline void AtomicDecrement(volatile int32_t* target)
-{
-    InterlockedDecrement(target);
-}
-
-template <typename T>
-inline T* AtomicExchangePtr(T* volatile* target, T* value)
-{
-    return InterlockedExchangePointer(target, value);
-}
+// TODO Windows atomics
 
 #elif defined(__APPLE__)
 // TODO OSX atomics
 
 #else
 // assume linux/unix/posix
-template <typename T>
-inline T AtomicExchange(T volatile* target, T value)
-{
-    return __sync_lock_test_and_set(target, value);
-}
 
 template <typename T>
 inline T AtomicIncrement(volatile T* target)
