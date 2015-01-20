@@ -669,9 +669,11 @@ class PtexCache {
 	@param maxMem Maximum allocated memory, in bytes.  If zero
 	the cache is unlimited.
 
-	@param premultiply If true, textures will be premultiplied by the alpha
-        channel (if any) when read from disk.  See PtexTexture and PtexWriter
-	for more details.
+	@param premultiply If true, textures will be premultiplied by
+        the alpha channel (if any) when read from disk.  For authoring
+        purposes, this should generally be set to false, and for
+        rendering purposes, this should generally be set to true.  See
+        PtexTexture and PtexWriter for more details.
 
 	@param inputHandler If specified, all input calls made through this cache will
 	be directed through the handler.
@@ -686,7 +688,7 @@ class PtexCache {
                                      PtexInputHandler* inputHandler=0,
                                      PtexErrorHandler* errorHandler=0);
 
-    /// Release resources held by this pointer (pointer becomes invalid).
+    /// Release PtexCache.  Cache will be immediately destroyed and all resources will be released.
     virtual void release() = 0;
 
     /** Set a search path for finding textures.
@@ -699,37 +701,39 @@ class PtexCache {
     /** Query the search path.  Returns string set via setSearchPath.  */
     virtual const char* getSearchPath() = 0;
 
-    /** Open a texture.  If the specified path was previously opened, and the
-	open file limit hasn't been exceeded, then a pointer to the already
-	open file will be returned.
+    /** Access a texture.  If the specified path was previously accessed
+        from the cache, then a pointer to the cached texture will be
+        returned.
 
-	If the specified path hasn't been opened yet or was closed,
-	either to maintain the open file limit or because the file was
-	explicitly purged from the cache, then the file will be newly
-	opened.  If the path is relative (i.e. doesn't begin with a
-	'/') then the search path will be used to locate the file.
+        If the specified path hasn't been opened yet or was purged
+        from the cache (via the purge or purgeAll methods) then the
+        file will be opened.  If the path is relative (i.e. doesn't
+        begin with a '/') then the search path will be used to locate
+        the file.
 
-        The texture file will stay open until the PtexTexture::release
+        The texture will be accessible until the PtexTexture::release
         method is called, at which point the texture will be returned
-        to the cache.  Once released, the file will be closed when
-        either the file handle limit is reached, the cached is
-        released, or when the texture is purged (see purge methods
-        below).
+        to the cache.  Once released, the texture may have it's data
+        pruned (immediately or some time later) to stay within the
+        maximum cache size.
 
-	If texture could not be opened, null will be returned and
-        an error string will be set.
+        If the texture could not be opened, null will be returned and
+        an error string will be set.  If an error were previously
+        encountered with the file (include the file not being found),
+        null will be returned and no error string will be set.
 
-	@param path File path.  If path is relative, search path will
-	be used to find the file.
+        @param path File path.  If path is relative, search path will
+        be used to find the file.
 
-	@param error Error string set if texture could not be
-	opened.
+        @param error Error string set if texture could not be
+        opened.
      */
     virtual PtexTexture* get(const char* path, Ptex::String& error) = 0;
 
-    /** Remove a texture file from the cache.  The texture file will remain
-        open and accessible until the file handle is released, but any
-        future cache accesses for that file will open the file anew.
+    /** Remove a texture file from the cache.  If the texture is in use
+        by another thread, that reference will remain valid and the file
+        will be purged once it is no longer in use.  This texture
+        should be released immediately after purging.
      */
     virtual void purge(PtexTexture* texture) = 0;
 
@@ -740,8 +744,9 @@ class PtexCache {
      */
     virtual void purge(const char* path) = 0;
 
-    /** Remove all texture files from the cache.  Open files with
-        active PtexTexture* handles remain open until released.
+    /** Remove all texture files from the cache. Textures with
+        active PtexTexture* handles will remain valid and will be purged
+        upon release.
      */
     virtual void purgeAll() = 0;
 
