@@ -606,8 +606,8 @@ void PtexWriterBase::writeFaceBlock(FILE* fp, const void* data, int stride,
     // copy to temp buffer, and deinterleave
     int ures = res.u(), vres = res.v();
     int blockSize = ures*vres*_pixelSize;
-    bool useMalloc = blockSize > AllocaMax;
-    char* buff = useMalloc ? (char*) malloc(blockSize) : (char*)alloca(blockSize);
+    bool useNew = blockSize > AllocaMax;
+    char* buff = useNew ? new char [blockSize] : (char*)alloca(blockSize);
     PtexUtils::deinterleave(data, stride, ures, vres, buff,
 			    ures*DataSize(_header.datatype),
 			    _header.datatype, _header.nchannels);
@@ -622,7 +622,7 @@ void PtexWriterBase::writeFaceBlock(FILE* fp, const void* data, int stride,
 
     // record compressed size and encoding in data header
     fdh.set(zippedsize, diff ? enc_diffzipped : enc_zipped);
-    if (useMalloc) free(buff);
+    if (useNew) delete [] buff;
 }
 
 
@@ -692,14 +692,14 @@ void PtexWriterBase::writeReduction(FILE* fp, const void* data, int stride, Res 
     // reduce and write to file
     Ptex::Res newres((int8_t)(res.ulog2-1), (int8_t)(res.vlog2-1));
     int buffsize = newres.size() * _pixelSize;
-    bool useMalloc = buffsize > AllocaMax;
-    char* buff = useMalloc ? (char*) malloc(buffsize) : (char*)alloca(buffsize);
+    bool useNew = buffsize > AllocaMax;
+    char* buff = useNew ? new char [buffsize] : (char*)alloca(buffsize);
 
     int dstride = newres.u() * _pixelSize;
     _reduceFn(data, stride, res.u(), res.v(), buff, dstride, _header.datatype, _header.nchannels);
     writeBlock(fp, buff, buffsize);
 
-    if (useMalloc) free(buff);
+    if (useNew) delete [] buff;
 }
 
 
@@ -831,7 +831,7 @@ bool PtexMainWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
     if (_header.hasAlpha()) {
 	// first copy to temp buffer
 	int rowlen = f.res.u() * _pixelSize, nrows = f.res.v();
-	temp = (uint8_t*) malloc(rowlen * nrows);
+	temp = new uint8_t [rowlen * nrows];
 	PtexUtils::copy(data, stride, temp, rowlen, nrows, rowlen);
 
 	// multiply alpha
@@ -854,7 +854,7 @@ bool PtexMainWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
 	storeConstValue(faceid, data, stride, f.res);
     }
 
-    if (temp) free(temp);
+    if (temp) delete [] temp;
     _hasNewData = true;
     return 1;
 }
@@ -905,10 +905,10 @@ void PtexMainWriter::finish()
                         writeConstantFace(i, info, data->getData());
                     }
                 } else {
-                    void* data = malloc(size);
+                    char* data = new char [size];
                     _reader->getData(i, data, 0);
                     writeFace(i, info, data, 0);
-                    free(data);
+                    delete [] data;
                 }
 	    }
 	}
@@ -1091,7 +1091,7 @@ void PtexMainWriter::generateReductions()
     for (int i = 0; i < nfaces; i++)
 	buffsize = PtexUtils::max(buffsize, _faceinfo[i].res.size());
     buffsize *= _pixelSize;
-    char* buff = (char*) malloc(buffsize);
+    char* buff = new char [buffsize];
 
     int nlevels = int(_levels.size());
     for (int i = 1; i < nlevels; i++) {
@@ -1124,7 +1124,7 @@ void PtexMainWriter::generateReductions()
 	}
     }
     fseeko(_tmpfp, 0, SEEK_END);
-    free(buff);
+    delete [] buff;
 }
 
 
@@ -1271,13 +1271,13 @@ bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
     writeBlank(_fp, sizeof(edittype) + sizeof(editsize) + sizeof(efdh));
 
     // must compute constant (average) val first
-    uint8_t* constval = (uint8_t*) malloc(_pixelSize);
+    uint8_t* constval = new uint8_t [_pixelSize];
 
     if (_header.hasAlpha()) {
 	// must premult alpha before averaging
 	// first copy to temp buffer
 	int rowlen = f.res.u() * _pixelSize, nrows = f.res.v();
-	uint8_t* temp = (uint8_t*) malloc(rowlen * nrows);
+	uint8_t* temp = new uint8_t [rowlen * nrows];
 	PtexUtils::copy(data, stride, temp, rowlen, nrows, rowlen);
 
 	// multiply alpha
@@ -1289,7 +1289,7 @@ bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
 	// unmult alpha
 	PtexUtils::divalpha(constval, 1, _header.datatype, _header.nchannels,
 			    _header.alphachan);
-	free(temp);
+	delete [] temp;
     }
     else {
 	// average
@@ -1298,7 +1298,7 @@ bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
     }
     // write const val
     writeBlock(_fp, constval, _pixelSize);
-    free(constval);
+    delete [] constval;
 
     // write face data
     writeFaceData(_fp, data, stride, f.res, efdh.fdh);

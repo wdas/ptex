@@ -189,7 +189,7 @@ public:
 		      uint32_t datasize, const void* data, size_t& metaDataMemUsed)
 	{
 	    Entry* e = newEntry(keysize, key, datatype, datasize, metaDataMemUsed);
-	    e->data = malloc(datasize);
+	    e->data = new char[datasize];
 	    memcpy(e->data, data, datasize);
             metaDataMemUsed += datasize;
 	}
@@ -215,19 +215,19 @@ public:
 	{
 	 public:
 	    LargeMetaData(int size)
-		: _data(malloc(size)) {}
-	    virtual ~LargeMetaData() { free(_data); }
+		: _data(new char [size]) {}
+	    virtual ~LargeMetaData() { delete [] _data; }
 	    void* data() { return _data; }
         private:
             LargeMetaData(const LargeMetaData&);
-	    void* _data;
+	    char* _data;
 	};
 
 	struct Entry {
 	    const char* key;	      // ptr to map key string
 	    MetaDataType type;	      // meta data type
 	    uint32_t datasize;	      // size of data in bytes
-	    void* data;		      // if lmd, data only valid when lmd is loaded and ref'ed
+	    char* data;		      // if lmd, data only valid when lmd is loaded and ref'ed
 	    bool isLmd;		      // true if data is a large meta data block
 	    LargeMetaData* lmdData;   // large meta data (lazy-loaded)
 	    FilePos lmdPos;	      // large meta data file position
@@ -245,9 +245,9 @@ public:
 		    lmdZipSize = 0;
 		}
 		else {
-		    free(data);
+		    if (data) { delete [] data; }
 		}
-		data = 0;
+                data = 0;
 	    }
 	};
 
@@ -311,12 +311,12 @@ public:
     public:
 	PackedFace(Res resArg, int pixelsize, int size)
 	    : FaceData(resArg),
-	      _pixelsize(pixelsize), _data(malloc(size)) {}
+	      _pixelsize(pixelsize), _data(new char [size]) {}
 	void* data() { return _data; }
 	virtual bool isConstant() { return false; }
 	virtual void getPixel(int u, int v, void* result)
 	{
-	    memcpy(result, (char*)_data + (v*_res.u() + u) * _pixelsize, _pixelsize);
+	    memcpy(result, _data + (v*_res.u() + u) * _pixelsize, _pixelsize);
 	}
 	virtual void* getData() { return _data; }
 	virtual bool isTiled() { return false; }
@@ -325,10 +325,10 @@ public:
 	virtual FaceData* reduce(PtexReader*, Res newres, PtexUtils::ReduceFn, size_t& newMemUsed);
 
     protected:
-	virtual ~PackedFace() { free(_data); }
+	virtual ~PackedFace() { delete [] _data; }
 
 	int _pixelsize;
-	void* _data;
+	char* _data;
     };
 
     class ConstantFace : public PackedFace {
@@ -549,7 +549,7 @@ protected:
         virtual Handle open(const char* path) {
             FILE* fp = fopen(path, "rb");
             if (fp) {
-                buffer = (char*) malloc(IBuffSize);
+                buffer = new char [IBuffSize];
                 setvbuf(fp, buffer, _IOFBF, IBuffSize);
             }
             else buffer = 0;
@@ -561,8 +561,7 @@ protected:
         }
         virtual bool close(Handle handle) {
             bool ok = handle && (fclose((FILE*)handle) == 0);
-            if (buffer) free(buffer);
-            buffer = 0;
+            if (buffer) { delete [] buffer; buffer = 0; }
             return ok;
         }
         virtual const char* lastError() { return strerror(errno); }
