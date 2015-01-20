@@ -202,9 +202,9 @@ public:
           _peakMemUsed(0), _peakFilesOpen(0), _fileOpens(0), _blockReads(0)
     {
         memset((void*)&_mruLists[0], 0, sizeof(_mruLists));
-        PAD_INIT(_memUsed); // keep cppcheck happy
-        PAD_INIT(_filesOpen);
-        PAD_INIT(_mruLock);
+        CACHE_LINE_PAD_INIT(_memUsed); // keep cppcheck happy
+        CACHE_LINE_PAD_INIT(_filesOpen);
+        CACHE_LINE_PAD_INIT(_mruLock);
     }
 
     ~PtexReaderCache()
@@ -283,9 +283,9 @@ private:
     typedef PtexHashMap<StringKey,PtexCachedReader*> FileMap;
     FileMap _files;
     bool _premultiply;
-    volatile size_t _memUsed; PAD(_memUsed);
-    volatile size_t _filesOpen; PAD(_filesOpen);
-    Mutex _mruLock; PAD(_mruLock);
+    volatile size_t _memUsed; CACHE_LINE_PAD(_memUsed);
+    volatile size_t _filesOpen; CACHE_LINE_PAD(_filesOpen);
+    Mutex _mruLock; CACHE_LINE_PAD(_mruLock);
 
     static const int numMruFiles = 50;
     struct MruList {

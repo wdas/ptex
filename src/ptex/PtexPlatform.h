@@ -210,8 +210,8 @@ inline void MemoryFence()
 #define CACHE_LINE_SIZE 64
 #endif
 
-#define PAD(var) char var##_pad[CACHE_LINE_SIZE - sizeof(var)]
-#define PAD_INIT(var) memset(&var##_pad[0], 0, sizeof(var##_pad))
+#define CACHE_LINE_PAD(var) char var##_pad[CACHE_LINE_SIZE - sizeof(var)]
+#define CACHE_LINE_PAD_INIT(var) memset(&var##_pad[0], 0, sizeof(var##_pad))
 
 PTEX_NAMESPACE_END
 
