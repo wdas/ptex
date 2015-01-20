@@ -789,7 +789,7 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
     }
 
     FaceInfo& fi = _faceinfo[faceid];
-    if ((fi.isConstant() && res >= 0) || res == 0) {
+    if (fi.isConstant() || res == 0) {
 	return new ConstDataPtr(getConstData() + faceid * _pixelsize, _pixelsize);
     }
 
@@ -803,7 +803,7 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 	return face;
     }
 
-    if (redu == redv && !fi.hasEdits() && res >= 0) {
+    if (redu == redv && !fi.hasEdits()) {
 	// reduction is symmetric and non-negative
 	// and face has no edits => access data from reduction level (if present)
 	int levelid = redu;

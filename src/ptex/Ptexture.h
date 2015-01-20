@@ -174,11 +174,8 @@ struct Res {
     /// Constructor.
     Res(int8_t ulog2_, int8_t vlog2_) : ulog2(ulog2_), vlog2(vlog2_) {}
 
-    /// Constructor from 16-bit integer
-    Res(uint16_t value) {
-        ulog2 = *(uint8_t *)&value;
-        vlog2 = *((uint8_t *)&value + 1);
-    }
+    /// Constructor.
+    Res(uint16_t value) : ulog2(int8_t(value&0xff)), vlog2(int8_t((value>>8)&0xff)) {}
 
     /// U resolution in texels.
     int u() const { return 1<<(unsigned)ulog2; }
@@ -187,22 +184,16 @@ struct Res {
     int v() const { return 1<<(unsigned)vlog2; }
 
     /// Resolution as a single 16-bit integer value.
-    uint16_t& val() { return *(uint16_t*)this; }
-
-    /// Resolution as a single 16-bit integer value.
-    const uint16_t& val() const { return *(const uint16_t*)this; }
+    uint16_t val() const { return uint16_t(ulog2 | (vlog2<<8)); }
 
     /// Total size of specified texture in texels (u * v).
     int size() const { return u() * v(); }
 
     /// Comparison operator.
-    bool operator==(const Res& r) const { return val() == r.val(); }
+    bool operator==(const Res& r) const { return r.ulog2 == ulog2 && r.vlog2 == vlog2; }
 
     /// Comparison operator.
-    bool operator!=(const Res& r) const { return val() != r.val(); }
-
-    /// True if res is >= given res in both u and v directions.
-    bool operator>=(const Res& r) const { return ulog2 >= r.ulog2 && vlog2 >= r.vlog2; }
+    bool operator!=(const Res& r) const { return !(r==*this); }
 
     /// Get value of resolution with u and v swapped.
     Res swappeduv() const { return Res(vlog2, ulog2); }
