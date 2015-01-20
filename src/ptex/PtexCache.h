@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 */
 
 #include "PtexPlatform.h"
-#include <assert.h>
+#include <cstddef>
 
 #include "PtexMutex.h"
 #include "PtexHashMap.h"
@@ -45,19 +45,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 PTEX_NAMESPACE_BEGIN
 
+// Intrusive LRU list item (to be used only by PtexLruList)
 class PtexLruItem
 {
     PtexLruItem* _prev;
     PtexLruItem* _next;
-
-public:
-    PtexLruItem() : _prev(this), _next(this) {}
 
     void extract() {
         _next->_prev = _prev;
         _prev->_next = _next;
         _next = _prev = this;
     }
+
+public:
+    PtexLruItem() : _prev(this), _next(this) {}
+
+    // add item to end of list (pointed to by _prev)
     void push(PtexLruItem* item) {
         item->extract();
         _prev->_next = item;
@@ -65,6 +68,8 @@ public:
         item->_prev = _prev;
         _prev = item;
     }
+
+    // remove item from front of list (pointed to by _next)
     PtexLruItem* pop() {
         if (_next == this) return 0;
         PtexLruItem* item = _next;
@@ -73,6 +78,7 @@ public:
     }
 };
 
+// Intrusive LRU list (with LRU item stored as member of T)
 template<class T, PtexLruItem T::*item>
 class PtexLruList
 {
@@ -81,13 +87,19 @@ class PtexLruList
 public:
     void push(T* node)
     {
+        // the item is added to the intrusive pointer specified by the template
+        // templatization allows more than one intrusive list to be in the object
         _end.push(&(node->*item));
     }
 
     T* pop()
     {
         PtexLruItem* it = _end.pop();
-        return it ? (T*) ((char*)it - (char*)&(((T*)0)->*item)) : 0;
+        // "it" points to the intrusive item, a member within T
+        // subtract off the pointer-to-member offset to get a pointer to the containing T object
+        static const T* dummy = 0;
+        static const std::ptrdiff_t itemOffset = (const char*)&(dummy->*item) - (const char*)dummy;
+        return it ? (T*) ((char*)it - itemOffset) : 0;
     }
 };
 
