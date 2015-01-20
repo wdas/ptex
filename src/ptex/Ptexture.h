@@ -237,7 +237,7 @@ struct FaceInfo {
     uint8_t flags;		///< Flags.
     int32_t adjfaces[4];	///< Adjacent faces (-1 == no adjacent face).
 
-    /// Default constructor, sets all members to zero.
+    /// Default constructor
     FaceInfo() : res(), adjedges(0), flags(0)
     {
         adjfaces[0] = adjfaces[1] = adjfaces[2] = adjfaces[3] = -1;
@@ -663,11 +663,11 @@ class PtexCache {
  public:
     /** Create a cache with the specified limits.
 
-        @param maxFiles Maximum open file handles.  If unspecified,
+        @param maxFiles Maximum open file handles.  If zero,
 	limit is set to 100 open files.
 
 	@param maxMem Maximum allocated memory, in bytes.  If zero
-	(or unspecified) the cache is unlimited.
+	the cache is unlimited.
 
 	@param premultiply If true, textures will be premultiplied by the alpha
         channel (if any) when read from disk.  See PtexTexture and PtexWriter
@@ -680,8 +680,8 @@ class PtexCache {
         this cache will be directed to the handler.  By default, errors will be
         reported to stderr.
      */
-    PTEXAPI static PtexCache* create(int maxFiles=0,
-                                     size_t maxMem=0,
+    PTEXAPI static PtexCache* create(int maxFiles,
+                                     size_t maxMem,
                                      bool premultiply=false,
                                      PtexInputHandler* inputHandler=0,
                                      PtexErrorHandler* errorHandler=0);
@@ -871,7 +871,7 @@ class PtexWriter {
 	@param stride Distance between rows, in bytes (if zero, data is assumed packed).
 
 	If an error is encountered while writing, false is returned and an error message can be
-	when close is called.
+	retrieved when close is called.
      */
     virtual bool writeFace(int faceid, const Ptex::FaceInfo& info, const void* data, int stride=0) = 0;
 
