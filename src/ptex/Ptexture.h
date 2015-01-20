@@ -316,7 +316,7 @@ public:
     String& operator=(const String& str) { *this = str._str; return *this; }
     String& operator=(const std::string& str) { *this = str.c_str(); return *this; }
     const char* c_str() const { return _str ? _str : ""; }
-    bool empty() const { return _str == 0; }
+    bool empty() const { return _str == 0 || _str[0] == '\0'; }
 
 private:
     char* _str;
@@ -446,7 +446,7 @@ class PtexTexture {
     /** Open a ptex file for reading.
 
 	If an error occurs, an error message will be stored in the
-	error string param and the a pointer will be returned.
+	error string param and a null pointer will be returned.
 
 	If the premultiply param is set to true and the texture file has a specified alpha channel,
 	then all data stored in the file will be multiplied by alpha when read from disk.  If premultiply
