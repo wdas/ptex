@@ -186,7 +186,7 @@ public:
 	}
 
 	void addEntry(uint8_t keysize, const char* key, uint8_t datatype,
-		      uint32_t datasize, void* data, size_t& metaDataMemUsed)
+		      uint32_t datasize, const void* data, size_t& metaDataMemUsed)
 	{
 	    Entry* e = newEntry(keysize, key, datatype, datasize, metaDataMemUsed);
 	    e->data = malloc(datasize);
@@ -509,7 +509,7 @@ protected:
 	return level;
     }
 
-    uint8_t* getConstData() { if (!_constdata) readConstData(); return _constdata; }
+    uint8_t* getConstData() { return _constdata; }
     FaceData* getFace(int levelid, Level* level, int faceid, Res res)
     {
 	FaceData*& face = level->faces[faceid];

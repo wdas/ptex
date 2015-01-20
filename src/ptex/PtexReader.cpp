@@ -58,7 +58,7 @@ PTEX_NAMESPACE_BEGIN
 
 PtexTexture* PtexTexture::open(const char* path, Ptex::String& error, bool premultiply)
 {
-    PtexReader* reader = new PtexReader(premultiply, 0, 0);
+    PtexReader* reader = new PtexReader(premultiply, (PtexInputHandler*) 0, (PtexErrorHandler*) 0);
     bool ok = reader->open(path, error);
     if (!ok) {
         reader->release();
@@ -594,10 +594,7 @@ void PtexReader::readLevel(int levelid, Level*& level)
     // get read lock and make sure we still need to read
     AutoMutex locker(readlock);
     if (level) {
-	// make sure it's still there now that we have the lock
-	if (level) {
-	    return;
-	}
+        return;
     }
 
     // go ahead and read the level
@@ -815,8 +812,9 @@ PtexFaceData* PtexReader::getData(int faceid, Res res)
 
 	    // get the face data (if present)
 	    FaceData* face = 0;
-	    if (size_t(rfaceid) < level->faces.size())
+	    if (size_t(rfaceid) < level->faces.size()) {
 		face = getFace(levelid, level, rfaceid, res);
+            }
 	    if (face) {
 		return face;
 	    }
