@@ -645,7 +645,7 @@ protected:
     };
     typedef PtexHashMap<ReductionKey, FaceData*> ReductionMap;
     ReductionMap _reductions;
-    std::vector<char> _errorPixel; // referenced by errorData() and errorDataPtr()
+    std::vector<char> _errorPixel; // referenced by errorData()
 
     z_stream_s _zstream;
     size_t _baseMemUsed;
