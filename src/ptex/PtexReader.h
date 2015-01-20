@@ -61,6 +61,10 @@ public:
     bool tryClose();
     bool ok() const { return _ok; }
     bool isOpen() { return _fp; }
+    void invalidate() {
+        _ok = false;
+        _needToOpen = false;
+    }
 
     void increaseMemUsed(size_t amount) { if (amount) AtomicAdd(&_memUsed, amount); }
     void logOpen() { AtomicIncrement(&_opens); }
@@ -567,7 +571,7 @@ protected:
     PtexInputHandler* _io;	      // IO handler
     PtexErrorHandler* _err;           // Error handler
     bool _premultiply;		      // true if reader should premultiply the alpha chan
-    bool _ok;			      // flag set if read error occurred)
+    bool _ok;			      // flag set to false if open or read error occurred
     bool _needToOpen;                 // true if file needs to be opened (or reopened after a purge)
     PtexInputHandler::Handle _fp;     // file pointer
     FilePos _pos;		      // current seek position

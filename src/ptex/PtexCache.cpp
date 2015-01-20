@@ -133,16 +133,20 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
         isNew = true;
     }
 
-    bool ok = true;
     bool needOpen = reader->needToOpen();
     if (needOpen) {
 	std::string buffer;
 	const char* pathToOpen = filename;
-	if (!_io) ok = findFile(pathToOpen, buffer, error);
-        if (ok) ok = reader->open(pathToOpen, error);
+        // search for the file (unless we have an I/O handler)
+	if (_io || findFile(pathToOpen, buffer, error)) {
+            reader->open(pathToOpen, error);
+        } else {
+            // flag reader as invalid so we don't try to open it again on next lookup
+            reader->invalidate();
+        }
     }
 
-    if (ok && isNew) {
+    if (isNew) {
         size_t newMemUsed = 0;
         PtexCachedReader* newreader = reader;
         reader = _files.tryInsert(key, reader, newMemUsed);
@@ -154,7 +158,7 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
         }
     }
 
-    if (!ok) {
+    if (!reader->ok()) {
         reader->unref();
         return 0;
     }
