@@ -631,6 +631,22 @@ class PtexInputHandler {
 };
 
 
+/** @class PtexErrorHandler
+    @brief Custom handler interface redirecting Ptex error messages
+
+    A custom instance of this class can be defined and supplied to the PtexCache class.
+    Files accessed through the cache will have their error streams redirected through this
+    interface.
+ */
+class PtexErrorHandler {
+ protected:
+    virtual ~PtexErrorHandler() {}
+
+ public:
+    virtual void reportError(const char* error) = 0;
+};
+
+
 /**
    @class PtexCache
    @brief File-handle and memory cache for reading ptex files
@@ -666,13 +682,18 @@ class PtexCache {
         channel (if any) when read from disk.  See PtexTexture and PtexWriter
 	for more details.
 
-	@param handler If specified, all input calls made through this cache will
+	@param inputHandler If specified, all input calls made through this cache will
 	be directed through the handler.
+
+	@param errorHandler If specified, errors encounted with files access through
+        this cache will be directed to the handler.  By default, errors will be
+        reported to stderr.
      */
     PTEXAPI static PtexCache* create(int maxFiles=0,
-				     size_t maxMem=0,
-				     bool premultiply=false,
-				     PtexInputHandler* handler=0);
+                                     size_t maxMem=0,
+                                     bool premultiply=false,
+                                     PtexInputHandler* inputHandler=0,
+                                     PtexErrorHandler* errorHandler=0);
 
     /// Release resources held by this pointer (pointer becomes invalid).
     virtual void release() = 0;
@@ -1032,6 +1053,7 @@ using Ptex::PtexMetaData;
 using Ptex::PtexFaceData;
 using Ptex::PtexTexture;
 using Ptex::PtexInputHandler;
+using Ptex::PtexErrorHandler;
 using Ptex::PtexCache;
 using Ptex::PtexWriter;
 using Ptex::PtexFilter;

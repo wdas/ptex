@@ -42,11 +42,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexUtils.h"
 #include "PtexReader.h"
 
+namespace {
+    class TempErrorHandler : public PtexErrorHandler
+    {
+        std::string _error;
+    public:
+        virtual void reportError(const char* error) {
+            _error += error;
+        }
+        const std::string& getErrorString() const { return _error; }
+    };
+}
+
 PTEX_NAMESPACE_BEGIN
 
 PtexTexture* PtexTexture::open(const char* path, Ptex::String& error, bool premultiply)
 {
-    PtexReader* reader = new PtexReader(premultiply, 0);
+    PtexReader* reader = new PtexReader(premultiply, 0, 0);
     bool ok = reader->open(path, error);
     if (!ok) {
         reader->release();
@@ -56,8 +68,9 @@ PtexTexture* PtexTexture::open(const char* path, Ptex::String& error, bool premu
 }
 
 
-PtexReader::PtexReader(bool premultiply, PtexInputHandler* io)
+PtexReader::PtexReader(bool premultiply, PtexInputHandler* io, PtexErrorHandler* err)
     : _io(io ? io : &_defaultIo),
+      _err(err),
       _premultiply(premultiply),
       _ok(true),
       _needToOpen(true),
@@ -113,7 +126,6 @@ void PtexReader::purge()
     // reset initial state
     _ok = true;
     _needToOpen = true;
-    _error.clear();
     _memUsed = _baseMemUsed = sizeof(*this);
 }
 
@@ -156,6 +168,11 @@ bool PtexReader::open(const char* pathArg, Ptex::String& error)
     _pixelsize = _header.pixelSize();
     _errorPixel.resize(_pixelsize);
 
+    // install temp error handler to capture error (to return in error param)
+    TempErrorHandler tempErr;
+    PtexErrorHandler* prevErr = _err;
+    _err = &tempErr;
+
     // read extended header
     memset(&_extheader, 0, sizeof(_extheader));
     readBlock(&_extheader, PtexUtils::min(uint32_t(ExtHeaderSize), _header.extheadersize));
@@ -182,9 +199,12 @@ bool PtexReader::open(const char* pathArg, Ptex::String& error)
     readEditData();
     _baseMemUsed = _memUsed;
 
+    // restore error handler
+    _err = prevErr;
+
     // an error occurred while reading the file
     if (!_ok) {
-	error = _error.c_str();
+        error = tempErr.getErrorString();
         closeFP();
 	return 0;
     }

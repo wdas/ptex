@@ -129,7 +129,7 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
         if (!reader->ok()) return 0;
         reader->ref();
     } else {
-        reader = new PtexCachedReader(_premultiply, _io, this);
+        reader = new PtexCachedReader(_premultiply, _io, _err, this);
         isNew = true;
     }
 
@@ -167,12 +167,13 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 }
 
 PtexCache* PtexCache::create(int maxFiles, size_t maxMem, bool premultiply,
-			     PtexInputHandler* handler)
+                             PtexInputHandler* inputHandler,
+                             PtexErrorHandler* errorHandler)
 {
     // set default files to 100
     if (maxFiles <= 0) maxFiles = 100;
 
-    return new PtexReaderCache(maxFiles, maxMem, premultiply, handler);
+    return new PtexReaderCache(maxFiles, maxMem, premultiply, inputHandler, errorHandler);
 }
 
 

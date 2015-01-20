@@ -51,7 +51,7 @@ PTEX_NAMESPACE_BEGIN
 
 class PtexReader : public PtexTexture {
 public:
-    PtexReader(bool premultiply, PtexInputHandler* handler);
+    PtexReader(bool premultiply, PtexInputHandler* inputHandler, PtexErrorHandler* errorHandler);
     virtual ~PtexReader();
     virtual void release() { delete this; }
     bool needToOpen() const { return _needToOpen; }
@@ -478,7 +478,12 @@ public:
 protected:
     void setError(const char* error)
     {
-	_error = error; _error += " PtexFile: "; _error += _path;
+        std::string msg = error;
+        msg += " PtexFile: ";
+        msg += _path;
+        msg += "\n";
+        if (_err) _err->reportError(msg.c_str());
+        else std::cerr << msg;
 	_ok = 0;
     }
 
@@ -566,10 +571,10 @@ protected:
     Mutex readlock;
     DefaultInputHandler _defaultIo;   // Default IO handler
     PtexInputHandler* _io;	      // IO handler
+    PtexErrorHandler* _err;           // Error handler
     bool _premultiply;		      // true if reader should premultiply the alpha chan
     bool _ok;			      // flag set if read error occurred)
     bool _needToOpen;                 // true if file needs to be opened (or reopened after a purge)
-    std::string _error;		      // error string (if !_ok)
     PtexInputHandler::Handle _fp;     // file pointer
     FilePos _pos;		      // current seek position
     std::string _path;		      // current file path
