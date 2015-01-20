@@ -115,13 +115,8 @@ public:
     public:
 	MetaData(PtexReader* reader)
 	    : _reader(reader) {}
-        ~MetaData() {
-            for (std::vector<Entry*>::iterator i = _entries.begin(); i != _entries.end(); ++i) {
-                (*i)->clear();
-            }
-        }
-	virtual void release() {
-	}
+        ~MetaData() {}
+	virtual void release() {}
 
 	virtual int numKeys() { return int(_entries.size()); }
 	virtual void getKey(int n, const char*& key, MetaDataType& type)
