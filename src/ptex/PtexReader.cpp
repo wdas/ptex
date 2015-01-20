@@ -121,6 +121,8 @@ void PtexReader::purge()
     std::vector<LevelInfo>().swap(_levelinfo);
     std::vector<FilePos>().swap(_levelpos);
     std::vector<Level*>().swap(_levels);
+    std::vector<MetaEdit>().swap(_metaedits);
+    std::vector<FaceEdit>().swap(_faceedits);
     closeFP();
 
     // reset initial state
