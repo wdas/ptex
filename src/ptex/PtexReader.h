@@ -188,22 +188,21 @@ public:
 	void addEntry(uint8_t keysize, const char* key, uint8_t datatype,
 		      uint32_t datasize, void* data, size_t& metaDataMemUsed)
 	{
-	    Entry* e = newEntry(keysize, key, datatype, datasize);
+	    Entry* e = newEntry(keysize, key, datatype, datasize, metaDataMemUsed);
 	    e->data = malloc(datasize);
 	    memcpy(e->data, data, datasize);
-            metaDataMemUsed += sizeof(std::string) + keysize + 1 + sizeof(Entry) + datasize;
+            metaDataMemUsed += datasize;
 	}
 
 	void addLmdEntry(uint8_t keysize, const char* key, uint8_t datatype,
 			 uint32_t datasize, FilePos filepos, uint32_t zipsize,
                          size_t& metaDataMemUsed)
 	{
-	    Entry* e = newEntry(keysize, key, datatype, datasize);
+	    Entry* e = newEntry(keysize, key, datatype, datasize, metaDataMemUsed);
 	    e->isLmd = true;
 	    e->lmdData = 0;
 	    e->lmdPos = filepos;
 	    e->lmdZipSize = zipsize;
-            metaDataMemUsed += sizeof(Entry);
 	}
 
         size_t selfDataSize()
@@ -252,7 +251,7 @@ public:
 	    }
 	};
 
-	Entry* newEntry(uint8_t keysize, const char* key, uint8_t datatype, uint32_t datasize)
+	Entry* newEntry(uint8_t keysize, const char* key, uint8_t datatype, uint32_t datasize, size_t& metaDataMemUsed)
 	{
 	    std::pair<MetaMap::iterator,bool> result =
 		_map.insert(std::make_pair(std::string(key, keysize), Entry()));
@@ -263,6 +262,7 @@ public:
 	    e->key = result.first->first.c_str();
 	    e->type = MetaDataType(datatype);
 	    e->datasize = datasize;
+            metaDataMemUsed += sizeof(std::string) + keysize + 1 + sizeof(Entry);
 	    return e;
 	}
 
