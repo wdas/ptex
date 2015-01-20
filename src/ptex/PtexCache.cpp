@@ -202,6 +202,8 @@ void PtexReaderCache::logRecentlyUsed(PtexCachedReader* reader)
 
 void PtexReaderCache::processMru()
 {
+    // use a non-blocking lock so we can proceed as soon as space has been freed in the mru list
+    // (which happens almost immediately in the processMru thread that has the lock)
     if (!_mruLock.trylock()) return;
     if (_mruList->next < numMruFiles) {
         _mruLock.unlock();
