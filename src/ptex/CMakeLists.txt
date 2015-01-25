@@ -21,3 +21,19 @@ add_library(Ptex_dynamic SHARED ${SRCS})
 set_target_properties(Ptex_dynamic PROPERTIES OUTPUT_NAME Ptex)
 
 target_link_libraries(Ptex_dynamic ${CMAKE_THREAD_LIBS_INIT} ${ZLIB_LIBRARIES})
+
+# installation
+install ( TARGETS
+  Ptex_static
+  Ptex_dynamic
+  DESTINATION
+  lib
+  )
+install ( FILES
+  PtexHalf.h
+  PtexInt.h
+  Ptexture.h
+  PtexUtils.h
+  DESTINATION
+  include
+  )
