@@ -20,6 +20,8 @@ endif
 
 TESTS = halftest wtest rtest ftest
 
+install: tests
+
 tests: $(TESTS)
 	./run_tests.py
 
