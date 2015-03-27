@@ -1043,6 +1043,8 @@ template <class T> class PtexPtr {
     void operator= (PtexPtr& p);
 };
 
+namespace PtexUtils {};
+
 PTEX_NAMESPACE_END
 
 using Ptex::PtexMetaData;
@@ -1054,5 +1056,6 @@ using Ptex::PtexCache;
 using Ptex::PtexWriter;
 using Ptex::PtexFilter;
 using Ptex::PtexPtr;
+namespace PtexUtils = Ptex::PtexUtils;
 
 #endif
