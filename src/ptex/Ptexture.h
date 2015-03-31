@@ -1043,7 +1043,7 @@ template <class T> class PtexPtr {
     void operator= (PtexPtr& p);
 };
 
-namespace PtexUtils {};
+namespace PtexUtils {}
 
 PTEX_NAMESPACE_END
 
