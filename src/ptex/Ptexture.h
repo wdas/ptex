@@ -195,6 +195,9 @@ struct Res {
     /// Comparison operator.
     bool operator!=(const Res& r) const { return !(r==*this); }
 
+    /// True if res is >= given res in both u and v directions.
+    bool operator>=(const Res& r) const { return ulog2 >= r.ulog2 && vlog2 >= r.vlog2; }
+
     /// Get value of resolution with u and v swapped.
     Res swappeduv() const { return Res(vlog2, ulog2); }
 
