@@ -123,4 +123,6 @@ struct PtexHalf {
 
 PTEX_NAMESPACE_END
 
+using Ptex::PtexHalf;
+
 #endif
