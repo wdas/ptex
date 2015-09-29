@@ -3,11 +3,13 @@
 
 all: doc
 
-INSTALLDIR = ../../install/doc/ptex
+INSTALLDIR = ../../install/share/doc/ptex
 
 doc:
 	mkdir -p $(INSTALLDIR)
 	doxygen Doxyfile
+	rsync -vrP ptex/ $(INSTALLDIR)/
+	install -m 644 *.png $(INSTALLDIR)
 
 clean:
 	rm -rf $(INSTALLDIR)

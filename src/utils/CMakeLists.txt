@@ -12,9 +12,4 @@ add_executable(ptxinfo ptxinfo.cpp)
 add_definitions(-DPTEX_VER="${PTEX_VER} \(${PTEX_SHA}\)")
 target_link_libraries(ptxinfo Ptex_dynamic)
 
-# installation
-install ( TARGETS
-  ptxinfo
-  DESTINATION
-  bin
-  )
+install(TARGETS ptxinfo DESTINATION ${CMAKE_INSTALL_BINDIR})
