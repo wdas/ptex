@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 2.8)
 project(ptex)
 
-# enable testing for the project
+include(GNUInstallDirs)
 include(CTest)
-enable_testing()
-
 include(FindZLIB)
 include(FindThreads)
+
+enable_testing()
 
 include_directories(ptex)
 include_directories(${ZLIB_INCLUDE_DIR})

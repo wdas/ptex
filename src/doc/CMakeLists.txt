@@ -1,13 +1,22 @@
-find_package ( Doxygen )
-
-file ( MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/../install/doc)
-
+find_package(Doxygen)
 if (DOXYGEN_FOUND)
-  set (generated_doc_location ${CMAKE_SOURCE_DIR}/../install/doc/ptex/)
-  set (doxyfile_location ${CMAKE_SOURCE_DIR}/doc/)
-  set (perm OWNER_READ GROUP_READ WORLD_READ)
-  add_custom_target (doc
-      ${DOXYGEN_EXECUTABLE} ${doxyfile_location}/Doxyfile
-      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/doc
-    )
+
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/doxygen_log.txt
+        COMMAND ${DOXYGEN_EXECUTABLE} Doxyfile >doxygen_log.txt
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        DEPENDS Doxyfile)
+    add_custom_target(doc ALL DEPENDS doxygen_log.txt)
+
+    # "make doxygen" forces doxygen to run
+    add_custom_target(
+        doxygen ${DOXYGEN_EXECUTABLE} Doxyfile >doxygen_log.txt
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        DEPENDS Doxyfile)
+
+    install(DIRECTORY ptex/ DESTINATION ${CMAKE_INSTALL_DOCDIR})
+
+    file(GLOB images "*.png")
+    install(FILES ${images} DESTINATION ${CMAKE_INSTALL_DOCDIR})
+
 endif (DOXYGEN_FOUND)
