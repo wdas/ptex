@@ -15,6 +15,10 @@ else ()
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "type of build" FORCE)
 endif ()
 
+if (NOT WIN32)
+    set(CMAKE_CXX_FLAGS "-std=c++98 -Wall -Wextra -pedantic")
+endif ()
+
 include_directories(src/ptex)
 include_directories(${ZLIB_INCLUDE_DIR})
 
