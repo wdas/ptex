@@ -19,6 +19,10 @@ if (NOT WIN32)
     set(CMAKE_CXX_FLAGS "-std=c++98 -Wall -Wextra -pedantic")
 endif ()
 
+if (${PRMAN_15_COMPATIBLE_PTEX})
+    add_definitions(-DPTEX_NO_LARGE_METADATA_BLOCKS)
+endif ()
+
 include_directories(src/ptex)
 include_directories(${ZLIB_INCLUDE_DIR})
 
