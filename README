@@ -1,6 +1,10 @@
 Building with make (Linux):
-> cd src
-> make
+> make prefix=$PWD/install
+> make test
+> make install
+> make doc
+
+The Makefile uses cmake under the hood.
 
 This will build, install to a local 'install' directory, and
 run regression tests.
@@ -15,16 +19,5 @@ PtexHalf.h  PtexInt.h  Ptexture.h  PtexUtils.h
 install/lib:
 libPtex.a  libPtex.so
 
-
-
-Building with cmake:
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=../install ..
-make
-make test
-make install
-make doc
-
-Note: docs will be generated in the 'build/doc' directory
+Note: docs will be generated in the 'src/doc/ptex' directory
 and installed as 'install/share/doc/ptex'.
