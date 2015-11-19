@@ -8,6 +8,13 @@ include(FindThreads)
 
 enable_testing()
 
+# Detect the build type from the $FLAVOR environment variable
+if ("$ENV{FLAVOR}" MATCHES "debug")
+    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "type of build" FORCE)
+else ()
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "type of build" FORCE)
+endif ()
+
 include_directories(src/ptex)
 include_directories(${ZLIB_INCLUDE_DIR})
 
