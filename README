@@ -20,7 +20,7 @@ libPtex.a  libPtex.so
 Building with cmake:
 mkdir build
 cd build
-cmake -DCMAKE_INSTALL_PREFIX=../install ../src
+cmake -DCMAKE_INSTALL_PREFIX=../install ..
 make
 make test
 make install

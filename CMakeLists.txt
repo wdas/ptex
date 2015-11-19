@@ -8,10 +8,10 @@ include(FindThreads)
 
 enable_testing()
 
-include_directories(ptex)
+include_directories(src/ptex)
 include_directories(${ZLIB_INCLUDE_DIR})
 
-add_subdirectory(ptex)
-add_subdirectory(utils)
-add_subdirectory(tests)
-add_subdirectory(doc)
+add_subdirectory(src/ptex)
+add_subdirectory(src/utils)
+add_subdirectory(src/tests)
+add_subdirectory(src/doc)
