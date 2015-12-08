@@ -26,7 +26,3 @@ add_test(NAME wtest COMMAND $<TARGET_FILE:wtest>)
 add_compare_test(rtest)
 add_compare_test(ftest)
 add_test(NAME halftest COMMAND $<TARGET_FILE:halftest>)
-
-
-
-

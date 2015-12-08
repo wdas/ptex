@@ -135,21 +135,21 @@ public:
 	virtual void getValue(const char* key, const char*& value)
 	{
 	    Entry* e = getEntry(key);
-	    if (e) value = (const char*) e->data;
+	    if (e && e->type == mdt_string) value = (const char*) e->data;
 	    else value = 0;
 	}
 
 	virtual void getValue(const char* key, const int8_t*& value, int& count)
 	{
 	    Entry* e = getEntry(key);
-	    if (e) { value = (const int8_t*) e->data; count = e->datasize; }
+	    if (e && e->type == mdt_int8) { value = (const int8_t*) e->data; count = e->datasize; }
 	    else { value = 0; count = 0; }
 	}
 
 	virtual void getValue(const char* key, const int16_t*& value, int& count)
 	{
 	    Entry* e = getEntry(key);
-	    if (e) {
+	    if (e && e->type == mdt_int16) {
 		value = (const int16_t*) e->data;
 		count = int(e->datasize/sizeof(int16_t));
 	    }
@@ -159,7 +159,7 @@ public:
 	virtual void getValue(const char* key, const int32_t*& value, int& count)
 	{
 	    Entry* e = getEntry(key);
-	    if (e) {
+	    if (e && e->type == mdt_int32) {
 		value = (const int32_t*) e->data;
 		count = int(e->datasize/sizeof(int32_t));
 	    }
@@ -169,7 +169,7 @@ public:
 	virtual void getValue(const char* key, const float*& value, int& count)
 	{
 	    Entry* e = getEntry(key);
-	    if (e) {
+	    if (e && e->type == mdt_float) {
 		value = (const float*) e->data;
 		count = int(e->datasize/sizeof(float));
 	    }
@@ -179,7 +179,7 @@ public:
 	virtual void getValue(const char* key, const double*& value, int& count)
 	{
 	    Entry* e = getEntry(key);
-	    if (e) {
+	    if (e && e->type == mdt_double) {
 		value = (const double*) e->data;
 		count = int(e->datasize/sizeof(double));
 	    }

@@ -1,4 +1,7 @@
-install
+/Darwin-*
+/Linux-*
+/build
+/install
 *.o
 *.so
 *.a
