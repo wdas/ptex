@@ -74,7 +74,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 // general includes
 #include <stdio.h>
-#include <cmath>
+#include <math.h>
 #include <assert.h>
 
 // missing functions on Windows
@@ -102,6 +102,7 @@ public:
     Mutex()       { _mutex = CreateMutex(NULL, FALSE, NULL); }
     ~Mutex()      { CloseHandle(_mutex); }
     void lock()   { WaitForSingleObject(_mutex, INFINITE); }
+    bool trylock() { return WAIT_TIMEOUT != WaitForSingleObject(_mutex,0);}
     void unlock() { ReleaseMutex(_mutex); }
 private:
     HANDLE _mutex;
@@ -112,9 +113,10 @@ public:
     SpinLock()    { InitializeCriticalSection(&_spinlock); }
     ~SpinLock()   { DeleteCriticalSection(&_spinlock); }
     void lock()   { EnterCriticalSection(&_spinlock); }
+    bool trylock() { return TryEnterCriticalSection(&_spinlock); }
     void unlock() { LeaveCriticalSection(&_spinlock); }
 private:
-    CRITICAL_SECTION spinlock;
+    CRITICAL_SECTION _spinlock;
 };
 
 #else
@@ -137,6 +139,7 @@ public:
     SpinLock()   { _spinlock = 0; }
     ~SpinLock()  { }
     void lock()   { OSSpinLockLock(&_spinlock); }
+    bool trylock() { return OSSpinLockTry(&_spinlock); }
     void unlock() { OSSpinLockUnlock(&_spinlock); }
 private:
     OSSpinLock _spinlock;
@@ -159,52 +162,124 @@ private:
  * Atomics
  */
 
-#if defined(WINDOWS)
-// TODO Windows atomics
-
-#elif defined(__APPLE__)
-// TODO OSX atomics
-
+#ifdef WINDOWS
+    #define ATOMIC_ALIGNED __declspec(align(8))
+    #define ATOMIC_ADD32(x,y) InterlockedExchangeAdd((volatile long*)(x),(long)(y))
+    #define ATOMIC_ADD64(x,y) InterlockedExchangeAdd64((volatile long long*)(x),(long long)(y))
+    #define ATOMIC_SUB32(x,y) InterlockedExchangeAdd((volatile long*)(x),-((long)(y)))
+    #define ATOMIC_SUB64(x,y) InterlockedExchangeAdd64((volatile long long*)(x),-((long long)(y)))
+    #define MEM_FENCE()       MemoryBarrier()
+    #define BOOL_CMPXCH32(x,y,z) (InterlockedCompareExchange((volatile long*)(x),(long)(z),(long)(y))   == (y))
+    #define BOOL_CMPXCH64(x,y,z) (InterlockedCompareExchange64((volatile long long*)(x),(long long)(z),(long long)(y)) == (y))
+    #ifdef NDEBUG
+        #define PTEX_INLINE __forceinline
+    #else
+        #define PTEX_INLINE
+    #endif
 #else
-// assume linux/unix/posix
+    #define ATOMIC_ALIGNED __attribute__((aligned(8)))
+    #define ATOMIC_ADD32(x,y)  __sync_add_and_fetch(x,y)
+    #define ATOMIC_ADD64(x,y)  __sync_add_and_fetch(x,y)
+    #define ATOMIC_SUB32(x,y)  __sync_sub_and_fetch(x,y)
+    #define ATOMIC_SUB64(x,y)  __sync_sub_and_fetch(x,y)
+    #define MEM_FENCE()        __sync_synchronize()
+    #define BOOL_CMPXCH32(x,y,z) __sync_bool_compare_and_swap((x),(y),(z))
+    #define BOOL_CMPXCH64(x,y,z) __sync_bool_compare_and_swap((x),(y),(z))
+
+    #ifdef NDEBUG
+        #define PTEX_INLINE inline __attribute__((always_inline))
+    #else
+        #define PTEX_INLINE inline
+    #endif
+#endif
 
 template <typename T>
-inline T AtomicIncrement(volatile T* target)
+PTEX_INLINE T AtomicAdd(volatile T* target, T value)
 {
-    return __sync_add_and_fetch(target, 1);
+    switch(sizeof(T)){
+    case 4:
+        return (T)ATOMIC_ADD32(target, value);
+        break;
+    case 8:
+        return (T)ATOMIC_ADD64(target, value);
+        break;
+    default:
+        assert(0=="Can only use 32 or 64 bit atomics");
+        return *(T*)NULL;
+    }
 }
 
 template <typename T>
-inline T AtomicAdd(volatile T* target, T value)
+PTEX_INLINE T AtomicIncrement(volatile T* target)
 {
-    return __sync_add_and_fetch(target, value);
+    return AtomicAdd(target, (T)1);
 }
 
 template <typename T>
-inline T AtomicDecrement(volatile T* target)
+PTEX_INLINE T AtomicSubtract(volatile T* target, T value)
 {
-    return __sync_sub_and_fetch(target, 1);
+    switch(sizeof(T)){
+    case 4:
+        return (T)ATOMIC_SUB32(target, value);
+        break;
+    case 8:
+        return (T)ATOMIC_SUB64(target, value);
+        break;
+    default:
+        assert(0=="Can only use 32 or 64 bit atomics");
+        return *(T*)NULL;
+    }
 }
 
 template <typename T>
-inline bool AtomicCompareAndSwap(T volatile* target, T oldvalue, T newvalue)
+PTEX_INLINE T AtomicDecrement(volatile T* target)
 {
-    return __sync_bool_compare_and_swap(target, oldvalue, newvalue);
+    return AtomicSubtract(target, (T)1);
+}
+
+// GCC is pretty forgiving, but ICC only allows int, long and long long
+// so use partial specialization over structs (C(98)) to get certain compilers
+// to do the specialization to sizeof(T) before doing typechecking and
+// throwing errors for no good reason.
+template <typename T, size_t n>
+struct AtomicCompareAndSwapImpl;
+
+template <typename T>
+struct AtomicCompareAndSwapImpl<T, sizeof(uint32_t)> {
+    PTEX_INLINE bool operator()(T volatile* target, T oldvalue, T newvalue){
+        return  BOOL_CMPXCH32((volatile uint32_t*)target,
+                              (uint32_t)oldvalue,
+                              (uint32_t)newvalue);
+    }
+};
+
+template <typename T>
+struct AtomicCompareAndSwapImpl<T, sizeof(uint64_t)> {
+    PTEX_INLINE bool operator()(T volatile* target, T oldvalue, T newvalue){
+        return  BOOL_CMPXCH64((volatile uint64_t*)target,
+                              (uint64_t)oldvalue,
+                              (uint64_t)newvalue);
+    }
+};
+
+template <typename T>
+PTEX_INLINE bool AtomicCompareAndSwap(T volatile* target, T oldvalue, T newvalue)
+{
+    return AtomicCompareAndSwapImpl<T, sizeof(T)>()(target, oldvalue, newvalue);
 }
 
 template <typename T>
-inline void AtomicStore(T volatile* target, T value)
+PTEX_INLINE void AtomicStore(T volatile* target, T value)
 {
-    __sync_synchronize();
+    MEM_FENCE();
     *target = value;
 }
 
-inline void MemoryFence()
+PTEX_INLINE void MemoryFence()
 {
-    __sync_synchronize();
+    MEM_FENCE();
 }
 
-#endif
 
 #ifndef CACHE_LINE_SIZE
 #define CACHE_LINE_SIZE 64
