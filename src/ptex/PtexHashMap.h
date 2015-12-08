@@ -40,7 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #ifndef PtexHashMap_h
 #define PtexHashMap_h
 
-#include <inttypes.h>
 #include <vector>
 #include "PtexPlatform.h"
 #include "PtexMutex.h"
