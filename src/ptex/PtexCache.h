@@ -284,9 +284,9 @@ private:
     typedef PtexHashMap<StringKey,PtexCachedReader*> FileMap;
     FileMap _files;
     bool _premultiply;
-    volatile size_t _memUsed; CACHE_LINE_PAD(_memUsed);
-    volatile size_t _filesOpen; CACHE_LINE_PAD(_filesOpen);
-    Mutex _mruLock; CACHE_LINE_PAD(_mruLock);
+    volatile size_t _memUsed; CACHE_LINE_PAD(_memUsed,size_t);
+    volatile size_t _filesOpen; CACHE_LINE_PAD(_filesOpen,size_t);
+    Mutex _mruLock; CACHE_LINE_PAD(_mruLock,Mutex);
 
     static const int numMruFiles = 50;
     struct MruList {
