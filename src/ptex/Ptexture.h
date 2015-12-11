@@ -342,31 +342,58 @@ class PtexMetaData {
     virtual int numKeys() = 0;
 
     /// Query the name and type of a meta data entry.
-    virtual void getKey(int n, const char*& key, Ptex::MetaDataType& type) = 0;
+    virtual void getKey(int index, const char*& key, Ptex::MetaDataType& type) = 0;
+    
+    /// Query the index and type of a meta data entry by name.
+    virtual bool findKey(const char* key, int& index, Ptex::MetaDataType& type) = 0;
 
     /** Query the value of a given meta data entry.
 	If the key doesn't exist or the type doesn't match, value is set to null */
     virtual void getValue(const char* key, const char*& value) = 0;
+    
+    /** Query the value of a given meta data entry by index.
+	If the index is out of range or the type doesn't match, value is set to null */
+    virtual void getValue(int index, const char*& value) = 0;
 
     /** Query the value of a given meta data entry.
 	If the key doesn't exist or the type doesn't match, value is set to null */
     virtual void getValue(const char* key, const int8_t*& value, int& count) = 0;
+    
+    /** Query the value of a given meta data entry by index.
+	If the index is out of range or the type doesn't match, value is set to null */
+    virtual void getValue(int index, const int8_t*& value, int& count) = 0;
 
     /** Query the value of a given meta data entry.
 	If the key doesn't exist or the type doesn't match, value is set to null */
     virtual void getValue(const char* key, const int16_t*& value, int& count) = 0;
+    
+    /** Query the value of a given meta data entry by index.
+	If the index is out of range or the type doesn't match, value is set to null */
+    virtual void getValue(int index, const int16_t*& value, int& count) = 0;
 
     /** Query the value of a given meta data entry.
 	If the key doesn't exist or the type doesn't match, value is set to null */
     virtual void getValue(const char* key, const int32_t*& value, int& count) = 0;
+    
+    /** Query the value of a given meta data entry by index.
+	If the index is out of range or the type doesn't match, value is set to null */
+    virtual void getValue(int index, const int32_t*& value, int& count) = 0;
 
     /** Query the value of a given meta data entry.
 	If the key doesn't exist or the type doesn't match, value is set to null */
     virtual void getValue(const char* key, const float*& value, int& count) = 0;
+    
+    /** Query the value of a given meta data entry by index.
+	If the index is out of range or the type doesn't match, value is set to null */
+    virtual void getValue(int index, const float*& value, int& count) = 0;
 
     /** Query the value of a given meta data entry.
 	If the key doesn't exist or the type doesn't match, value is set to null */
     virtual void getValue(const char* key, const double*& value, int& count) = 0;
+    
+    /** Query the value of a given meta data entry by index.
+	If the index is out of range or the type doesn't match, value is set to null */
+    virtual void getValue(int index, const double*& value, int& count) = 0;
 };
 
 

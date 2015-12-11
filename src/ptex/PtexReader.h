@@ -125,65 +125,122 @@ public:
 	virtual void release() {}
 
 	virtual int numKeys() { return int(_entries.size()); }
-	virtual void getKey(int n, const char*& key, MetaDataType& type)
+	virtual void getKey(int index, const char*& key, MetaDataType& type)
 	{
-	    Entry* e = _entries[n];
+	    if (index < 0 || index >= int(_entries.size())) {
+		return;
+	    }
+	    Entry* e = _entries[index];
 	    key = e->key;
 	    type = e->type;
+	}
+    
+	virtual bool findKey(const char* key, int& index, MetaDataType& type)
+	{
+	    MetaMap::iterator iter = _map.find(key);
+	    if (iter==_map.end()) {
+		index = -1;
+		return false;
+	    }
+	    index = iter->second.index;
+	    type = iter->second.type;
+	    return true;
 	}
 
 	virtual void getValue(const char* key, const char*& value)
 	{
-	    Entry* e = getEntry(key);
+	    int index = -1;
+	    MetaDataType type;
+	    if (!findKey(key, index, type)) {
+                value = 0;
+                return;
+            }
+            Entry* e = getEntry(index);
 	    if (e && e->type == mdt_string) value = (const char*) e->data;
 	    else value = 0;
 	}
 
+	virtual void getValue(int index, const char*& value)
+	{
+	    if (index < 0 || index >= int(_entries.size())) { value = 0; return; }
+	    Entry* e = getEntry(index);
+	    if (e && e->type == mdt_string) value = (const char*) e->data;
+	    else value = 0;
+	}
+
+        template<typename T>
+        void getValue(int index, MetaDataType requestedType, const T*& value, int& count)
+        {
+	    if (index < 0 || index >= int(_entries.size())) {
+                value = 0;
+                count = 0;
+                return;
+            }
+	    Entry* e = getEntry(index);
+	    if (e && e->type == requestedType) {
+	        value = (const T*) e->data;
+	        count = int(e->datasize/sizeof(T));
+	    }
+	    else { value = 0; count = 0; }
+        }
+
+        template<typename T>
+        void getValue(const char* key, MetaDataType requestedType, const T*& value, int& count)
+        {
+	    int index = -1;
+	    MetaDataType type;
+            findKey(key, index, type);
+            getValue<T>(index, requestedType, value, count);
+        }
+
 	virtual void getValue(const char* key, const int8_t*& value, int& count)
 	{
-	    Entry* e = getEntry(key);
-	    if (e && e->type == mdt_int8) { value = (const int8_t*) e->data; count = e->datasize; }
-	    else { value = 0; count = 0; }
+            getValue<int8_t>(key, mdt_int8, value, count);
+	}
+
+	virtual void getValue(int index, const int8_t*& value, int& count)
+	{
+            getValue<int8_t>(index, mdt_int8, value, count);
 	}
 
 	virtual void getValue(const char* key, const int16_t*& value, int& count)
 	{
-	    Entry* e = getEntry(key);
-	    if (e && e->type == mdt_int16) {
-		value = (const int16_t*) e->data;
-		count = int(e->datasize/sizeof(int16_t));
-	    }
-	    else { value = 0; count = 0; }
+            getValue<int16_t>(key, mdt_int16, value, count);
+	}
+
+	virtual void getValue(int index, const int16_t*& value, int& count)
+	{
+            getValue<int16_t>(index, mdt_int16, value, count);
 	}
 
 	virtual void getValue(const char* key, const int32_t*& value, int& count)
 	{
-	    Entry* e = getEntry(key);
-	    if (e && e->type == mdt_int32) {
-		value = (const int32_t*) e->data;
-		count = int(e->datasize/sizeof(int32_t));
-	    }
-	    else { value = 0; count = 0; }
+            getValue<int32_t>(key, mdt_int32, value, count);
+	}
+
+	virtual void getValue(int index, const int32_t*& value, int& count)
+	{
+            getValue<int32_t>(index, mdt_int32, value, count);
 	}
 
 	virtual void getValue(const char* key, const float*& value, int& count)
 	{
-	    Entry* e = getEntry(key);
-	    if (e && e->type == mdt_float) {
-		value = (const float*) e->data;
-		count = int(e->datasize/sizeof(float));
-	    }
-	    else { value = 0; count = 0; }
+            getValue<float>(key, mdt_float, value, count);
+	}
+
+	virtual void getValue(int index, const float*& value, int& count)
+	{
+            getValue<float>(index, mdt_float, value, count);
 	}
 
 	virtual void getValue(const char* key, const double*& value, int& count)
 	{
-	    Entry* e = getEntry(key);
-	    if (e && e->type == mdt_double) {
-		value = (const double*) e->data;
-		count = int(e->datasize/sizeof(double));
-	    }
-	    else { value = 0; count = 0; }
+            getValue<double>(key, mdt_double, value, count);
+	}
+
+	virtual void getValue(int index, const double*& value, int& count)
+	{
+            getValue<double>(index, mdt_double, value, count);
 	}
 
 	void addEntry(uint8_t keysize, const char* key, uint8_t datatype,
@@ -233,6 +290,7 @@ public:
 	    LargeMetaData* lmdData;   // large meta data (lazy-loaded)
 	    FilePos lmdPos;	      // large meta data file position
 	    uint32_t lmdZipSize;      // large meta data size on disk
+	    uint32_t index;           // index in vector
 
 	    Entry() :
 		key(0), type(MetaDataType(0)), datasize(0), data(0),
@@ -258,16 +316,26 @@ public:
 		_map.insert(std::make_pair(std::string(key, keysize), Entry()));
 	    Entry* e = &result.first->second;
 	    bool newentry = result.second;
+	    uint32_t index = 0;
 	    if (newentry) _entries.push_back(e);
 	    else e->clear();
+	    if (newEntry) {
+		index = uint32_t(_entries.size());
+		_entries.push_back(e);
+	    }
+	    else {
+		index = e->index;
+		e->clear();
+	    }
 	    e->key = result.first->first.c_str();
 	    e->type = MetaDataType(datatype);
 	    e->datasize = datasize;
+	    e->index = index;
             metaDataMemUsed += sizeof(std::string) + keysize + 1 + sizeof(Entry);
 	    return e;
 	}
 
-	Entry* getEntry(const char* key);
+	Entry* getEntry(int index);
 
 	PtexReader* _reader;
 	typedef std::map<std::string, Entry> MetaMap;

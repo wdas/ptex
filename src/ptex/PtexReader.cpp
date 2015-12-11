@@ -340,15 +340,13 @@ PtexMetaData* PtexReader::getMetaData()
 
 
 PtexReader::MetaData::Entry*
-PtexReader::MetaData::getEntry(const char* key)
+PtexReader::MetaData::getEntry(int index)
 {
-    MetaMap::iterator iter = _map.find(key);
-    if (iter == _map.end()) {
-	// not found
+    if (index < 0 || index >= int(_entries.size())) {
 	return 0;
     }
 
-    Entry* e = &iter->second;
+    Entry* e = _entries[index];
     if (!e->isLmd) {
 	// normal (small) meta data - just return directly
 	return e;
