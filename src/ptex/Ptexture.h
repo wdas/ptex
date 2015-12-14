@@ -66,7 +66,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <ostream>
 
 #include "PtexVersion.h"
+#ifdef DOXYGEN
+/** Common data structures and enums used throughout the API */
+namespace Ptex {
+#else
 PTEX_NAMESPACE_BEGIN
+#endif
 
  /** Type of base mesh for which the textures are defined.  A mesh
      can be triangle-based (with triangular textures) or quad-based
@@ -322,6 +327,10 @@ private:
 std::ostream& operator << (std::ostream& stream, const Ptex::String& str);
 #endif
 
+
+#ifdef DOXYGEN
+} // end namespace Ptex
+#endif
 
 /**
    @class PtexMetaData
@@ -1073,6 +1082,7 @@ template <class T> class PtexPtr {
     void operator= (PtexPtr& p);
 };
 
+#ifndef DOXYGEN
 namespace PtexUtils {}
 
 PTEX_NAMESPACE_END
@@ -1088,4 +1098,5 @@ using Ptex::PtexFilter;
 using Ptex::PtexPtr;
 namespace PtexUtils = Ptex::PtexUtils;
 
+#endif
 #endif
