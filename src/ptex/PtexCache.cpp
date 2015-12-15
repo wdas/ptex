@@ -139,10 +139,10 @@ PtexTexture* PtexReaderCache::get(const char* filename, Ptex::String& error)
 
     bool needOpen = reader->needToOpen();
     if (needOpen) {
-	std::string buffer;
-	const char* pathToOpen = filename;
+        std::string buffer;
+        const char* pathToOpen = filename;
         // search for the file (unless we have an I/O handler)
-	if (_io || findFile(pathToOpen, buffer, error)) {
+        if (_io || findFile(pathToOpen, buffer, error)) {
             reader->open(pathToOpen, error);
         } else {
             // flag reader as invalid so we don't try to open it again on next lookup

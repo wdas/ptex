@@ -47,18 +47,18 @@ PTEX_NAMESPACE_BEGIN
 // Separable convolution kernel
 class PtexSeparableKernel {
  public:
-    Res res;			// resolution that kernel was built for
-    int u, v;			// uv offset within face data
-    int uw, vw;			// kernel width
-    float* ku;			// kernel weights in u
-    float* kv;			// kernel weights in v
-    static const int kmax = 10;	// max kernel width
+    Res res;                    // resolution that kernel was built for
+    int u, v;                   // uv offset within face data
+    int uw, vw;                 // kernel width
+    float* ku;                  // kernel weights in u
+    float* kv;                  // kernel weights in v
+    static const int kmax = 10; // max kernel width
     float kubuff[kmax];
     float kvbuff[kmax];
     int rot;
 
     PtexSeparableKernel()
-	: res(0), u(0), v(0), uw(0), vw(0), ku(kubuff), kv(kvbuff), rot(0)
+        : res(0), u(0), v(0), uw(0), vw(0), ku(kubuff), kv(kvbuff), rot(0)
     {
         kubuff[0] = 0; // keep cppcheck happy
         kvbuff[0] = 0;
@@ -66,360 +66,360 @@ class PtexSeparableKernel {
 
     PtexSeparableKernel(const PtexSeparableKernel& k)
     {
-	set(k.res, k.u, k.v, k.uw, k.vw, k.ku, k.kv, k.rot);
+        set(k.res, k.u, k.v, k.uw, k.vw, k.ku, k.kv, k.rot);
     }
 
     PtexSeparableKernel& operator= (const PtexSeparableKernel& k)
     {
-	set(k.res, k.u, k.v, k.uw, k.vw, k.ku, k.kv, k.rot);
-	return *this;
+        set(k.res, k.u, k.v, k.uw, k.vw, k.ku, k.kv, k.rot);
+        return *this;
     }
 
     void set(Res resVal,
-	     int uVal, int vVal,
-	     int uwVal, int vwVal,
-	     const float* kuVal, const float* kvVal, int rotVal=0)
+             int uVal, int vVal,
+             int uwVal, int vwVal,
+             const float* kuVal, const float* kvVal, int rotVal=0)
     {
-	assert(uwVal <= kmax && vwVal <= kmax);
-	res = resVal;
-	u = uVal;
-	v = vVal;
-	uw = uwVal;
-	vw = vwVal;
-	memcpy(kubuff, kuVal, sizeof(*ku)*uw);
-	memcpy(kvbuff, kvVal, sizeof(*kv)*vw);
-	ku = kubuff;
-	kv = kvbuff;
-	rot = rotVal;
+        assert(uwVal <= kmax && vwVal <= kmax);
+        res = resVal;
+        u = uVal;
+        v = vVal;
+        uw = uwVal;
+        vw = vwVal;
+        memcpy(kubuff, kuVal, sizeof(*ku)*uw);
+        memcpy(kvbuff, kvVal, sizeof(*kv)*vw);
+        ku = kubuff;
+        kv = kvbuff;
+        rot = rotVal;
     }
 
     void stripZeros()
     {
-	while (ku[0] == 0) { ku++; u++; uw--; }
-	while (ku[uw-1] == 0) { uw--; }
-	while (kv[0] == 0) { kv++; v++; vw--; }
-	while (kv[vw-1] == 0) { vw--; }
-	assert(uw > 0 && vw > 0);
+        while (ku[0] == 0) { ku++; u++; uw--; }
+        while (ku[uw-1] == 0) { uw--; }
+        while (kv[0] == 0) { kv++; v++; vw--; }
+        while (kv[vw-1] == 0) { vw--; }
+        assert(uw > 0 && vw > 0);
     }
 
     float weight() const
     {
-	return accumulate(ku, uw) * accumulate(kv, vw);
+        return accumulate(ku, uw) * accumulate(kv, vw);
     }
 
     void mergeL(BorderMode mode)
     {
-	int w = -u;
-	if (mode != m_black)
-	    ku[w] += accumulate(ku, w);
-	ku += w;
-	uw -= w;
-	u = 0;
+        int w = -u;
+        if (mode != m_black)
+            ku[w] += accumulate(ku, w);
+        ku += w;
+        uw -= w;
+        u = 0;
     }
 
     void mergeR(BorderMode mode)
     {
-	int w = uw + u - res.u();
-	float* kp = ku + uw - w;
-	if (mode != m_black)
-	    kp[-1] += accumulate(kp, w);
-	uw -= w;
+        int w = uw + u - res.u();
+        float* kp = ku + uw - w;
+        if (mode != m_black)
+            kp[-1] += accumulate(kp, w);
+        uw -= w;
     }
 
     void mergeB(BorderMode mode)
     {
-	int w = -v;
-	if (mode != m_black)
-	    kv[w] += accumulate(kv, w);
-	kv += w;
-	vw -= w;
-	v = 0;
+        int w = -v;
+        if (mode != m_black)
+            kv[w] += accumulate(kv, w);
+        kv += w;
+        vw -= w;
+        v = 0;
     }
 
     void mergeT(BorderMode mode)
     {
-	int w = vw + v - res.v();
-	float* kp = kv + vw - w;
-	if (mode != m_black)
-	    kp[-1] += accumulate(kp, w);
-	vw -= w;
+        int w = vw + v - res.v();
+        float* kp = kv + vw - w;
+        if (mode != m_black)
+            kp[-1] += accumulate(kp, w);
+        vw -= w;
     }
 
     void splitL(PtexSeparableKernel& k)
     {
-	// split off left piece of width w into k
-	int w = -u;
+        // split off left piece of width w into k
+        int w = -u;
 
-	if (w < uw) {
-	    // normal case - split off a portion
-	    //    res  u          v  uw vw  ku  kv
-	    k.set(res, res.u()-w, v, w, vw, ku, kv);
+        if (w < uw) {
+            // normal case - split off a portion
+            //    res  u          v  uw vw  ku  kv
+            k.set(res, res.u()-w, v, w, vw, ku, kv);
 
-	    // update local
-	    u = 0;
-	    uw -= w;
-	    ku += w;
-	}
-	else {
-	    // entire kernel is split off
-	    k = *this;
-	    k.u += res.u();
-	    u = 0; uw = 0;
-	}
+            // update local
+            u = 0;
+            uw -= w;
+            ku += w;
+        }
+        else {
+            // entire kernel is split off
+            k = *this;
+            k.u += res.u();
+            u = 0; uw = 0;
+        }
     }
 
     void splitR(PtexSeparableKernel& k)
     {
-	// split off right piece of width w into k
-	int w = u + uw - res.u();
+        // split off right piece of width w into k
+        int w = u + uw - res.u();
 
-	if (w < uw) {
-	    // normal case - split off a portion
-	    //    res  u  v  uw vw  ku           kv
-	    k.set(res, 0, v, w, vw, ku + uw - w, kv);
+        if (w < uw) {
+            // normal case - split off a portion
+            //    res  u  v  uw vw  ku           kv
+            k.set(res, 0, v, w, vw, ku + uw - w, kv);
 
-	    // update local
-	    uw -= w;
-	}
-	else {
-	    // entire kernel is split off
-	    k = *this;
-	    k.u -= res.u();
-	    u = 0; uw = 0;
-	}
+            // update local
+            uw -= w;
+        }
+        else {
+            // entire kernel is split off
+            k = *this;
+            k.u -= res.u();
+            u = 0; uw = 0;
+        }
     }
 
     void splitB(PtexSeparableKernel& k)
     {
-	// split off bottom piece of width w into k
-	int w = -v;
-	if (w < vw) {
-	    // normal case - split off a portion
-	    //    res  u  v          uw vw  ku  kv
-	    k.set(res, u, res.v()-w, uw, w, ku, kv);
+        // split off bottom piece of width w into k
+        int w = -v;
+        if (w < vw) {
+            // normal case - split off a portion
+            //    res  u  v          uw vw  ku  kv
+            k.set(res, u, res.v()-w, uw, w, ku, kv);
 
-	    // update local
-	    v = 0;
-	    vw -= w;
-	    kv += w;
-	}
-	else {
-	    // entire kernel is split off
-	    k = *this;
-	    k.v += res.v();
-	    v = 0; vw = 0;
-	}
+            // update local
+            v = 0;
+            vw -= w;
+            kv += w;
+        }
+        else {
+            // entire kernel is split off
+            k = *this;
+            k.v += res.v();
+            v = 0; vw = 0;
+        }
     }
 
     void splitT(PtexSeparableKernel& k)
     {
-	// split off top piece of width w into k
-	int w = v + vw - res.v();
-	if (w < vw) {
-	    // normal case - split off a portion
-	    //    res  u  v  uw vw  ku  kv
-	    k.set(res, u, 0, uw, w, ku, kv + vw - w);
+        // split off top piece of width w into k
+        int w = v + vw - res.v();
+        if (w < vw) {
+            // normal case - split off a portion
+            //    res  u  v  uw vw  ku  kv
+            k.set(res, u, 0, uw, w, ku, kv + vw - w);
 
-	    // update local
-	    vw -= w;
-	}
-	else {
-	    // entire kernel is split off
-	    k = *this;
-	    k.v -= res.v();
-	    v = 0; vw = 0;
-	}
+            // update local
+            vw -= w;
+        }
+        else {
+            // entire kernel is split off
+            k = *this;
+            k.v -= res.v();
+            v = 0; vw = 0;
+        }
     }
 
     void flipU()
     {
-	u = res.u() - u - uw;
-	std::reverse(ku, ku+uw);
+        u = res.u() - u - uw;
+        std::reverse(ku, ku+uw);
     }
 
     void flipV()
     {
-	v = res.v() - v - vw;
-	std::reverse(kv, kv+vw);
+        v = res.v() - v - vw;
+        std::reverse(kv, kv+vw);
     }
 
     void swapUV()
     {
-	res.swapuv();
-	std::swap(u, v);
-	std::swap(uw, vw);
-	std::swap(ku, kv);
+        res.swapuv();
+        std::swap(u, v);
+        std::swap(uw, vw);
+        std::swap(ku, kv);
     }
 
     void rotate(int rotVal)
     {
-	// rotate kernel 'rot' steps ccw
-	switch (rotVal & 3) {
-	default: return;
-	case 1: flipU(); swapUV(); break;
-	case 2: flipU(); flipV(); break;
-	case 3: flipV(); swapUV(); break;
-	}
-	rot = (rot + rotVal)&3;
+        // rotate kernel 'rot' steps ccw
+        switch (rotVal & 3) {
+        default: return;
+        case 1: flipU(); swapUV(); break;
+        case 2: flipU(); flipV(); break;
+        case 3: flipV(); swapUV(); break;
+        }
+        rot = (rot + rotVal)&3;
     }
 
     bool adjustMainToSubface(int eid)
     {
-	// to adjust the kernel for the subface, we must adjust the res down and offset the uv coords
-	// however, if the res is already zero, we must upres the kernel first
-	if (res.ulog2 == 0) upresU();
-	if (res.vlog2 == 0) upresV();
+        // to adjust the kernel for the subface, we must adjust the res down and offset the uv coords
+        // however, if the res is already zero, we must upres the kernel first
+        if (res.ulog2 == 0) upresU();
+        if (res.vlog2 == 0) upresV();
 
-	if (res.ulog2 > 0) res.ulog2--;
-	if (res.vlog2 > 0) res.vlog2--;
+        if (res.ulog2 > 0) res.ulog2--;
+        if (res.vlog2 > 0) res.vlog2--;
 
-	// offset uv coords and determine whether target subface is the primary one
-	bool primary = 0;
-	int resu = res.u(), resv = res.v();
-	switch (eid&3) {
-	case e_bottom:
-	    primary = (u < resu);
-	    v -= resv;
-	    if (!primary) u -= resu;
-	    break;
-	case e_right:
-	    primary = (v < resv);
-	    if (!primary) v -= resv;
-	    break;
-	case e_top:
-	    primary = (u >= resu);
-	    if (primary) u -= resu;
-	    break;
-	case e_left:
-	    primary = (v >= resv);
-	    u -= resu;
-	    if (primary) v -= resv;
-	    break;
-	}
-	return primary;
+        // offset uv coords and determine whether target subface is the primary one
+        bool primary = 0;
+        int resu = res.u(), resv = res.v();
+        switch (eid&3) {
+        case e_bottom:
+            primary = (u < resu);
+            v -= resv;
+            if (!primary) u -= resu;
+            break;
+        case e_right:
+            primary = (v < resv);
+            if (!primary) v -= resv;
+            break;
+        case e_top:
+            primary = (u >= resu);
+            if (primary) u -= resu;
+            break;
+        case e_left:
+            primary = (v >= resv);
+            u -= resu;
+            if (primary) v -= resv;
+            break;
+        }
+        return primary;
     }
 
     void adjustSubfaceToMain(int eid)
     {
-	switch (eid&3) {
-	case e_bottom: v += res.v(); break;
-	case e_right:  break;
-	case e_top:    u += res.u(); break;
-	case e_left:   u += res.u(); v += res.v(); break;
-	}
-	res.ulog2++; res.vlog2++;
+        switch (eid&3) {
+        case e_bottom: v += res.v(); break;
+        case e_right:  break;
+        case e_top:    u += res.u(); break;
+        case e_left:   u += res.u(); v += res.v(); break;
+        }
+        res.ulog2++; res.vlog2++;
     }
 
     void downresU()
     {
-	float* src = ku;
-	float* dst = ku;
+        float* src = ku;
+        float* dst = ku;
 
-	// skip odd leading sample (if any)
-	if (u & 1) {
-	    dst++;
-	    src++;
-	    uw--;
-	}
+        // skip odd leading sample (if any)
+        if (u & 1) {
+            dst++;
+            src++;
+            uw--;
+        }
 
-	// combine even pairs
-	for (int i = uw/2; i > 0; i--) {
-	    *dst++ = src[0] + src[1];
-	    src += 2;
-	}
+        // combine even pairs
+        for (int i = uw/2; i > 0; i--) {
+            *dst++ = src[0] + src[1];
+            src += 2;
+        }
 
-	// copy odd trailing sample (if any)
-	if (uw & 1) {
-	    *dst++ = *src++;
-	}
+        // copy odd trailing sample (if any)
+        if (uw & 1) {
+            *dst++ = *src++;
+        }
 
-	// update state
-	u /= 2;
-	uw = int(dst - ku);
-	res.ulog2--;
+        // update state
+        u /= 2;
+        uw = int(dst - ku);
+        res.ulog2--;
     }
 
     void downresV()
     {
-	float* src = kv;
-	float* dst = kv;
+        float* src = kv;
+        float* dst = kv;
 
-	// skip odd leading sample (if any)
-	if (v & 1) {
-	    dst++;
-	    src++;
-	    vw--;
-	}
+        // skip odd leading sample (if any)
+        if (v & 1) {
+            dst++;
+            src++;
+            vw--;
+        }
 
-	// combine even pairs
-	for (int i = vw/2; i > 0; i--) {
-	    *dst++ = src[0] + src[1];
-	    src += 2;
-	}
+        // combine even pairs
+        for (int i = vw/2; i > 0; i--) {
+            *dst++ = src[0] + src[1];
+            src += 2;
+        }
 
-	// copy odd trailing sample (if any)
-	if (vw & 1) {
-	    *dst++ = *src++;
-	}
+        // copy odd trailing sample (if any)
+        if (vw & 1) {
+            *dst++ = *src++;
+        }
 
-	// update state
-	v /= 2;
-	vw = int(dst - kv);
-	res.vlog2--;
+        // update state
+        v /= 2;
+        vw = int(dst - kv);
+        res.vlog2--;
     }
 
     void upresU()
     {
-	float* src = ku + uw-1;
-	float* dst = ku + uw*2-2;
-	for (int i = uw; i > 0; i--) {
-	    dst[0] = dst[1] = *src-- / 2;
-	    dst -=2;
-	}
-	uw *= 2;
-	u *= 2;
-	res.ulog2++;
+        float* src = ku + uw-1;
+        float* dst = ku + uw*2-2;
+        for (int i = uw; i > 0; i--) {
+            dst[0] = dst[1] = *src-- / 2;
+            dst -=2;
+        }
+        uw *= 2;
+        u *= 2;
+        res.ulog2++;
     }
 
     void upresV()
     {
-	float* src = kv + vw-1;
-	float* dst = kv + vw*2-2;
-	for (int i = vw; i > 0; i--) {
-	    dst[0] = dst[1] = *src-- / 2;
-	    dst -=2;
-	}
-	vw *= 2;
-	v *= 2;
-	res.vlog2++;
+        float* src = kv + vw-1;
+        float* dst = kv + vw*2-2;
+        for (int i = vw; i > 0; i--) {
+            dst[0] = dst[1] = *src-- / 2;
+            dst -=2;
+        }
+        vw *= 2;
+        v *= 2;
+        res.vlog2++;
     }
 
     float makeSymmetric(float initialWeight)
     {
-	assert(u == 0 && v == 0);
+        assert(u == 0 && v == 0);
 
-	// downres higher-res dimension until equal
-	if (res.ulog2 > res.vlog2) {
-	    do { downresU(); } while(res.ulog2 > res.vlog2);
-	}
-	else if (res.vlog2 > res.ulog2) {
-	    do { downresV(); } while (res.vlog2 > res.ulog2);
-	}
+        // downres higher-res dimension until equal
+        if (res.ulog2 > res.vlog2) {
+            do { downresU(); } while(res.ulog2 > res.vlog2);
+        }
+        else if (res.vlog2 > res.ulog2) {
+            do { downresV(); } while (res.vlog2 > res.ulog2);
+        }
 
-	// truncate excess samples in longer dimension
-	uw = vw = PtexUtils::min(uw, vw);
+        // truncate excess samples in longer dimension
+        uw = vw = PtexUtils::min(uw, vw);
 
-	// combine corresponding u and v samples and compute new kernel weight
+        // combine corresponding u and v samples and compute new kernel weight
         float newWeight = 0;
-	for (int i = 0; i < uw; i++) {
+        for (int i = 0; i < uw; i++) {
             float sum = ku[i] + kv[i];
-	    ku[i] = kv[i] = sum;
+            ku[i] = kv[i] = sum;
             newWeight += sum;
-	}
+        }
         newWeight *= newWeight; // equivalent to k.weight() ( = sum(ku)*sum(kv) )
 
-	// compute scale factor to compensate for weight change
-	float scale = newWeight == 0 ? 1.f : initialWeight / newWeight;
+        // compute scale factor to compensate for weight change
+        float scale = newWeight == 0 ? 1.f : initialWeight / newWeight;
 
         // Note: a sharpening kernel (like Mitchell) can produce
         // negative weights which may cancel out when adding the two
@@ -456,14 +456,14 @@ class PtexSeparableKernel {
 
     void apply(float* dst, void* data, DataType dt, int nChan, int nTxChan)
     {
-	// dispatch specialized apply function
-	ApplyFn fn = applyFunctions[(nChan!=nTxChan)*20 + ((unsigned)nChan<=4)*nChan*4 + dt];
-	fn(*this, dst, data, nChan, nTxChan);
+        // dispatch specialized apply function
+        ApplyFn fn = applyFunctions[(nChan!=nTxChan)*20 + ((unsigned)nChan<=4)*nChan*4 + dt];
+        fn(*this, dst, data, nChan, nTxChan);
     }
 
     void applyConst(float* dst, void* data, DataType dt, int nChan)
     {
-	PtexUtils::applyConst(weight(), dst, data, dt, nChan);
+        PtexUtils::applyConst(weight(), dst, data, dt, nChan);
     }
 
  private:
@@ -473,9 +473,9 @@ class PtexSeparableKernel {
     static ApplyConstFn applyConstFunctions[20];
     static inline float accumulate(const float* p, int n)
     {
-	float result = 0;
-	for (const float* e = p + n; p != e; p++) result += *p;
-	return result;
+        float result = 0;
+        for (const float* e = p + n; p != e; p++) result += *p;
+        return result;
     }
 };
 

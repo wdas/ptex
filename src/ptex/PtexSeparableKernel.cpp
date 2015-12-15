@@ -44,90 +44,90 @@ namespace {
     template<class T, int nChan>
     void Apply(PtexSeparableKernel& k, float* result, void* data, int /*nChan*/, int /*nTxChan*/)
     {
-	float* rowResult = (float*) alloca(nChan*sizeof(float));
-	int rowlen = k.res.u() * nChan;
-	int datalen = k.uw * nChan;
-	int rowskip = rowlen - datalen;
-	float* kvp = k.kv;
-	T* p = static_cast<T*>(data) + (k.v * k.res.u() + k.u) * nChan;
-	T* pEnd = p + k.vw * rowlen;
-	while (p != pEnd)
-	{
-	    float* kup = k.ku;
-	    T* pRowEnd = p + datalen;
-	    // just mult and copy first element
-	    PtexUtils::VecMult<T,nChan>()(rowResult, p, *kup++);
-	    p += nChan;
-	    // accumulate remaining elements
-	    while (p != pRowEnd) {
-		// rowResult[i] = p[i] * ku[u] for i in {0..n-1}
-		PtexUtils::VecAccum<T,nChan>()(rowResult, p, *kup++);
-		p += nChan;
-	    }
-	    // result[i] += rowResult[i] * kv[v] for i in {0..n-1}
-	    PtexUtils::VecAccum<float,nChan>()(result, rowResult, *kvp++);
-	    p += rowskip;
-	}
+        float* rowResult = (float*) alloca(nChan*sizeof(float));
+        int rowlen = k.res.u() * nChan;
+        int datalen = k.uw * nChan;
+        int rowskip = rowlen - datalen;
+        float* kvp = k.kv;
+        T* p = static_cast<T*>(data) + (k.v * k.res.u() + k.u) * nChan;
+        T* pEnd = p + k.vw * rowlen;
+        while (p != pEnd)
+        {
+            float* kup = k.ku;
+            T* pRowEnd = p + datalen;
+            // just mult and copy first element
+            PtexUtils::VecMult<T,nChan>()(rowResult, p, *kup++);
+            p += nChan;
+            // accumulate remaining elements
+            while (p != pRowEnd) {
+                // rowResult[i] = p[i] * ku[u] for i in {0..n-1}
+                PtexUtils::VecAccum<T,nChan>()(rowResult, p, *kup++);
+                p += nChan;
+            }
+            // result[i] += rowResult[i] * kv[v] for i in {0..n-1}
+            PtexUtils::VecAccum<float,nChan>()(result, rowResult, *kvp++);
+            p += rowskip;
+        }
     }
 
     // apply to 1..4 channels (unrolled channel loop) w/ pixel stride
     template<class T, int nChan>
     void ApplyS(PtexSeparableKernel& k, float* result, void* data, int /*nChan*/, int nTxChan)
     {
-	float* rowResult = (float*) alloca(nChan*sizeof(float));
-	int rowlen = k.res.u() * nTxChan;
-	int datalen = k.uw * nTxChan;
-	int rowskip = rowlen - datalen;
-	float* kvp = k.kv;
-	T* p = static_cast<T*>(data) + (k.v * k.res.u() + k.u) * nTxChan;
-	T* pEnd = p + k.vw * rowlen;
-	while (p != pEnd)
-	{
-	    float* kup = k.ku;
-	    T* pRowEnd = p + datalen;
-	    // just mult and copy first element
-	    PtexUtils::VecMult<T,nChan>()(rowResult, p, *kup++);
-	    p += nTxChan;
-	    // accumulate remaining elements
-	    while (p != pRowEnd) {
-		// rowResult[i] = p[i] * ku[u] for i in {0..n-1}
-		PtexUtils::VecAccum<T,nChan>()(rowResult, p, *kup++);
-		p += nTxChan;
-	    }
-	    // result[i] += rowResult[i] * kv[v] for i in {0..n-1}
-	    PtexUtils::VecAccum<float,nChan>()(result, rowResult, *kvp++);
-	    p += rowskip;
-	}
+        float* rowResult = (float*) alloca(nChan*sizeof(float));
+        int rowlen = k.res.u() * nTxChan;
+        int datalen = k.uw * nTxChan;
+        int rowskip = rowlen - datalen;
+        float* kvp = k.kv;
+        T* p = static_cast<T*>(data) + (k.v * k.res.u() + k.u) * nTxChan;
+        T* pEnd = p + k.vw * rowlen;
+        while (p != pEnd)
+        {
+            float* kup = k.ku;
+            T* pRowEnd = p + datalen;
+            // just mult and copy first element
+            PtexUtils::VecMult<T,nChan>()(rowResult, p, *kup++);
+            p += nTxChan;
+            // accumulate remaining elements
+            while (p != pRowEnd) {
+                // rowResult[i] = p[i] * ku[u] for i in {0..n-1}
+                PtexUtils::VecAccum<T,nChan>()(rowResult, p, *kup++);
+                p += nTxChan;
+            }
+            // result[i] += rowResult[i] * kv[v] for i in {0..n-1}
+            PtexUtils::VecAccum<float,nChan>()(result, rowResult, *kvp++);
+            p += rowskip;
+        }
     }
 
     // apply to N channels (general case)
     template<class T>
     void ApplyN(PtexSeparableKernel& k, float* result, void* data, int nChan, int nTxChan)
     {
-	float* rowResult = (float*) alloca(nChan*sizeof(float));
-	int rowlen = k.res.u() * nTxChan;
-	int datalen = k.uw * nTxChan;
-	int rowskip = rowlen - datalen;
-	float* kvp = k.kv;
-	T* p = static_cast<T*>(data) + (k.v * k.res.u() + k.u) * nTxChan;
-	T* pEnd = p + k.vw * rowlen;
-	while (p != pEnd)
-	{
-	    float* kup = k.ku;
-	    T* pRowEnd = p + datalen;
-	    // just mult and copy first element
-	    PtexUtils::VecMultN<T>()(rowResult, p, nChan, *kup++);
-	    p += nTxChan;
-	    // accumulate remaining elements
-	    while (p != pRowEnd) {
-		// rowResult[i] = p[i] * ku[u] for i in {0..n-1}
-		PtexUtils::VecAccumN<T>()(rowResult, p, nChan, *kup++);
-		p += nTxChan;
-	    }
-	    // result[i] += rowResult[i] * kv[v] for i in {0..n-1}
-	    PtexUtils::VecAccumN<float>()(result, rowResult, nChan, *kvp++);
-	    p += rowskip;
-	}
+        float* rowResult = (float*) alloca(nChan*sizeof(float));
+        int rowlen = k.res.u() * nTxChan;
+        int datalen = k.uw * nTxChan;
+        int rowskip = rowlen - datalen;
+        float* kvp = k.kv;
+        T* p = static_cast<T*>(data) + (k.v * k.res.u() + k.u) * nTxChan;
+        T* pEnd = p + k.vw * rowlen;
+        while (p != pEnd)
+        {
+            float* kup = k.ku;
+            T* pRowEnd = p + datalen;
+            // just mult and copy first element
+            PtexUtils::VecMultN<T>()(rowResult, p, nChan, *kup++);
+            p += nTxChan;
+            // accumulate remaining elements
+            while (p != pRowEnd) {
+                // rowResult[i] = p[i] * ku[u] for i in {0..n-1}
+                PtexUtils::VecAccumN<T>()(rowResult, p, nChan, *kup++);
+                p += nTxChan;
+            }
+            // result[i] += rowResult[i] * kv[v] for i in {0..n-1}
+            PtexUtils::VecAccumN<float>()(result, rowResult, nChan, *kvp++);
+            p += rowskip;
+        }
     }
 }
 

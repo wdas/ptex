@@ -60,8 +60,8 @@ inline uint32_t ones(uint32_t x)
     x = (x & 0x55555555) + ((x >> 1) & 0x55555555); // add pairs of bits
     x = (x & 0x33333333) + ((x >> 2) & 0x33333333); // add bit pairs
     x = (x & 0x0f0f0f0f) + ((x >> 4) & 0x0f0f0f0f); // add nybbles
-    x += (x >> 8);		                        // add bytes
-    x += (x >> 16);	                                // add words
+    x += (x >> 8);                                      // add bytes
+    x += (x >> 16);                                     // add words
     return(x & 0xff);
 }
 

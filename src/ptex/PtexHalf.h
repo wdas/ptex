@@ -97,19 +97,19 @@ struct PtexHalf {
 
     static float toFloat(uint16_t h)
     {
-	union { uint32_t i; float f; } u;
-	u.i = h2fTable[h];
-	return u.f;
+        union { uint32_t i; float f; } u;
+        u.i = h2fTable[h];
+        return u.f;
     }
 
     static uint16_t fromFloat(float val)
     {
-	if (val==0) return 0;
-	union { uint32_t i; float f; } u;
-	u.f = val;
-	int e = f2hTable[(u.i>>23)&0x1ff];
-	if (e) return (uint16_t)(e + (((u.i&0x7fffff) + 0x1000) >> 13));
-	return fromFloat_except(u.i);
+        if (val==0) return 0;
+        union { uint32_t i; float f; } u;
+        u.f = val;
+        int e = f2hTable[(u.i>>23)&0x1ff];
+        if (e) return (uint16_t)(e + (((u.i&0x7fffff) + 0x1000) >> 13));
+        return fromFloat_except(u.i);
     }
 
  private:

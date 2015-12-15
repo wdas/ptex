@@ -352,14 +352,14 @@ class PtexMetaData {
 
     /// Query the name and type of a meta data entry.
     virtual void getKey(int index, const char*& key, Ptex::MetaDataType& type) = 0;
-    
+
     /// Query the index and type of a meta data entry by name.
     virtual bool findKey(const char* key, int& index, Ptex::MetaDataType& type) = 0;
 
     /** Query the value of a given meta data entry.
 	If the key doesn't exist or the type doesn't match, value is set to null */
     virtual void getValue(const char* key, const char*& value) = 0;
-    
+
     /** Query the value of a given meta data entry by index.
 	If the index is out of range or the type doesn't match, value is set to null */
     virtual void getValue(int index, const char*& value) = 0;
@@ -367,7 +367,7 @@ class PtexMetaData {
     /** Query the value of a given meta data entry.
 	If the key doesn't exist or the type doesn't match, value is set to null */
     virtual void getValue(const char* key, const int8_t*& value, int& count) = 0;
-    
+
     /** Query the value of a given meta data entry by index.
 	If the index is out of range or the type doesn't match, value is set to null */
     virtual void getValue(int index, const int8_t*& value, int& count) = 0;
@@ -375,7 +375,7 @@ class PtexMetaData {
     /** Query the value of a given meta data entry.
 	If the key doesn't exist or the type doesn't match, value is set to null */
     virtual void getValue(const char* key, const int16_t*& value, int& count) = 0;
-    
+
     /** Query the value of a given meta data entry by index.
 	If the index is out of range or the type doesn't match, value is set to null */
     virtual void getValue(int index, const int16_t*& value, int& count) = 0;
@@ -383,7 +383,7 @@ class PtexMetaData {
     /** Query the value of a given meta data entry.
 	If the key doesn't exist or the type doesn't match, value is set to null */
     virtual void getValue(const char* key, const int32_t*& value, int& count) = 0;
-    
+
     /** Query the value of a given meta data entry by index.
 	If the index is out of range or the type doesn't match, value is set to null */
     virtual void getValue(int index, const int32_t*& value, int& count) = 0;
@@ -391,7 +391,7 @@ class PtexMetaData {
     /** Query the value of a given meta data entry.
 	If the key doesn't exist or the type doesn't match, value is set to null */
     virtual void getValue(const char* key, const float*& value, int& count) = 0;
-    
+
     /** Query the value of a given meta data entry by index.
 	If the index is out of range or the type doesn't match, value is set to null */
     virtual void getValue(int index, const float*& value, int& count) = 0;
@@ -399,7 +399,7 @@ class PtexMetaData {
     /** Query the value of a given meta data entry.
 	If the key doesn't exist or the type doesn't match, value is set to null */
     virtual void getValue(const char* key, const double*& value, int& count) = 0;
-    
+
     /** Query the value of a given meta data entry by index.
 	If the index is out of range or the type doesn't match, value is set to null */
     virtual void getValue(int index, const double*& value, int& count) = 0;
@@ -429,21 +429,21 @@ class PtexFaceData {
     virtual bool isConstant() = 0;
 
     /** Resolution of the texture held by this data block.  Note: the
-	indicated texture res may be larger than 1x1 even if the
-	texture data is constant. */
+        indicated texture res may be larger than 1x1 even if the
+        texture data is constant. */
     virtual Ptex::Res res() = 0;
 
     /** Read a single texel from the data block.  The texel coordinates, u and v, have
-	a range of [0..ures-1, 0..vres-1].  Note: this method will work correctly even if
-	the face is constant or tiled. */
+        a range of [0..ures-1, 0..vres-1].  Note: this method will work correctly even if
+        the face is constant or tiled. */
     virtual void getPixel(int u, int v, void* result) = 0;
 
     /** Access the data from this data block.
 
         If the data block is constant, getData will return a pointer to a single texel's data value.
 
-	If the data block is tiled, then getData will return null and
-	the data must be accessed per-tile via the getTile() function. */
+        If the data block is tiled, then getData will return null and
+        the data must be accessed per-tile via the getTile() function. */
     virtual void* getData() = 0;
 
     /** True if this data block is tiled.
@@ -475,14 +475,14 @@ class PtexTexture {
  public:
     /** Open a ptex file for reading.
 
-	If an error occurs, an error message will be stored in the
-	error string param and a null pointer will be returned.
+        If an error occurs, an error message will be stored in the
+        error string param and a null pointer will be returned.
 
-	If the premultiply param is set to true and the texture file has a specified alpha channel,
-	then all data stored in the file will be multiplied by alpha when read from disk.  If premultiply
-	is false, then the full-resolution textures will be returned as stored on disk which is assumed
-	to be unmultiplied.  Reductions (both stored mip-maps and dynamically generated reductions) are
-	always premultiplied with alpha.  See PtexWriter for more information about alpha channels.
+        If the premultiply param is set to true and the texture file has a specified alpha channel,
+        then all data stored in the file will be multiplied by alpha when read from disk.  If premultiply
+        is false, then the full-resolution textures will be returned as stored on disk which is assumed
+        to be unmultiplied.  Reductions (both stored mip-maps and dynamically generated reductions) are
+        always premultiplied with alpha.  See PtexWriter for more information about alpha channels.
     */
     PTEXAPI static PtexTexture* open(const char* path, Ptex::String& error, bool premultiply=0);
 
@@ -491,8 +491,8 @@ class PtexTexture {
     virtual void release() = 0;
 
     /** Path that file was opened with.  If the file was opened using a search path (via PtexCache),
-	the the path will be the path as found in the search path.  Otherwise, the path will be
-	the path as supplied to open. */
+        the the path will be the path as found in the search path.  Otherwise, the path will be
+        the path as supplied to open. */
     virtual const char* path() = 0;
 
     /** Get most commonly used info in a single call for convenience / efficiency */
@@ -524,8 +524,8 @@ class PtexTexture {
     virtual Ptex::EdgeFilterMode edgeFilterMode() = 0;
 
     /** Index of alpha channel (if any).  One channel in the file can be flagged to be the alpha channel.
-	If no channel is acting as the alpha channel, -1 is returned.
-	See PtexWriter for more details.  */
+        If no channel is acting as the alpha channel, -1 is returned.
+        See PtexWriter for more details.  */
     virtual int alphaChannel() = 0;
 
     /** Number of channels stored in file. */
@@ -548,18 +548,18 @@ class PtexTexture {
 
     /** Access texture data for a face at highest-resolution.
 
-	The texture data is copied into the user-supplied buffer.
-	The buffer must be at least this size (in bytes):
-	DataSize(dataType()) * numChannels() * getFaceInfo(faceid).res.size().
+        The texture data is copied into the user-supplied buffer.
+        The buffer must be at least this size (in bytes):
+        DataSize(dataType()) * numChannels() * getFaceInfo(faceid).res.size().
 
-	If a stride is given, then (stride-row_length) bytes will be
-	skipped after each row.  If stride is zero, then no bytes will
-	be skipped.  Note: the image can be flipped vertically by using
-	an appropriate negative stride value.
+        If a stride is given, then (stride-row_length) bytes will be
+        skipped after each row.  If stride is zero, then no bytes will
+        be skipped.  Note: the image can be flipped vertically by using
+        an appropriate negative stride value.
 
-	@param faceid Face index [0..numFaces-1]
-	@param buffer User-supplied buffer
-	@param stride Size of each row in user buffer (in bytes)
+        @param faceid Face index [0..numFaces-1]
+        @param buffer User-supplied buffer
+        @param stride Size of each row in user buffer (in bytes)
     */
     virtual void getData(int faceid, void* buffer, int stride) = 0;
 
@@ -572,7 +572,7 @@ class PtexTexture {
         resolution will be generated from the nearest available
         resolution.
 
-	See previous getData() method for interface details.
+        See previous getData() method for interface details.
      */
     virtual void getData(int faceid, void* buffer, int stride, Ptex::Res res) = 0;
 
@@ -591,19 +591,19 @@ class PtexTexture {
     virtual PtexFaceData* getData(int faceid, Ptex::Res res) = 0;
 
     /** Access a single texel from the highest resolution texture .
-	The texel data is converted to floating point (integer types
-	are normalized 0.0 to 1.0).  A subset of the available
-	channels may be accessed.
+        The texel data is converted to floating point (integer types
+        are normalized 0.0 to 1.0).  A subset of the available
+        channels may be accessed.
 
-	@param faceid Face index [0..numFaces-1]
-	@param u U coordinate [0..ures-1]
-	@param v V coordinate [0..vres-1]
-	@param result Result data
-	@param firstchan First channel to access [0..numChannels-1]
-	@param nchannels Number of channels to access.
+        @param faceid Face index [0..numFaces-1]
+        @param u U coordinate [0..ures-1]
+        @param v V coordinate [0..vres-1]
+        @param result Result data
+        @param firstchan First channel to access [0..numChannels-1]
+        @param nchannels Number of channels to access.
      */
     virtual void getPixel(int faceid, int u, int v,
-			  float* result, int firstchan, int nchannels) = 0;
+                          float* result, int firstchan, int nchannels) = 0;
 
     /** Access a single texel for a face at a particular resolution.
 
@@ -614,11 +614,11 @@ class PtexTexture {
         desired resolution will be generated from the nearest
         available resolution.
 
-	See previous getPixel() method for details.
+        See previous getPixel() method for details.
     */
     virtual void getPixel(int faceid, int u, int v,
-			  float* result, int firstchan, int nchannels,
-			  Ptex::Res res) = 0;
+                          float* result, int firstchan, int nchannels,
+                          Ptex::Res res) = 0;
 };
 
 
@@ -637,8 +637,8 @@ class PtexInputHandler {
     typedef void* Handle;
 
     /** Open a file in read mode.
-	Returns null if there was an error.
-	If an error occurs, the error string is available via lastError().
+        Returns null if there was an error.
+        If an error occurs, the error string is available via lastError().
     */
     virtual Handle open(const char* path) = 0;
 
@@ -646,14 +646,14 @@ class PtexInputHandler {
     virtual void seek(Handle handle, int64_t pos) = 0;
 
     /** Read a number of bytes from the file.
-	Returns the number of bytes successfully read.
-	If less than the requested number of bytes is read, the error string
-	is available via lastError().
+        Returns the number of bytes successfully read.
+        If less than the requested number of bytes is read, the error string
+        is available via lastError().
     */
     virtual size_t read(void* buffer, size_t size, Handle handle) = 0;
 
     /** Close a file.  Returns false if an error occurs, and the error
-	string is available via lastError().  */
+        string is available via lastError().  */
     virtual bool close(Handle handle) = 0;
 
     /** Return the last error message encountered. */
@@ -703,21 +703,21 @@ class PtexCache {
     /** Create a cache with the specified limits.
 
         @param maxFiles Maximum open file handles.  If zero,
-	limit is set to 100 open files.
+        limit is set to 100 open files.
 
-	@param maxMem Maximum allocated memory, in bytes.  If zero
-	the cache is unlimited.
+        @param maxMem Maximum allocated memory, in bytes.  If zero
+        the cache is unlimited.
 
-	@param premultiply If true, textures will be premultiplied by
+        @param premultiply If true, textures will be premultiplied by
         the alpha channel (if any) when read from disk.  For authoring
         purposes, this should generally be set to false, and for
         rendering purposes, this should generally be set to true.  See
         PtexTexture and PtexWriter for more details.
 
-	@param inputHandler If specified, all input calls made through this cache will
-	be directed through the handler.
+        @param inputHandler If specified, all input calls made through this cache will
+        be directed through the handler.
 
-	@param errorHandler If specified, errors encounted with files access through
+        @param errorHandler If specified, errors encounted with files access through
         this cache will be directed to the handler.  By default, errors will be
         reported to stderr.
      */
@@ -731,7 +731,7 @@ class PtexCache {
     virtual void release() = 0;
 
     /** Set a search path for finding textures.
-	Note: if an input handler is installed the search path will be ignored.
+        Note: if an input handler is installed the search path will be ignored.
 
         @param path colon-delimited search path.
      */
@@ -827,43 +827,43 @@ class PtexWriter {
 
  public:
     /** Open a new texture file for writing.
-	@param path Path to file.
-	@param mt Type of mesh for which the textures are defined.
-	@param dt Type of data stored within file.
-	@param nchannels Number of data channels.
-	@param alphachan Index of alpha channel, [0..nchannels-1] or -1 if no alpha channel is present.
-	@param nfaces Number of faces in mesh.
-	@param error String containing error message if open failed.
-	@param genmipmaps Specify true if mipmaps should be generated.
+        @param path Path to file.
+        @param mt Type of mesh for which the textures are defined.
+        @param dt Type of data stored within file.
+        @param nchannels Number of data channels.
+        @param alphachan Index of alpha channel, [0..nchannels-1] or -1 if no alpha channel is present.
+        @param nfaces Number of faces in mesh.
+        @param error String containing error message if open failed.
+        @param genmipmaps Specify true if mipmaps should be generated.
      */
     PTEXAPI
     static PtexWriter* open(const char* path,
-			    Ptex::MeshType mt, Ptex::DataType dt,
-			    int nchannels, int alphachan, int nfaces,
-			    Ptex::String& error, bool genmipmaps=true);
+                            Ptex::MeshType mt, Ptex::DataType dt,
+                            int nchannels, int alphachan, int nfaces,
+                            Ptex::String& error, bool genmipmaps=true);
 
     /** Open an existing texture file for writing.
 
         If the incremental param is specified as true, then data
         values written to the file are appended to the file as "edit
         blocks".  This is the fastest way to write data to the file, but
-	edit blocks are slower to read back, and they have no mipmaps so
-	filtering can be inefficient.
+        edit blocks are slower to read back, and they have no mipmaps so
+        filtering can be inefficient.
 
-	If incremental is false, then the edits are applied to the
-	file and the entire file is regenerated on close as if it were
-	written all at once with open().
+        If incremental is false, then the edits are applied to the
+        file and the entire file is regenerated on close as if it were
+        written all at once with open().
 
-	If the file doesn't exist it will be created and written as if
-	open() were used.  If the file exists, the mesh type, data
-	type, number of channels, alpha channel, and number of faces
-	must agree with those stored in the file.
+        If the file doesn't exist it will be created and written as if
+        open() were used.  If the file exists, the mesh type, data
+        type, number of channels, alpha channel, and number of faces
+        must agree with those stored in the file.
      */
     PTEXAPI
     static PtexWriter* edit(const char* path, bool incremental,
-			    Ptex::MeshType mt, Ptex::DataType dt,
-			    int nchannels, int alphachan, int nfaces,
-			    Ptex::String& error, bool genmipmaps=true);
+                            Ptex::MeshType mt, Ptex::DataType dt,
+                            int nchannels, int alphachan, int nfaces,
+                            Ptex::String& error, bool genmipmaps=true);
 
     /** Apply edits to a file.
 
@@ -907,28 +907,28 @@ class PtexWriter {
     virtual void writeMeta(PtexMetaData* data) = 0;
 
     /** Write texture data for a face.
-	The data is assumed to be channel-interleaved per texel and stored in v-major order.
+        The data is assumed to be channel-interleaved per texel and stored in v-major order.
 
-	@param faceid Face index [0..nfaces-1].
-	@param info Face resolution and adjacency information.
-	@param data Texel data.
-	@param stride Distance between rows, in bytes (if zero, data is assumed packed).
+        @param faceid Face index [0..nfaces-1].
+        @param info Face resolution and adjacency information.
+        @param data Texel data.
+        @param stride Distance between rows, in bytes (if zero, data is assumed packed).
 
-	If an error is encountered while writing, false is returned and an error message can be
-	retrieved when close is called.
+        If an error is encountered while writing, false is returned and an error message can be
+        retrieved when close is called.
      */
     virtual bool writeFace(int faceid, const Ptex::FaceInfo& info, const void* data, int stride=0) = 0;
 
     /** Write constant texture data for a face.
-	The data is written as a single constant texel value.  Note: the resolution specified in the
-	info param may indicate a resolution greater than 1x1 and the value will be preserved when
-	reading.  This is useful to indicate a texture's logical resolution even when the data is
-	constant. */
+        The data is written as a single constant texel value.  Note: the resolution specified in the
+        info param may indicate a resolution greater than 1x1 and the value will be preserved when
+        reading.  This is useful to indicate a texture's logical resolution even when the data is
+        constant. */
     virtual bool writeConstantFace(int faceid, const Ptex::FaceInfo& info, const void* data) = 0;
 
     /** Close the file.  This operation can take some time if mipmaps are being generated or if there
-	are many edit blocks.  If an error occurs while writing, false is returned and an error string
-	is written into the error parameter. */
+        are many edit blocks.  If an error occurs while writing, false is returned and an error string
+        is written into the error parameter. */
     virtual bool close(Ptex::String& error) = 0;
 
 #if NEW_API
@@ -955,28 +955,28 @@ class PtexFilter {
  public:
     /// Filter types
     enum FilterType {
-	f_point,		///< Point-sampled (no filtering)
-	f_bilinear,		///< Bi-linear interpolation
-	f_box,			///< Box filter
-	f_gaussian,		///< Gaussian filter
-	f_bicubic,		///< General bi-cubic filter (uses sharpness option)
-	f_bspline,		///< BSpline (equivalent to bi-cubic w/ sharpness=0)
-	f_catmullrom,		///< Catmull-Rom (equivalent to bi-cubic w/ sharpness=1)
-	f_mitchell		///< Mitchell (equivalent to bi-cubic w/ sharpness=2/3)
+        f_point,                ///< Point-sampled (no filtering)
+        f_bilinear,             ///< Bi-linear interpolation
+        f_box,                  ///< Box filter
+        f_gaussian,             ///< Gaussian filter
+        f_bicubic,              ///< General bi-cubic filter (uses sharpness option)
+        f_bspline,              ///< BSpline (equivalent to bi-cubic w/ sharpness=0)
+        f_catmullrom,           ///< Catmull-Rom (equivalent to bi-cubic w/ sharpness=1)
+        f_mitchell              ///< Mitchell (equivalent to bi-cubic w/ sharpness=2/3)
     };
 
     /// Choose filter options
     struct Options {
-	int __structSize;	///< (for internal use only)
-	FilterType filter;	///< Filter type.
-	bool lerp;		///< Interpolate between mipmap levels.
-	float sharpness;	///< Filter sharpness, 0..1 (for general bi-cubic filter only).
+        int __structSize;       ///< (for internal use only)
+        FilterType filter;      ///< Filter type.
+        bool lerp;              ///< Interpolate between mipmap levels.
+        float sharpness;        ///< Filter sharpness, 0..1 (for general bi-cubic filter only).
         bool noedgeblend;       ///< Disable cross-face filtering.  Useful for debugging or rendering on polys.
 
-	/// Constructor - sets defaults
-	Options(FilterType filter_=f_box, bool lerp_=0, float sharpness_=0, bool noedgeblend_=0) :
-	    __structSize(sizeof(Options)),
-	    filter(filter_), lerp(lerp_), sharpness(sharpness_), noedgeblend(noedgeblend_) {}
+        /// Constructor - sets defaults
+        Options(FilterType filter_=f_box, bool lerp_=0, float sharpness_=0, bool noedgeblend_=0) :
+            __structSize(sizeof(Options)),
+            filter(filter_), lerp(lerp_), sharpness(sharpness_), noedgeblend(noedgeblend_) {}
     };
 
     /* Construct a filter for the given texture.
@@ -995,21 +995,21 @@ class PtexFilter {
         Footprint \endlink for details.
 
         @param result Buffer to hold filter result.  Must be large enough to hold nchannels worth of data.
-	@param firstchan First channel to evaluate [0..tx->numChannels()-1]
-	@param nchannels Number of channels to evaluate
-	@param faceid Face index [0..tx->numFaces()-1]
-	@param u U coordinate, normalized [0..1]
-	@param v V coordinate, normalized [0..1]
-	@param uw1 U filter width 1, normalized [0..1]
-	@param vw1 V filter width 1, normalized [0..1]
-	@param uw2 U filter width 2, normalized [0..1]
-	@param vw2 V filter width 2, normalized [0..1]
-	@param width scale factor for filter width
-	@param blur amount to add to filter width [0..1]
+        @param firstchan First channel to evaluate [0..tx->numChannels()-1]
+        @param nchannels Number of channels to evaluate
+        @param faceid Face index [0..tx->numFaces()-1]
+        @param u U coordinate, normalized [0..1]
+        @param v V coordinate, normalized [0..1]
+        @param uw1 U filter width 1, normalized [0..1]
+        @param vw1 V filter width 1, normalized [0..1]
+        @param uw2 U filter width 2, normalized [0..1]
+        @param vw2 V filter width 2, normalized [0..1]
+        @param width scale factor for filter width
+        @param blur amount to add to filter width [0..1]
     */
     virtual void eval(float* result, int firstchan, int nchannels,
-		      int faceid, float u, float v, float uw1, float vw1, float uw2, float vw2,
-		      float width=1, float blur=0) = 0;
+                      int faceid, float u, float v, float uw1, float vw1, float uw2, float vw2,
+                      float width=1, float blur=0) = 0;
 };
 
 
@@ -1031,14 +1031,14 @@ class PtexFilter {
    \code
       {
           Ptex::String error;
-	  PtexPtr<PtexTexture> inptx(PtexTexture::open(inptxname, error));
-	  if (!inptx) {
-	      std::cerr << error << std::endl;
-	  }
-	  else {
-	      // read some data
-	      inptx->getData(faceid, buffer, stride);
-	  }
+          PtexPtr<PtexTexture> inptx(PtexTexture::open(inptxname, error));
+          if (!inptx) {
+              std::cerr << error << std::endl;
+          }
+          else {
+              // read some data
+              inptx->getData(faceid, buffer, stride);
+          }
       }
    \endcode
  */
@@ -1063,9 +1063,9 @@ template <class T> class PtexPtr {
     /// Swap pointer values.
     void swap(PtexPtr& p)
     {
-	T* tmp = p._ptr;
-	p._ptr = _ptr;
-	_ptr = tmp;
+        T* tmp = p._ptr;
+        p._ptr = _ptr;
+        _ptr = tmp;
     }
 
     /// Deallocate object pointed to, and optionally set to new value.

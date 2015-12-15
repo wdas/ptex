@@ -7,8 +7,8 @@
 using namespace Ptex;
 
 void writeMeta(PtexWriter* w,
-	       const char* sval, double* dvals, int ndvals, int16_t* ivals, int nivals,
-	       const char* xval)
+               const char* sval, double* dvals, int ndvals, int16_t* ivals, int nivals,
+               const char* xval)
 {
     if (sval) w->writeMeta("sval", sval);
     if (dvals) w->writeMeta("dvals", dvals, ndvals);
@@ -18,14 +18,14 @@ void writeMeta(PtexWriter* w,
 
 
 bool checkMeta(const char* path,
-	       const char* sval, double* dvals, int ndvals, int16_t* ivals, int nivals,
-	       const char* xval)
+               const char* sval, double* dvals, int ndvals, int16_t* ivals, int nivals,
+               const char* xval)
 {
     Ptex::String error;
     PtexPtr<PtexTexture> tx(PtexTexture::open(path, error));
     if (!tx) {
         std::cerr << error.c_str() << std::endl;
-	return 0;
+        return 0;
     }
     PtexPtr<PtexMetaData> meta(tx->getMetaData());
 
@@ -44,16 +44,16 @@ bool checkMeta(const char* path,
     meta->getValue("xval", f_xval);
 
     bool ok = ((!sval || 0==strcmp(sval, f_sval)) &&
-	       (!ndvals || (ndvals == f_ndvals &&
-			    0==memcmp(dvals, f_dvals,
-				      ndvals * sizeof(dvals[0])))) &&
-	       (!nivals || (nivals == f_nivals &&
-			    0==memcmp(ivals, f_ivals,
-				      nivals*sizeof(ivals[0])))) &&
-	       (!xval || 0==strcmp(xval, f_xval)));
+               (!ndvals || (ndvals == f_ndvals &&
+                            0==memcmp(dvals, f_dvals,
+                                      ndvals * sizeof(dvals[0])))) &&
+               (!nivals || (nivals == f_nivals &&
+                            0==memcmp(ivals, f_ivals,
+                                      nivals*sizeof(ivals[0])))) &&
+               (!xval || 0==strcmp(xval, f_xval)));
     if (!ok) {
-	std::cerr << "Meta data readback failed" << std::endl;
-	return 0;
+        std::cerr << "Meta data readback failed" << std::endl;
+        return 0;
     }
     return 1;
 }
@@ -62,32 +62,32 @@ bool checkMeta(const char* path,
 int main(int /*argc*/, char** /*argv*/)
 {
     static Ptex::Res res[] = { Ptex::Res(8,7),
-			       Ptex::Res(0x0201),
-			       Ptex::Res(3,1),
-			       Ptex::Res(0x0405),
-			       Ptex::Res(9,8),
-			       Ptex::Res(0x0402),
-			       Ptex::Res(6,2),
-			       Ptex::Res(0x0407),
-			       Ptex::Res(2,1)};
+                               Ptex::Res(0x0201),
+                               Ptex::Res(3,1),
+                               Ptex::Res(0x0405),
+                               Ptex::Res(9,8),
+                               Ptex::Res(0x0402),
+                               Ptex::Res(6,2),
+                               Ptex::Res(0x0407),
+                               Ptex::Res(2,1)};
     static int adjedges[][4] = {{ 2, 3, 0, 1 },
-				{ 2, 3, 0, 1 },
-				{ 2, 3, 0, 1 },
-				{ 2, 3, 0, 1 },
-				{ 2, 3, 0, 1 },
-				{ 2, 3, 0, 1 },
-				{ 2, 3, 0, 1 },
-				{ 2, 3, 0, 1 },
-				{ 2, 3, 0, 1 }};
+                                { 2, 3, 0, 1 },
+                                { 2, 3, 0, 1 },
+                                { 2, 3, 0, 1 },
+                                { 2, 3, 0, 1 },
+                                { 2, 3, 0, 1 },
+                                { 2, 3, 0, 1 },
+                                { 2, 3, 0, 1 },
+                                { 2, 3, 0, 1 }};
     static int adjfaces[][4] ={{ 3, 1, -1, -1 },
-			       { 4, 2, -1, 0 },
-			       { 5, -1, -1, 1 },
-			       { 6, 4, 0, -1 },
-			       { 7, 5, 1, 3 },
-			       { 8, -1, 2, 4 },
-			       { -1, 7, 3, -1 },
-			       { -1, 8, 4, 6 },
-			       { -1, -1, 5, 7 }};
+                               { 4, 2, -1, 0 },
+                               { 5, -1, -1, 1 },
+                               { 6, 4, 0, -1 },
+                               { 7, 5, 1, 3 },
+                               { 8, -1, 2, 4 },
+                               { -1, 7, 3, -1 },
+                               { -1, 8, 4, 6 },
+                               { -1, -1, 5, 7 }};
 
     int nfaces = sizeof(res)/sizeof(res[0]);
     Ptex::DataType dt = Ptex::dt_uint16;
@@ -98,32 +98,32 @@ int main(int /*argc*/, char** /*argv*/)
 
     Ptex::String error;
     PtexWriter* w =
-	PtexWriter::open("test.ptx", Ptex::mt_quad, dt, nchan, alpha, nfaces, error);
+        PtexWriter::open("test.ptx", Ptex::mt_quad, dt, nchan, alpha, nfaces, error);
     if (!w) {
-	std::cerr << error.c_str() << std::endl;
-	return 1;
+        std::cerr << error.c_str() << std::endl;
+        return 1;
     }
     int size = 0;
     for (int i = 0; i < nfaces; i++)
-	size = std::max(size, res[i].size());
+        size = std::max(size, res[i].size());
     size *= Ptex::DataSize(dt) * nchan;
 
     void* buff = malloc(size);
     for (int i = 0; i < nfaces; i++)
     {
-	memset(buff, 0, size);
-	Dtype* fbuff = (Dtype*)buff;
-	int ures = res[i].u(), vres = res[i].v();
-	for (int v = 0; v < vres; v++) {
-	    for (int u = 0; u < ures; u++) {
-		float c = (u ^ v) & 1;
-		fbuff[(v*ures+u)*nchan] = u/float(ures-1) * ptexOne;
-		fbuff[(v*ures+u)*nchan+1] = v/float(vres-1) * ptexOne;
-		fbuff[(v*ures+u)*nchan+2] = c * ptexOne;
-	    }
-	}
+        memset(buff, 0, size);
+        Dtype* fbuff = (Dtype*)buff;
+        int ures = res[i].u(), vres = res[i].v();
+        for (int v = 0; v < vres; v++) {
+            for (int u = 0; u < ures; u++) {
+                float c = (u ^ v) & 1;
+                fbuff[(v*ures+u)*nchan] = u/float(ures-1) * ptexOne;
+                fbuff[(v*ures+u)*nchan+1] = v/float(vres-1) * ptexOne;
+                fbuff[(v*ures+u)*nchan+2] = c * ptexOne;
+            }
+        }
 
-	w->writeFace(i, Ptex::FaceInfo(res[i], adjfaces[i], adjedges[i]), buff);
+        w->writeFace(i, Ptex::FaceInfo(res[i], adjfaces[i], adjedges[i]), buff);
     }
     free(buff);
 
@@ -137,12 +137,12 @@ int main(int /*argc*/, char** /*argv*/)
 
     writeMeta(w, sval, dvals, ndvals, ivals, nivals, xval);
     if (!w->close(error)) {
-	std::cerr << error.c_str() << std::endl;
-	return 1;
+        std::cerr << error.c_str() << std::endl;
+        return 1;
     }
     w->release();
     if (!checkMeta("test.ptx", sval, dvals, ndvals, ivals, nivals, xval))
-	return 1;
+        return 1;
 
     // add some incremental edits
     w = PtexWriter::edit("test.ptx", true, Ptex::mt_quad, dt, nchan, alpha, nfaces, error);
@@ -151,12 +151,12 @@ int main(int /*argc*/, char** /*argv*/)
     writeMeta(w, sval, dvals, ndvals, 0, 0, 0);
 
     if (!w->close(error)) {
-	std::cerr << error.c_str() << std::endl;
-	return 1;
+        std::cerr << error.c_str() << std::endl;
+        return 1;
     }
     w->release();
     if (!checkMeta("test.ptx", sval, dvals, ndvals, ivals, nivals, xval))
-	return 1;
+        return 1;
 
     // add some non-incremental edits, including some large meta data
     ndvals = 500;
@@ -167,12 +167,12 @@ int main(int /*argc*/, char** /*argv*/)
     xval = "another string value";
     writeMeta(w, 0, dvals, ndvals, 0, 0, xval);
     if (!w->close(error)) {
-	std::cerr << error.c_str() << std::endl;
-	return 1;
+        std::cerr << error.c_str() << std::endl;
+        return 1;
     }
     w->release();
     if (!checkMeta("test.ptx", sval, dvals, ndvals, ivals, nivals, xval))
-	return 1;
+        return 1;
     free(dvals);
 
     return 0;
