@@ -12,6 +12,7 @@
   <div class="tabs">
     <ul>
       <li><a href="index.html"><span>Main&nbsp;Page</span></a></li>
+      <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
       <li><a href="files.html"><span>Files</span></a></li>
     </ul>
@@ -32,20 +33,27 @@
 
 <p><a href="classPtexTexture-members.html">List of all members.</a></p>
 <table border="0" cellpadding="0" cellspacing="0">
+<tr><td colspan="2"><h2>Classes</h2></td></tr>
+<tr><td class="memItemLeft" align="right" valign="top">struct &nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="structPtexTexture_1_1Info.html">Info</a></td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get most commonly used info in a single call for convenience / efficiency.  <a href="structPtexTexture_1_1Info.html#_details">More...</a><br/></td></tr>
 <tr><td colspan="2"><h2>Public Member Functions</h2></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af734f671cff7ffa65d9f33e20c5d154f"></a><!-- doxytag: member="PtexTexture::release" ref="af734f671cff7ffa65d9f33e20c5d154f" args="()=0" -->
 virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexTexture.html#af734f671cff7ffa65d9f33e20c5d154f">release</a> ()=0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Release resources held by this pointer (pointer becomes invalid). <br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top">virtual const char *&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexTexture.html#a1ee5ffb961f0b69cf1639b747fad38b3">path</a> ()=0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Path that file was opened with.  <a href="#a1ee5ffb961f0b69cf1639b747fad38b3"></a><br/></td></tr>
-<tr><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="structPtex.html#a9dd4776f9374a7bf512fc9d2b21b92f8">Ptex::MeshType</a>&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexTexture.html#a2749c97ca65ae7395df297f77d0a473b">meshType</a> ()=0</td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a64cb870de9c2250a0cb4bbc72feb7dc8"></a><!-- doxytag: member="PtexTexture::getInfo" ref="a64cb870de9c2250a0cb4bbc72feb7dc8" args="()=0" -->
+virtual <a class="el" href="structPtexTexture_1_1Info.html">Info</a>&nbsp;</td><td class="memItemRight" valign="bottom"><b>getInfo</b> ()=0</td></tr>
+<tr><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="namespacePtex.html#a9dd4776f9374a7bf512fc9d2b21b92f8">Ptex::MeshType</a>&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexTexture.html#a2749c97ca65ae7395df297f77d0a473b">meshType</a> ()=0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Type of mesh for which texture data is defined.  <a href="#a2749c97ca65ae7395df297f77d0a473b"></a><br/></td></tr>
-<tr><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="structPtex.html#a6f6f95ab916979503c8baa613f019bae">Ptex::DataType</a>&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexTexture.html#a710080ee56ade3aea3f0d1950a3a4e2d">dataType</a> ()=0</td></tr>
+<tr><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="namespacePtex.html#a6f6f95ab916979503c8baa613f019bae">Ptex::DataType</a>&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexTexture.html#a710080ee56ade3aea3f0d1950a3a4e2d">dataType</a> ()=0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Type of data stored in file.  <a href="#a710080ee56ade3aea3f0d1950a3a4e2d"></a><br/></td></tr>
-<tr><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="structPtex.html#aa103bbd9a29bb70dbe987dcb2c81fc4b">Ptex::BorderMode</a>&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexTexture.html#a32b7aced2b251477ecacbdf6bcf811e9">uBorderMode</a> ()=0</td></tr>
+<tr><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="namespacePtex.html#aa103bbd9a29bb70dbe987dcb2c81fc4b">Ptex::BorderMode</a>&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexTexture.html#a32b7aced2b251477ecacbdf6bcf811e9">uBorderMode</a> ()=0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Mode for filtering texture access beyond mesh border.  <a href="#a32b7aced2b251477ecacbdf6bcf811e9"></a><br/></td></tr>
-<tr><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="structPtex.html#aa103bbd9a29bb70dbe987dcb2c81fc4b">Ptex::BorderMode</a>&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexTexture.html#ad8aa181f3f0db725efa824ed35f1a453">vBorderMode</a> ()=0</td></tr>
+<tr><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="namespacePtex.html#aa103bbd9a29bb70dbe987dcb2c81fc4b">Ptex::BorderMode</a>&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexTexture.html#ad8aa181f3f0db725efa824ed35f1a453">vBorderMode</a> ()=0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Mode for filtering texture access beyond mesh border.  <a href="#ad8aa181f3f0db725efa824ed35f1a453"></a><br/></td></tr>
+<tr><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="namespacePtex.html#abfc66664da388697153d1c11febe9424">Ptex::EdgeFilterMode</a>&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexTexture.html#a9341acaf50776031b8ea0f27c3dfbad3">edgeFilterMode</a> ()=0</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Mode for filtering textures across edges.  <a href="#a9341acaf50776031b8ea0f27c3dfbad3"></a><br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top">virtual int&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexTexture.html#a8cbf6cc2b62dda8d595f7e312e33357a">alphaChannel</a> ()=0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Index of alpha channel (if any).  <a href="#a8cbf6cc2b62dda8d595f7e312e33357a"></a><br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top">virtual int&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexTexture.html#ae41cd8621a20f0b9853401578dd305a8">numChannels</a> ()=0</td></tr>
@@ -110,7 +118,7 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">virtual <a class="el" href="structPtex.html#a6f6f95ab916979503c8baa613f019bae">Ptex::DataType</a> PtexTexture::dataType </td>
+          <td class="memname">virtual <a class="el" href="namespacePtex.html#a6f6f95ab916979503c8baa613f019bae">Ptex::DataType</a> PtexTexture::dataType </td>
           <td>(</td>
           <td class="paramname"></td>
           <td>&nbsp;)&nbsp;</td>
@@ -121,6 +129,25 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <div class="memdoc">
 
 <p>Type of data stored in file. </p>
+
+</div>
+</div>
+<a class="anchor" id="a9341acaf50776031b8ea0f27c3dfbad3"></a><!-- doxytag: member="PtexTexture::edgeFilterMode" ref="a9341acaf50776031b8ea0f27c3dfbad3" args="()=0" -->
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual <a class="el" href="namespacePtex.html#abfc66664da388697153d1c11febe9424">Ptex::EdgeFilterMode</a> PtexTexture::edgeFilterMode </td>
+          <td>(</td>
+          <td class="paramname"></td>
+          <td>&nbsp;)&nbsp;</td>
+          <td><code> [pure virtual]</code></td>
+        </tr>
+      </table>
+</div>
+<div class="memdoc">
+
+<p>Mode for filtering textures across edges. </p>
 
 </div>
 </div>
@@ -472,7 +499,7 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">virtual <a class="el" href="structPtex.html#a9dd4776f9374a7bf512fc9d2b21b92f8">Ptex::MeshType</a> PtexTexture::meshType </td>
+          <td class="memname">virtual <a class="el" href="namespacePtex.html#a9dd4776f9374a7bf512fc9d2b21b92f8">Ptex::MeshType</a> PtexTexture::meshType </td>
           <td>(</td>
           <td class="paramname"></td>
           <td>&nbsp;)&nbsp;</td>
@@ -556,7 +583,7 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <div class="memdoc">
 
 <p>Open a ptex file for reading. </p>
-<p>If an error occurs, an error message will be stored in the error string param and the a pointer will be returned.</p>
+<p>If an error occurs, an error message will be stored in the error string param and a null pointer will be returned.</p>
 <p>If the premultiply param is set to true and the texture file has a specified alpha channel, then all data stored in the file will be multiplied by alpha when read from disk. If premultiply is false, then the full-resolution textures will be returned as stored on disk which is assumed to be unmultiplied. Reductions (both stored mip-maps and dynamically generated reductions) are always premultiplied with alpha. See <a class="el" href="classPtexWriter.html" title="Interface for writing data to a ptex file.">PtexWriter</a> for more information about alpha channels. </p>
 
 </div>
@@ -586,7 +613,7 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">virtual <a class="el" href="structPtex.html#aa103bbd9a29bb70dbe987dcb2c81fc4b">Ptex::BorderMode</a> PtexTexture::uBorderMode </td>
+          <td class="memname">virtual <a class="el" href="namespacePtex.html#aa103bbd9a29bb70dbe987dcb2c81fc4b">Ptex::BorderMode</a> PtexTexture::uBorderMode </td>
           <td>(</td>
           <td class="paramname"></td>
           <td>&nbsp;)&nbsp;</td>
@@ -605,7 +632,7 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">virtual <a class="el" href="structPtex.html#aa103bbd9a29bb70dbe987dcb2c81fc4b">Ptex::BorderMode</a> PtexTexture::vBorderMode </td>
+          <td class="memname">virtual <a class="el" href="namespacePtex.html#aa103bbd9a29bb70dbe987dcb2c81fc4b">Ptex::BorderMode</a> PtexTexture::vBorderMode </td>
           <td>(</td>
           <td class="paramname"></td>
           <td>&nbsp;)&nbsp;</td>
@@ -620,7 +647,7 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 </div>
 </div>
 </div>
-<hr size="1"/><address style="text-align: right;"><small>Generated on 2 May 2011 for Ptex by&nbsp;
+<hr size="1"/><address style="text-align: right;"><small>Generated on 14 Dec 2015 for Ptex by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.6.1 </small></address>
 </body>

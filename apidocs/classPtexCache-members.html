@@ -12,6 +12,7 @@
   <div class="tabs">
     <ul>
       <li><a href="index.html"><span>Main&nbsp;Page</span></a></li>
+      <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
       <li><a href="files.html"><span>Files</span></a></li>
     </ul>
@@ -25,9 +26,10 @@
 </div>
 <div class="contents">
 <h1>PtexCache Member List</h1>This is the complete list of members for <a class="el" href="classPtexCache.html">PtexCache</a>, including all inherited members.<table>
-  <tr class="memlist"><td><a class="el" href="classPtexCache.html#a0b8db81e51e485bb86eeeb81354337f5">create</a>(int maxFiles=0, int maxMem=0, bool premultiply=false, PtexInputHandler *handler=0)</td><td><a class="el" href="classPtexCache.html">PtexCache</a></td><td><code> [static]</code></td></tr>
+  <tr class="memlist"><td><a class="el" href="classPtexCache.html#a52e742788cc028e0718dbefbbd289c83">create</a>(int maxFiles, size_t maxMem, bool premultiply=false, PtexInputHandler *inputHandler=0, PtexErrorHandler *errorHandler=0)</td><td><a class="el" href="classPtexCache.html">PtexCache</a></td><td><code> [static]</code></td></tr>
   <tr class="memlist"><td><a class="el" href="classPtexCache.html#a8098c4a6df740a79d4c06bdfefcee32b">get</a>(const char *path, Ptex::String &amp;error)=0</td><td><a class="el" href="classPtexCache.html">PtexCache</a></td><td><code> [pure virtual]</code></td></tr>
   <tr class="memlist"><td><a class="el" href="classPtexCache.html#a15173e53b9eb8c822e0be59331893677">getSearchPath</a>()=0</td><td><a class="el" href="classPtexCache.html">PtexCache</a></td><td><code> [pure virtual]</code></td></tr>
+  <tr class="memlist"><td><a class="el" href="classPtexCache.html#a0fce4deee0ecd302a436f1fb35a1e14d">getStats</a>(Stats &amp;stats)=0</td><td><a class="el" href="classPtexCache.html">PtexCache</a></td><td><code> [pure virtual]</code></td></tr>
   <tr class="memlist"><td><a class="el" href="classPtexCache.html#a790ee66015d56ae7430f7725cae1e8f5">purge</a>(PtexTexture *texture)=0</td><td><a class="el" href="classPtexCache.html">PtexCache</a></td><td><code> [pure virtual]</code></td></tr>
   <tr class="memlist"><td><a class="el" href="classPtexCache.html#af9c7edf515909c80495120253b2a81d4">purge</a>(const char *path)=0</td><td><a class="el" href="classPtexCache.html">PtexCache</a></td><td><code> [pure virtual]</code></td></tr>
   <tr class="memlist"><td><a class="el" href="classPtexCache.html#af99d4033eb14fceb3bb834f3df8fbb06">purgeAll</a>()=0</td><td><a class="el" href="classPtexCache.html">PtexCache</a></td><td><code> [pure virtual]</code></td></tr>
@@ -35,7 +37,7 @@
   <tr class="memlist"><td><a class="el" href="classPtexCache.html#ab62b0273f462871d294ee11903378703">setSearchPath</a>(const char *path)=0</td><td><a class="el" href="classPtexCache.html">PtexCache</a></td><td><code> [pure virtual]</code></td></tr>
   <tr class="memlist"><td><a class="el" href="classPtexCache.html#ad2c10550e4392684fba04a911ea2e112">~PtexCache</a>()</td><td><a class="el" href="classPtexCache.html">PtexCache</a></td><td><code> [inline, protected, virtual]</code></td></tr>
 </table></div>
-<hr size="1"/><address style="text-align: right;"><small>Generated on 2 May 2011 for Ptex by&nbsp;
+<hr size="1"/><address style="text-align: right;"><small>Generated on 14 Dec 2015 for Ptex by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.6.1 </small></address>
 </body>

@@ -12,6 +12,7 @@
   <div class="tabs">
     <ul>
       <li><a href="index.html"><span>Main&nbsp;Page</span></a></li>
+      <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
       <li><a href="files.html"><span>Files</span></a></li>
     </ul>
@@ -36,8 +37,11 @@
 <tr><td class="memItemLeft" align="right" valign="top">virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexWriter.html#a47bd815ebb758ee1e83e191ecb0386bc">release</a> ()=0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Release resources held by this pointer (pointer becomes invalid).  <a href="#a47bd815ebb758ee1e83e191ecb0386bc"></a><br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0ae4c5c445bd5effb6b52246b2478be7"></a><!-- doxytag: member="PtexWriter::setBorderModes" ref="a0ae4c5c445bd5effb6b52246b2478be7" args="(Ptex::BorderMode uBorderMode, Ptex::BorderMode vBorderMode)=0" -->
-virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexWriter.html#a0ae4c5c445bd5effb6b52246b2478be7">setBorderModes</a> (<a class="el" href="structPtex.html#aa103bbd9a29bb70dbe987dcb2c81fc4b">Ptex::BorderMode</a> uBorderMode, <a class="el" href="structPtex.html#aa103bbd9a29bb70dbe987dcb2c81fc4b">Ptex::BorderMode</a> vBorderMode)=0</td></tr>
+virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexWriter.html#a0ae4c5c445bd5effb6b52246b2478be7">setBorderModes</a> (<a class="el" href="namespacePtex.html#aa103bbd9a29bb70dbe987dcb2c81fc4b">Ptex::BorderMode</a> uBorderMode, <a class="el" href="namespacePtex.html#aa103bbd9a29bb70dbe987dcb2c81fc4b">Ptex::BorderMode</a> vBorderMode)=0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Set border modes. <br/></td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2e2954d07ea0c7aede88b317afff33ab"></a><!-- doxytag: member="PtexWriter::setEdgeFilterMode" ref="a2e2954d07ea0c7aede88b317afff33ab" args="(Ptex::EdgeFilterMode edgeFilterMode)=0" -->
+virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexWriter.html#a2e2954d07ea0c7aede88b317afff33ab">setEdgeFilterMode</a> (<a class="el" href="namespacePtex.html#abfc66664da388697153d1c11febe9424">Ptex::EdgeFilterMode</a> edgeFilterMode)=0</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Set edge filter mode. <br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top">virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexWriter.html#aaea07c8a1b8c43a3f1054046a7a67abd">writeMeta</a> (const char *key, const char *string)=0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Write a string as meta data.  <a href="#aaea07c8a1b8c43a3f1054046a7a67abd"></a><br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top">virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexWriter.html#a62780e0fd474d12e20b4b7b4a474d9b5">writeMeta</a> (const char *key, const int8_t *value, int count)=0</td></tr>
@@ -59,9 +63,9 @@ virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" hr
 <tr><td class="memItemLeft" align="right" valign="top">virtual bool&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexWriter.html#acf7abf6da100d99a9d3ac8a46aed7520">close</a> (<a class="el" href="classPtex_1_1String.html">Ptex::String</a> &amp;error)=0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Close the file.  <a href="#acf7abf6da100d99a9d3ac8a46aed7520"></a><br/></td></tr>
 <tr><td colspan="2"><h2>Static Public Member Functions</h2></td></tr>
-<tr><td class="memItemLeft" align="right" valign="top">static PTEXAPI <a class="el" href="classPtexWriter.html">PtexWriter</a> *&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexWriter.html#a3bd32e523a16c36fbc2b8633d7cb1582">open</a> (const char *path, <a class="el" href="structPtex.html#a9dd4776f9374a7bf512fc9d2b21b92f8">Ptex::MeshType</a> mt, <a class="el" href="structPtex.html#a6f6f95ab916979503c8baa613f019bae">Ptex::DataType</a> dt, int nchannels, int alphachan, int nfaces, <a class="el" href="classPtex_1_1String.html">Ptex::String</a> &amp;error, bool genmipmaps=true)</td></tr>
+<tr><td class="memItemLeft" align="right" valign="top">static PTEXAPI <a class="el" href="classPtexWriter.html">PtexWriter</a> *&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexWriter.html#a3bd32e523a16c36fbc2b8633d7cb1582">open</a> (const char *path, <a class="el" href="namespacePtex.html#a9dd4776f9374a7bf512fc9d2b21b92f8">Ptex::MeshType</a> mt, <a class="el" href="namespacePtex.html#a6f6f95ab916979503c8baa613f019bae">Ptex::DataType</a> dt, int nchannels, int alphachan, int nfaces, <a class="el" href="classPtex_1_1String.html">Ptex::String</a> &amp;error, bool genmipmaps=true)</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Open a new texture file for writing.  <a href="#a3bd32e523a16c36fbc2b8633d7cb1582"></a><br/></td></tr>
-<tr><td class="memItemLeft" align="right" valign="top">static PTEXAPI <a class="el" href="classPtexWriter.html">PtexWriter</a> *&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexWriter.html#a55e8c80fdd893c7dcfcc5fcdde7001cd">edit</a> (const char *path, bool incremental, <a class="el" href="structPtex.html#a9dd4776f9374a7bf512fc9d2b21b92f8">Ptex::MeshType</a> mt, <a class="el" href="structPtex.html#a6f6f95ab916979503c8baa613f019bae">Ptex::DataType</a> dt, int nchannels, int alphachan, int nfaces, <a class="el" href="classPtex_1_1String.html">Ptex::String</a> &amp;error, bool genmipmaps=true)</td></tr>
+<tr><td class="memItemLeft" align="right" valign="top">static PTEXAPI <a class="el" href="classPtexWriter.html">PtexWriter</a> *&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexWriter.html#a55e8c80fdd893c7dcfcc5fcdde7001cd">edit</a> (const char *path, bool incremental, <a class="el" href="namespacePtex.html#a9dd4776f9374a7bf512fc9d2b21b92f8">Ptex::MeshType</a> mt, <a class="el" href="namespacePtex.html#a6f6f95ab916979503c8baa613f019bae">Ptex::DataType</a> dt, int nchannels, int alphachan, int nfaces, <a class="el" href="classPtex_1_1String.html">Ptex::String</a> &amp;error, bool genmipmaps=true)</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Open an existing texture file for writing.  <a href="#a55e8c80fdd893c7dcfcc5fcdde7001cd"></a><br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top">static PTEXAPI bool&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexWriter.html#a0efaf84c2eea77790da64fc4c4b27cdb">applyEdits</a> (const char *path, <a class="el" href="classPtex_1_1String.html">Ptex::String</a> &amp;error)</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Apply edits to a file.  <a href="#a0efaf84c2eea77790da64fc4c4b27cdb"></a><br/></td></tr>
@@ -72,7 +76,7 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 </table>
 <hr/><a name="_details"></a><h2>Detailed Description</h2>
 <p>Interface for writing data to a ptex file. </p>
-<p>Note: if an alpha channel is specified, then the textures being written to the file are expected to have unmultiplied-alpha data. Generated mipmaps will be premultiplied by the <a class="el" href="structPtex.html" title="Common data structures and enums used throughout the API.">Ptex</a> library. On read, <a class="el" href="classPtexTexture.html" title="Interface for reading data from a ptex file.">PtexTexture</a> will (if requested) premultiply all textures by alpha when getData is called; by default only reductions are premultiplied. If the source textures are already premultiplied, then alphachan can be set to -1 and the library will just leave all the data as-is. The only reason to store unmultiplied-alpha textures in the file is to preserve the original texture data for later editing. </p>
+<p>Note: if an alpha channel is specified, then the textures being written to the file are expected to have unmultiplied-alpha data. Generated mipmaps will be premultiplied by the <a class="el" href="namespacePtex.html" title="Common data structures and enums used throughout the API.">Ptex</a> library. On read, <a class="el" href="classPtexTexture.html" title="Interface for reading data from a ptex file.">PtexTexture</a> will (if requested) premultiply all textures by alpha when getData is called; by default only reductions are premultiplied. If the source textures are already premultiplied, then alphachan can be set to -1 and the library will just leave all the data as-is. The only reason to store unmultiplied-alpha textures in the file is to preserve the original texture data for later editing. </p>
 <hr/><h2>Member Function Documentation</h2>
 <a class="anchor" id="a0efaf84c2eea77790da64fc4c4b27cdb"></a><!-- doxytag: member="PtexWriter::applyEdits" ref="a0efaf84c2eea77790da64fc4c4b27cdb" args="(const char *path, Ptex::String &amp;error)" -->
 <div class="memitem">
@@ -144,13 +148,13 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="structPtex.html#a9dd4776f9374a7bf512fc9d2b21b92f8">Ptex::MeshType</a>&nbsp;</td>
+          <td class="paramtype"><a class="el" href="namespacePtex.html#a9dd4776f9374a7bf512fc9d2b21b92f8">Ptex::MeshType</a>&nbsp;</td>
           <td class="paramname"> <em>mt</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="structPtex.html#a6f6f95ab916979503c8baa613f019bae">Ptex::DataType</a>&nbsp;</td>
+          <td class="paramtype"><a class="el" href="namespacePtex.html#a6f6f95ab916979503c8baa613f019bae">Ptex::DataType</a>&nbsp;</td>
           <td class="paramname"> <em>dt</em>, </td>
         </tr>
         <tr>
@@ -213,13 +217,13 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="structPtex.html#a9dd4776f9374a7bf512fc9d2b21b92f8">Ptex::MeshType</a>&nbsp;</td>
+          <td class="paramtype"><a class="el" href="namespacePtex.html#a9dd4776f9374a7bf512fc9d2b21b92f8">Ptex::MeshType</a>&nbsp;</td>
           <td class="paramname"> <em>mt</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="structPtex.html#a6f6f95ab916979503c8baa613f019bae">Ptex::DataType</a>&nbsp;</td>
+          <td class="paramtype"><a class="el" href="namespacePtex.html#a6f6f95ab916979503c8baa613f019bae">Ptex::DataType</a>&nbsp;</td>
           <td class="paramname"> <em>dt</em>, </td>
         </tr>
         <tr>
@@ -381,7 +385,7 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
   </table>
   </dd>
 </dl>
-<p>If an error is encountered while writing, false is returned and an error message can be when close is called. </p>
+<p>If an error is encountered while writing, false is returned and an error message can be retrieved when close is called. </p>
 
 </div>
 </div>
@@ -616,7 +620,7 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 </div>
 </div>
 </div>
-<hr size="1"/><address style="text-align: right;"><small>Generated on 2 May 2011 for Ptex by&nbsp;
+<hr size="1"/><address style="text-align: right;"><small>Generated on 14 Dec 2015 for Ptex by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.6.1 </small></address>
 </body>

@@ -12,6 +12,7 @@
   <div class="tabs">
     <ul>
       <li><a href="index.html"><span>Main&nbsp;Page</span></a></li>
+      <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
       <li><a href="files.html"><span>Files</span></a></li>
     </ul>
@@ -22,7 +23,7 @@
       <li><a href="functions.html"><span>Class&nbsp;Members</span></a></li>
     </ul>
   </div>
-  <div class="navpath"><a class="el" href="structPtex.html">Ptex</a>::<a class="el" href="classPtex_1_1String.html">String</a>
+  <div class="navpath"><a class="el" href="namespacePtex.html">Ptex</a>::<a class="el" href="classPtex_1_1String.html">String</a>
   </div>
 </div>
 <div class="contents">
@@ -41,16 +42,53 @@
 PTEXAPI <a class="el" href="classPtex_1_1String.html">String</a> &amp;&nbsp;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (const char *str)</td></tr>
 <tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa5e89052ba83ccbb3b5b00c5525a6727"></a><!-- doxytag: member="Ptex::String::operator=" ref="aa5e89052ba83ccbb3b5b00c5525a6727" args="(const String &amp;str)" -->
 <a class="el" href="classPtex_1_1String.html">String</a> &amp;&nbsp;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (const <a class="el" href="classPtex_1_1String.html">String</a> &amp;str)</td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab0e93bb8a6ba2a3880c599aaa366c67b"></a><!-- doxytag: member="Ptex::String::operator=" ref="ab0e93bb8a6ba2a3880c599aaa366c67b" args="(const std::string &amp;str)" -->
+<a class="el" href="classPtex_1_1String.html">String</a> &amp;&nbsp;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (const std::string &amp;str)</td></tr>
 <tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad18d8a88cfff5b962ec97c401db98e14"></a><!-- doxytag: member="Ptex::String::c_str" ref="ad18d8a88cfff5b962ec97c401db98e14" args="() const " -->
 const char *&nbsp;</td><td class="memItemRight" valign="bottom"><b>c_str</b> () const </td></tr>
 <tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae13b9bb2c8c243690e6f6b555fe790af"></a><!-- doxytag: member="Ptex::String::empty" ref="ae13b9bb2c8c243690e6f6b555fe790af" args="() const " -->
 bool&nbsp;</td><td class="memItemRight" valign="bottom"><b>empty</b> () const </td></tr>
+<tr><td colspan="2"><h2>Related Functions</h2></td></tr>
+<tr><td colspan="2"><p>(Note that these are not member functions.) </p>
+<br/><br/></td></tr>
+<tr><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtex_1_1String.html#aff16e4f5211713c54f72e6c48b130b7d">operator&lt;&lt;</a> (std::ostream &amp;stream, const <a class="el" href="classPtex_1_1String.html">Ptex::String</a> &amp;str)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">std::stream output operator.  <a href="#aff16e4f5211713c54f72e6c48b130b7d"></a><br/></td></tr>
 </table>
 <hr/><a name="_details"></a><h2>Detailed Description</h2>
 <p>Memory-managed string. </p>
 <p>Used for returning error messages from API functions. On most platforms, this is a typedef to std::string. For Windows, this is a custom class that implements a subset of std::string. (Note: std::string cannot be passed through a Windows DLL interface). </p>
+<hr/><h2>Friends And Related Function Documentation</h2>
+<a class="anchor" id="aff16e4f5211713c54f72e6c48b130b7d"></a><!-- doxytag: member="Ptex::String::operator&lt;&lt;" ref="aff16e4f5211713c54f72e6c48b130b7d" args="(std::ostream &amp;stream, const Ptex::String &amp;str)" -->
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::ostream &amp; operator&lt;&lt; </td>
+          <td>(</td>
+          <td class="paramtype">std::ostream &amp;&nbsp;</td>
+          <td class="paramname"> <em>stream</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classPtex_1_1String.html">Ptex::String</a> &amp;&nbsp;</td>
+          <td class="paramname"> <em>str</em></td><td>&nbsp;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td><td><code> [related]</code></td>
+        </tr>
+      </table>
 </div>
-<hr size="1"/><address style="text-align: right;"><small>Generated on 2 May 2011 for Ptex by&nbsp;
+<div class="memdoc">
+
+<p>std::stream output operator. </p>
+
+</div>
+</div>
+</div>
+<hr size="1"/><address style="text-align: right;"><small>Generated on 14 Dec 2015 for Ptex by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.6.1 </small></address>
 </body>

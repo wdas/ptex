@@ -12,6 +12,7 @@
   <div class="tabs">
     <ul>
       <li><a href="index.html"><span>Main&nbsp;Page</span></a></li>
+      <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
       <li><a href="files.html"><span>Files</span></a></li>
     </ul>
@@ -32,36 +33,40 @@
 
 <p><a href="classPtexCache-members.html">List of all members.</a></p>
 <table border="0" cellpadding="0" cellspacing="0">
+<tr><td colspan="2"><h2>Classes</h2></td></tr>
+<tr><td class="memItemLeft" align="right" valign="top">struct &nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="structPtexCache_1_1Stats.html">Stats</a></td></tr>
 <tr><td colspan="2"><h2>Public Member Functions</h2></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2a5ec7bc59a348064c72cb855a1bfd80"></a><!-- doxytag: member="PtexCache::release" ref="a2a5ec7bc59a348064c72cb855a1bfd80" args="()=0" -->
 virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexCache.html#a2a5ec7bc59a348064c72cb855a1bfd80">release</a> ()=0</td></tr>
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Release resources held by this pointer (pointer becomes invalid). <br/></td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Release <a class="el" href="classPtexCache.html" title="File-handle and memory cache for reading ptex files.">PtexCache</a>. Cache will be immediately destroyed and all resources will be released. <br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top">virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexCache.html#ab62b0273f462871d294ee11903378703">setSearchPath</a> (const char *path)=0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Set a search path for finding textures.  <a href="#ab62b0273f462871d294ee11903378703"></a><br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top">virtual const char *&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexCache.html#a15173e53b9eb8c822e0be59331893677">getSearchPath</a> ()=0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Query the search path.  <a href="#a15173e53b9eb8c822e0be59331893677"></a><br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="classPtexTexture.html">PtexTexture</a> *&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexCache.html#a8098c4a6df740a79d4c06bdfefcee32b">get</a> (const char *path, <a class="el" href="classPtex_1_1String.html">Ptex::String</a> &amp;error)=0</td></tr>
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Open a texture.  <a href="#a8098c4a6df740a79d4c06bdfefcee32b"></a><br/></td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Access a texture.  <a href="#a8098c4a6df740a79d4c06bdfefcee32b"></a><br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top">virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexCache.html#a790ee66015d56ae7430f7725cae1e8f5">purge</a> (<a class="el" href="classPtexTexture.html">PtexTexture</a> *texture)=0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Remove a texture file from the cache.  <a href="#a790ee66015d56ae7430f7725cae1e8f5"></a><br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top">virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexCache.html#af9c7edf515909c80495120253b2a81d4">purge</a> (const char *path)=0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Remove a texture file from the cache by pathname.  <a href="#af9c7edf515909c80495120253b2a81d4"></a><br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top">virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexCache.html#af99d4033eb14fceb3bb834f3df8fbb06">purgeAll</a> ()=0</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Remove all texture files from the cache.  <a href="#af99d4033eb14fceb3bb834f3df8fbb06"></a><br/></td></tr>
+<tr><td class="memItemLeft" align="right" valign="top">virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexCache.html#a0fce4deee0ecd302a436f1fb35a1e14d">getStats</a> (<a class="el" href="structPtexCache_1_1Stats.html">Stats</a> &amp;stats)=0</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get stats.  <a href="#a0fce4deee0ecd302a436f1fb35a1e14d"></a><br/></td></tr>
 <tr><td colspan="2"><h2>Static Public Member Functions</h2></td></tr>
-<tr><td class="memItemLeft" align="right" valign="top">static PTEXAPI <a class="el" href="classPtexCache.html">PtexCache</a> *&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexCache.html#a0b8db81e51e485bb86eeeb81354337f5">create</a> (int maxFiles=0, int maxMem=0, bool premultiply=false, <a class="el" href="classPtexInputHandler.html">PtexInputHandler</a> *handler=0)</td></tr>
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Create a cache with the specified limits.  <a href="#a0b8db81e51e485bb86eeeb81354337f5"></a><br/></td></tr>
+<tr><td class="memItemLeft" align="right" valign="top">static PTEXAPI <a class="el" href="classPtexCache.html">PtexCache</a> *&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexCache.html#a52e742788cc028e0718dbefbbd289c83">create</a> (int maxFiles, size_t maxMem, bool premultiply=false, <a class="el" href="classPtexInputHandler.html">PtexInputHandler</a> *inputHandler=0, <a class="el" href="classPtexErrorHandler.html">PtexErrorHandler</a> *errorHandler=0)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Create a cache with the specified limits.  <a href="#a52e742788cc028e0718dbefbbd289c83"></a><br/></td></tr>
 <tr><td colspan="2"><h2>Protected Member Functions</h2></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad2c10550e4392684fba04a911ea2e112"></a><!-- doxytag: member="PtexCache::~PtexCache" ref="ad2c10550e4392684fba04a911ea2e112" args="()" -->
 virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPtexCache.html#ad2c10550e4392684fba04a911ea2e112">~PtexCache</a> ()</td></tr>
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Destructor not for public use. Use <a class="el" href="classPtexCache.html#a2a5ec7bc59a348064c72cb855a1bfd80" title="Release resources held by this pointer (pointer becomes invalid).">release()</a> instead. <br/></td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Destructor not for public use. Use <a class="el" href="classPtexCache.html#a2a5ec7bc59a348064c72cb855a1bfd80" title="Release PtexCache. Cache will be immediately destroyed and all resources will be...">release()</a> instead. <br/></td></tr>
 </table>
 <hr/><a name="_details"></a><h2>Detailed Description</h2>
 <p>File-handle and memory cache for reading ptex files. </p>
 <p>The <a class="el" href="classPtexCache.html" title="File-handle and memory cache for reading ptex files.">PtexCache</a> class allows cached read access to multiple ptex files while constraining the open file count and memory usage to specified limits. File and data objects accessed via the cache are added back to the cache when their release method is called. Released objects are maintained in an LRU list and only destroyed when the specified resource limits are exceeded.</p>
 <p>The cache is fully multi-threaded. Cached data will be shared among all threads that have access to the cache, and the data are protected with internal locks. See PtexCache.cpp for details about the caching and locking implementation. </p>
 <hr/><h2>Member Function Documentation</h2>
-<a class="anchor" id="a0b8db81e51e485bb86eeeb81354337f5"></a><!-- doxytag: member="PtexCache::create" ref="a0b8db81e51e485bb86eeeb81354337f5" args="(int maxFiles=0, int maxMem=0, bool premultiply=false, PtexInputHandler *handler=0)" -->
+<a class="anchor" id="a52e742788cc028e0718dbefbbd289c83"></a><!-- doxytag: member="PtexCache::create" ref="a52e742788cc028e0718dbefbbd289c83" args="(int maxFiles, size_t maxMem, bool premultiply=false, PtexInputHandler *inputHandler=0, PtexErrorHandler *errorHandler=0)" -->
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -69,13 +74,13 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
           <td class="memname">static PTEXAPI <a class="el" href="classPtexCache.html">PtexCache</a>* PtexCache::create </td>
           <td>(</td>
           <td class="paramtype">int&nbsp;</td>
-          <td class="paramname"> <em>maxFiles</em> = <code>0</code>, </td>
+          <td class="paramname"> <em>maxFiles</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">int&nbsp;</td>
-          <td class="paramname"> <em>maxMem</em> = <code>0</code>, </td>
+          <td class="paramtype">size_t&nbsp;</td>
+          <td class="paramname"> <em>maxMem</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -87,7 +92,13 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype"><a class="el" href="classPtexInputHandler.html">PtexInputHandler</a> *&nbsp;</td>
-          <td class="paramname"> <em>handler</em> = <code>0</code></td><td>&nbsp;</td>
+          <td class="paramname"> <em>inputHandler</em> = <code>0</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="classPtexErrorHandler.html">PtexErrorHandler</a> *&nbsp;</td>
+          <td class="paramname"> <em>errorHandler</em> = <code>0</code></td><td>&nbsp;</td>
         </tr>
         <tr>
           <td></td>
@@ -101,10 +112,11 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <p>Create a cache with the specified limits. </p>
 <dl><dt><b>Parameters:</b></dt><dd>
   <table border="0" cellspacing="2" cellpadding="0">
-    <tr><td valign="top"></td><td valign="top"><em>maxFiles</em>&nbsp;</td><td>Maximum open file handles. If unspecified, limit is set to 100 open files.</td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>maxMem</em>&nbsp;</td><td>Maximum allocated memory, in bytes. If unspecified, limit is set to 100MB.</td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>premultiply</em>&nbsp;</td><td>If true, textures will be premultiplied by the alpha channel (if any) when read from disk. See <a class="el" href="classPtexTexture.html" title="Interface for reading data from a ptex file.">PtexTexture</a> and <a class="el" href="classPtexWriter.html" title="Interface for writing data to a ptex file.">PtexWriter</a> for more details.</td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>handler</em>&nbsp;</td><td>If specified, all input calls made through this cache will be directed through the handler. </td></tr>
+    <tr><td valign="top"></td><td valign="top"><em>maxFiles</em>&nbsp;</td><td>Maximum open file handles. If zero, limit is set to 100 open files.</td></tr>
+    <tr><td valign="top"></td><td valign="top"><em>maxMem</em>&nbsp;</td><td>Maximum allocated memory, in bytes. If zero the cache is unlimited.</td></tr>
+    <tr><td valign="top"></td><td valign="top"><em>premultiply</em>&nbsp;</td><td>If true, textures will be premultiplied by the alpha channel (if any) when read from disk. For authoring purposes, this should generally be set to false, and for rendering purposes, this should generally be set to true. See <a class="el" href="classPtexTexture.html" title="Interface for reading data from a ptex file.">PtexTexture</a> and <a class="el" href="classPtexWriter.html" title="Interface for writing data to a ptex file.">PtexWriter</a> for more details.</td></tr>
+    <tr><td valign="top"></td><td valign="top"><em>inputHandler</em>&nbsp;</td><td>If specified, all input calls made through this cache will be directed through the handler.</td></tr>
+    <tr><td valign="top"></td><td valign="top"><em>errorHandler</em>&nbsp;</td><td>If specified, errors encounted with files access through this cache will be directed to the handler. By default, errors will be reported to stderr. </td></tr>
   </table>
   </dd>
 </dl>
@@ -136,11 +148,11 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 </div>
 <div class="memdoc">
 
-<p>Open a texture. </p>
-<p>If the specified path was previously opened, and the open file limit hasn't been exceeded, then a pointer to the already open file will be returned.</p>
-<p>If the specified path hasn't been opened yet or was closed, either to maintain the open file limit or because the file was explicitly purged from the cache, then the file will be newly opened. If the path is relative (i.e. doesn't begin with a '/') then the search path will be used to locate the file.</p>
-<p>The texture file will stay open until the <a class="el" href="classPtexTexture.html#af734f671cff7ffa65d9f33e20c5d154f" title="Release resources held by this pointer (pointer becomes invalid).">PtexTexture::release</a> method is called, at which point the texture will be returned to the cache. Once released, the file will be closed when either the file handle limit is reached, the cached is released, or when the texture is purged (see purge methods below).</p>
-<p>If texture could not be opened, null will be returned and an error string will be set.</p>
+<p>Access a texture. </p>
+<p>If the specified path was previously accessed from the cache, then a pointer to the cached texture will be returned.</p>
+<p>If the specified path hasn't been opened yet or was purged from the cache (via the purge or purgeAll methods) then the file will be opened. If the path is relative (i.e. doesn't begin with a '/') then the search path will be used to locate the file.</p>
+<p>The texture will be accessible until the <a class="el" href="classPtexTexture.html#af734f671cff7ffa65d9f33e20c5d154f" title="Release resources held by this pointer (pointer becomes invalid).">PtexTexture::release</a> method is called, at which point the texture will be returned to the cache. Once released, the texture may have it's data pruned (immediately or some time later) to stay within the maximum cache size.</p>
+<p>If the texture could not be opened, null will be returned and an error string will be set. If an error were previously encountered with the file (include the file not being found), null will be returned and no error string will be set.</p>
 <dl><dt><b>Parameters:</b></dt><dd>
   <table border="0" cellspacing="2" cellpadding="0">
     <tr><td valign="top"></td><td valign="top"><em>path</em>&nbsp;</td><td>File path. If path is relative, search path will be used to find the file.</td></tr>
@@ -168,6 +180,26 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 
 <p>Query the search path. </p>
 <p>Returns string set via setSearchPath. </p>
+
+</div>
+</div>
+<a class="anchor" id="a0fce4deee0ecd302a436f1fb35a1e14d"></a><!-- doxytag: member="PtexCache::getStats" ref="a0fce4deee0ecd302a436f1fb35a1e14d" args="(Stats &amp;stats)=0" -->
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual void PtexCache::getStats </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structPtexCache_1_1Stats.html">Stats</a> &amp;&nbsp;</td>
+          <td class="paramname"> <em>stats</em></td>
+          <td>&nbsp;)&nbsp;</td>
+          <td><code> [pure virtual]</code></td>
+        </tr>
+      </table>
+</div>
+<div class="memdoc">
+
+<p>Get stats. </p>
 
 </div>
 </div>
@@ -209,7 +241,7 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <div class="memdoc">
 
 <p>Remove a texture file from the cache. </p>
-<p>The texture file will remain open and accessible until the file handle is released, but any future cache accesses for that file will open the file anew. </p>
+<p>If the texture is in use by another thread, that reference will remain valid and the file will be purged once it is no longer in use. This texture should be released immediately after purging. </p>
 
 </div>
 </div>
@@ -229,7 +261,7 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <div class="memdoc">
 
 <p>Remove all texture files from the cache. </p>
-<p>Open files with active PtexTexture* handles remain open until released. </p>
+<p>Textures with active PtexTexture* handles will remain valid and will be purged upon release. </p>
 
 </div>
 </div>
@@ -261,7 +293,7 @@ virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 </div>
 </div>
 </div>
-<hr size="1"/><address style="text-align: right;"><small>Generated on 2 May 2011 for Ptex by&nbsp;
+<hr size="1"/><address style="text-align: right;"><small>Generated on 14 Dec 2015 for Ptex by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.6.1 </small></address>
 </body>

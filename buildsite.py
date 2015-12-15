@@ -190,6 +190,7 @@ releases = [
     ['v2.0.33', 'Dec 14, 2011', 'Fixed crash when rendering triangle textures that have no stored mipmaps.'],
     ['v2.0.37', 'Apr 8, 2013', 'Cmake support, compiler warnings, WIN32 export control.'],
     ['v2.0.41', 'Apr 9, 2013', 'Limit I/O buffer size, avoid float/double conversion, remove LOD bias on bilinear filter, silence warnings.'],
+    ['v2.1.10', 'Dec 8, 2015', 'New cache architecture for better threading. New cache stats API. New edge filter mode for tangent-space maps. Optimizations.'],
     ['master', '', 'Latest commit']]
 
 download='''

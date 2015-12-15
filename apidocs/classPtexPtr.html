@@ -12,6 +12,7 @@
   <div class="tabs">
     <ul>
       <li><a href="index.html"><span>Main&nbsp;Page</span></a></li>
+      <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
       <li><a href="files.html"><span>Files</span></a></li>
     </ul>
@@ -60,7 +61,7 @@ void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
  class PtexPtr&lt; T &gt;</h3>
 
 <p>Smart-pointer for acquiring and releasing API objects. </p>
-<p>All public API objects must be released back to the <a class="el" href="structPtex.html" title="Common data structures and enums used throughout the API.">Ptex</a> library via the release() method. This smart-pointer class can wrap any of the <a class="el" href="structPtex.html" title="Common data structures and enums used throughout the API.">Ptex</a> API objects and will automatically release the object when the pointer goes out of scope. Usage of <a class="el" href="classPtexPtr.html" title="Smart-pointer for acquiring and releasing API objects.">PtexPtr</a> is optional, but recommended.</p>
+<p>All public API objects must be released back to the <a class="el" href="namespacePtex.html" title="Common data structures and enums used throughout the API.">Ptex</a> library via the release() method. This smart-pointer class can wrap any of the <a class="el" href="namespacePtex.html" title="Common data structures and enums used throughout the API.">Ptex</a> API objects and will automatically release the object when the pointer goes out of scope. Usage of <a class="el" href="classPtexPtr.html" title="Smart-pointer for acquiring and releasing API objects.">PtexPtr</a> is optional, but recommended.</p>
 <p>Note: for efficiency and safety, <a class="el" href="classPtexPtr.html" title="Smart-pointer for acquiring and releasing API objects.">PtexPtr</a> is noncopyable. However, ownership can be transferred between <a class="el" href="classPtexPtr.html" title="Smart-pointer for acquiring and releasing API objects.">PtexPtr</a> instances via the <a class="el" href="classPtexPtr.html#ad1a9a5c2189d0a67566ec3cd5f36977c" title="Swap pointer values.">PtexPtr::swap</a> member function.</p>
 <p>Example: </p>
 <div class="fragment"><pre class="fragment">      {
@@ -75,7 +76,7 @@ void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
           }
       }
 </pre></div> </div>
-<hr size="1"/><address style="text-align: right;"><small>Generated on 2 May 2011 for Ptex by&nbsp;
+<hr size="1"/><address style="text-align: right;"><small>Generated on 14 Dec 2015 for Ptex by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.6.1 </small></address>
 </body>
