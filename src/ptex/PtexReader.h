@@ -315,11 +315,11 @@ public:
 	    std::pair<MetaMap::iterator,bool> result =
 		_map.insert(std::make_pair(std::string(key, keysize), Entry()));
 	    Entry* e = &result.first->second;
-	    bool newentry = result.second;
+	    const bool entryCreated = result.second;
 	    uint32_t index = 0;
-	    if (newentry) _entries.push_back(e);
+	    if (entryCreated) _entries.push_back(e);
 	    else e->clear();
-	    if (newEntry) {
+	    if (entryCreated) {
 		index = uint32_t(_entries.size());
 		_entries.push_back(e);
 	    }
