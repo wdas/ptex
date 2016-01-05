@@ -29,4 +29,5 @@ install(FILES
         PtexInt.h
         Ptexture.h
         PtexUtils.h
+        PtexVersion.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
