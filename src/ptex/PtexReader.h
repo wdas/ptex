@@ -317,9 +317,7 @@ public:
 	    Entry* e = &result.first->second;
 	    bool newentry = result.second;
 	    uint32_t index = 0;
-	    if (newentry) _entries.push_back(e);
-	    else e->clear();
-	    if (newEntry) {
+	    if (newentry) {
 		index = uint32_t(_entries.size());
 		_entries.push_back(e);
 	    }
