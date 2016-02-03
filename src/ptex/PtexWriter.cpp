@@ -1005,52 +1005,71 @@ void PtexMainWriter::flagConstantNeighorhoods()
         bool isConst = true;
         bool isTriangle = _header.meshtype == mt_triangle;
         int nedges = isTriangle ? 3 : 4;
-        for (int eid = 0; eid < nedges; eid++) {
+        for (int eid = 0; isConst && (eid < nedges); eid++) {
             bool prevWasSubface = f.isSubface();
             int prevFid = faceid;
-            // traverse across edge
+
+            // traverse around vertex in CW direction
             int afid = f.adjface(eid);
             int aeid = f.adjedge(eid);
             int count = 0;
             const int maxcount = 10; // max valence (as safety valve)
-            while (afid != faceid) {
-                // if we hit a boundary, assume non-const (not worth
-                // the trouble to redo traversal from CCW direction;
-                // also, boundary might want to be "black")
-                // assume const if we hit max valence too
-                if (afid < 0 || ++count == maxcount)
-                { isConst = false; break; }
-
-                // check if neighor is constant, and has the same value as face
+            while (afid != faceid && afid >= 0 && ++count < maxcount) {
+                // check if neighbor is constant, and has the same value as face
                 FaceInfo& af = _faceinfo[afid];
                 if (!af.isConstant() ||
                     0 != memcmp(constdata, &_constdata[afid*_pixelSize], _pixelSize))
                 { isConst = false; break; }
 
-                // traverse around vertex in CW direction
-                // handle T junction between subfaces and main face
+                // if vertex is a T vertex between subface and main face, we can stop
                 bool isSubface = af.isSubface();
                 bool isT = !isTriangle && prevWasSubface && !isSubface && af.adjface(aeid) == prevFid;
-                std::swap(prevFid, afid);
+                if (isT) break;
                 prevWasSubface = isSubface;
 
-                if (isT) {
-                    // traverse to secondary subface across T junction
-                    FaceInfo& pf = _faceinfo[afid];
-                    int peid = af.adjedge(aeid);
-                    peid = (peid + 3) % 4;
-                    afid = pf.adjface(peid);
-                    aeid = pf.adjedge(peid);
-                    aeid = (aeid + 3) % 4;
+                // traverse around vertex in CW direction
+                prevFid = afid;
+                aeid = (aeid + 1) % nedges;
+                afid = af.adjface(aeid);
+                aeid = af.adjedge(aeid);
+            }
+
+            if (afid < 0)  {
+                // hit boundary edge, check boundary mode
+                if (_extheader.ubordermode != Ptex::m_clamp || _extheader.vbordermode != Ptex::m_clamp) {
+                    isConst = false;
                 }
-                else {
-                    // traverse around vertex
-                    aeid = (aeid + 1) % nedges;
-                    afid = af.adjface(aeid);
-                    aeid = af.adjedge(aeid);
+
+                // and traverse CCW neighbors too
+                if (isConst) {
+                    aeid = (aeid - 1 + nedges) % nedges;
+                    afid = f.adjface(aeid);
+                    aeid = f.adjedge(aeid);
+                    count = 0;
+                    while (afid != faceid && afid >= 0 && ++count < maxcount) {
+                        // check if neighbor is constant, and has the same value as face
+                        FaceInfo& af = _faceinfo[afid];
+                        if (!af.isConstant() ||
+                            0 != memcmp(constdata, &_constdata[afid*_pixelSize], _pixelSize))
+                        { isConst = false; break; }
+
+                        // traverse around vertex in CCW direction
+                        prevFid = afid;
+                        aeid = (aeid - 1 + nedges) % nedges;
+                        afid = af.adjface(aeid);
+                        aeid = af.adjedge(aeid);
+
+                        // if traversing to a subface, switch to secondary subface (afid points to primary/CW subface)
+                        bool isSubface = af.isSubface();
+                        if (isSubface && !prevWasSubface) {
+                            aeid = (aeid + 3) % 4;
+                            afid = af.adjface(aeid);
+                            aeid = (af.adjedge(aeid) + 3) % 4;
+                        }
+                        prevWasSubface = isSubface;
+                    }
                 }
             }
-            if (!isConst) break;
         }
         if (isConst) f.flags |= FaceInfo::flag_nbconstant;
     }
