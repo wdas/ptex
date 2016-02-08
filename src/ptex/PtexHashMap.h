@@ -233,7 +233,7 @@ public:
             if (e.value == 0) {
                 e.value = value;
                 ++_size;
-                MemoryFence();
+                PtexMemoryFence();
                 e.key.copy(key);
                 result = e.value;
                 break;

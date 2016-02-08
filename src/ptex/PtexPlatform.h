@@ -174,7 +174,7 @@ private:
     #ifdef NDEBUG
         #define PTEX_INLINE __forceinline
     #else
-        #define PTEX_INLINE
+        #define PTEX_INLINE inline
     #endif
 #else
     #define ATOMIC_ALIGNED __attribute__((aligned(8)))
@@ -275,7 +275,7 @@ PTEX_INLINE void AtomicStore(T volatile* target, T value)
     *target = value;
 }
 
-PTEX_INLINE void MemoryFence()
+PTEX_INLINE void PtexMemoryFence()
 {
     MEM_FENCE();
 }
