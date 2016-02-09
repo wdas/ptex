@@ -198,7 +198,7 @@ class PtexReaderCache : public PtexCache
 {
 public:
     PtexReaderCache(int maxFiles, size_t maxMem, bool premultiply, PtexInputHandler* inputHandler, PtexErrorHandler* errorHandler)
-	: _maxFiles(maxFiles), _maxMem(maxMem), _io(inputHandler), _err(errorHandler), _premultiply(premultiply),
+        : _maxFiles(maxFiles), _maxMem(maxMem), _io(inputHandler), _err(errorHandler), _premultiply(premultiply),
           _memUsed(sizeof(*this)), _filesOpen(0), _mruList(&_mruLists[0]), _prevMruList(&_mruLists[1]),
           _peakMemUsed(0), _peakFilesOpen(0), _fileOpens(0), _blockReads(0)
     {
@@ -238,7 +238,7 @@ public:
 
     virtual const char* getSearchPath()
     {
-	return _searchpath.c_str();
+        return _searchpath.c_str();
     }
 
     virtual PtexTexture* get(const char* path, Ptex::String& error);
