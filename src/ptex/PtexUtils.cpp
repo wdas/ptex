@@ -667,6 +667,8 @@ applyConstFunctions[20] = {
     ApplyConst<uint8_t,4>, ApplyConst<uint16_t,4>, ApplyConst<PtexHalf,4>, ApplyConst<float,4>,
 };
 
+} // namespace PtexUtils end
+
 #ifndef PTEX_USE_STDSTRING
 String::~String()
 {
@@ -689,5 +691,4 @@ std::ostream& operator << (std::ostream& stream, const String& str)
 
 #endif
 
-} // namespace PtexUtils end
 PTEX_NAMESPACE_END
