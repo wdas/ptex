@@ -77,6 +77,8 @@ public:
     }
 
 protected:
+    DataType datatype() const { return DataType(_header.datatype); }
+
     struct MetaEntry {
         std::string key;
         MetaDataType datatype;

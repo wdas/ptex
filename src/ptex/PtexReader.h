@@ -76,11 +76,11 @@ public:
 
     virtual Info getInfo() {
         Info info;
-        info.meshType = _header.meshtype;
-        info.dataType = _header.datatype;
-        info.uBorderMode = _extheader.ubordermode;
-        info.vBorderMode = _extheader.vbordermode;
-        info.edgeFilterMode = _extheader.edgefiltermode;
+        info.meshType = MeshType(_header.meshtype);
+        info.dataType = DataType(_header.datatype);
+        info.uBorderMode = BorderMode(_extheader.ubordermode);
+        info.vBorderMode = BorderMode(_extheader.vbordermode);
+        info.edgeFilterMode = EdgeFilterMode(_extheader.edgefiltermode);
         info.alphaChannel = _header.alphachan;
         info.numChannels = _header.nchannels;
         info.numFaces = _header.nfaces;
@@ -110,7 +110,7 @@ public:
 			  float* result, int firstchan, int nchannels,
 			  Ptex::Res res);
 
-    DataType datatype() const { return _header.datatype; }
+    DataType datatype() const { return DataType(_header.datatype); }
     int nchannels() const { return _header.nchannels; }
     int pixelsize() const { return _pixelsize; }
     const Header& header() const { return _header; }
