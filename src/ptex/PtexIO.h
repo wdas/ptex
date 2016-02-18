@@ -43,8 +43,8 @@ PTEX_NAMESPACE_BEGIN
 struct Header {
     uint32_t magic;
     uint32_t version;
-    MeshType meshtype:32;
-    DataType datatype:32;
+    uint32_t meshtype;
+    uint32_t datatype;
     int32_t  alphachan;
     uint16_t nchannels;
     uint16_t nlevels;
@@ -57,14 +57,14 @@ struct Header {
     uint64_t leveldatasize;
     uint32_t metadatazipsize;
     uint32_t metadatamemsize;
-    int pixelSize() const { return DataSize(datatype) * nchannels; }
+    int pixelSize() const { return DataSize(DataType(datatype)) * nchannels; }
     bool hasAlpha() const { return alphachan >= 0 && alphachan < nchannels; }
 };
 struct ExtHeader {
-    BorderMode ubordermode:16;
+    uint16_t ubordermode;
     uint16_t pad;
-    BorderMode vbordermode:16;
-    EdgeFilterMode edgefiltermode:16;
+    uint16_t vbordermode;
+    uint16_t edgefiltermode;
     uint32_t lmdheaderzipsize;
     uint32_t lmdheadermemsize;
     uint64_t lmddatasize;

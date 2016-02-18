@@ -609,13 +609,13 @@ void PtexWriterBase::writeFaceBlock(FILE* fp, const void* data, int stride,
     bool useNew = blockSize > AllocaMax;
     char* buff = useNew ? new char [blockSize] : (char*)alloca(blockSize);
     PtexUtils::deinterleave(data, stride, ures, vres, buff,
-                            ures*DataSize(_header.datatype),
-                            _header.datatype, _header.nchannels);
+                            ures*DataSize(datatype()),
+                            datatype(), _header.nchannels);
 
     // difference if needed
-    bool diff = (_header.datatype == dt_uint8 ||
-                 _header.datatype == dt_uint16);
-    if (diff) PtexUtils::encodeDifference(buff, blockSize, _header.datatype);
+    bool diff = (datatype() == dt_uint8 ||
+                 datatype() == dt_uint16);
+    if (diff) PtexUtils::encodeDifference(buff, blockSize, datatype());
 
     // compress and stream data to file, and record size in header
     int zippedsize = writeZipBlock(fp, buff, blockSize);
@@ -696,7 +696,7 @@ void PtexWriterBase::writeReduction(FILE* fp, const void* data, int stride, Res 
     char* buff = useNew ? new char [buffsize] : (char*)alloca(buffsize);
 
     int dstride = newres.u() * _pixelSize;
-    _reduceFn(data, stride, res.u(), res.v(), buff, dstride, _header.datatype, _header.nchannels);
+    _reduceFn(data, stride, res.u(), res.v(), buff, dstride, datatype(), _header.nchannels);
     writeBlock(fp, buff, buffsize);
 
     if (useNew) delete [] buff;
@@ -835,7 +835,7 @@ bool PtexMainWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
         PtexUtils::copy(data, stride, temp, rowlen, nrows, rowlen);
 
         // multiply alpha
-        PtexUtils::multalpha(temp, f.res.size(), _header.datatype, _header.nchannels,
+        PtexUtils::multalpha(temp, f.res.size(), datatype(), _header.nchannels,
                              _header.alphachan);
 
         // override source buffer
@@ -880,9 +880,9 @@ void PtexMainWriter::storeConstValue(int faceid, const void* data, int stride, R
     // compute average value and store in _constdata block
     uint8_t* constdata = &_constdata[faceid*_pixelSize];
     PtexUtils::average(data, stride, res.u(), res.v(), constdata,
-                       _header.datatype, _header.nchannels);
+                       datatype(), _header.nchannels);
     if (_header.hasAlpha())
-        PtexUtils::divalpha(constdata, 1, _header.datatype, _header.nchannels, _header.alphachan);
+        PtexUtils::divalpha(constdata, 1, datatype(), _header.nchannels, _header.alphachan);
 }
 
 
@@ -1236,7 +1236,7 @@ PtexIncrWriter::PtexIncrWriter(const char* path, FILE* fp,
     }
 
     bool headerMatch = (mt == _header.meshtype &&
-                        dt == _header.datatype &&
+                        dt == datatype() &&
                         nchannels == _header.nchannels &&
                         alphachan == int(_header.alphachan) &&
                         nfaces == int(_header.nfaces));
@@ -1300,20 +1300,20 @@ bool PtexIncrWriter::writeFace(int faceid, const FaceInfo& f, const void* data, 
         PtexUtils::copy(data, stride, temp, rowlen, nrows, rowlen);
 
         // multiply alpha
-        PtexUtils::multalpha(temp, f.res.size(), _header.datatype, _header.nchannels,
+        PtexUtils::multalpha(temp, f.res.size(), datatype(), _header.nchannels,
                              _header.alphachan);
         // average
         PtexUtils::average(temp, rowlen, f.res.u(), f.res.v(), constval,
-                           _header.datatype, _header.nchannels);
+                           datatype(), _header.nchannels);
         // unmult alpha
-        PtexUtils::divalpha(constval, 1, _header.datatype, _header.nchannels,
+        PtexUtils::divalpha(constval, 1, datatype(), _header.nchannels,
                             _header.alphachan);
         delete [] temp;
     }
     else {
         // average
         PtexUtils::average(data, stride, f.res.u(), f.res.v(), constval,
-                           _header.datatype, _header.nchannels);
+                           datatype(), _header.nchannels);
     }
     // write const val
     writeBlock(_fp, constval, _pixelSize);

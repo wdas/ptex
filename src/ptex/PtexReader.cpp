@@ -325,7 +325,7 @@ void PtexReader::readConstData()
         _constdata = new uint8_t[size];
         readZipBlock(_constdata, _header.constdatasize, size);
         if (_premultiply && _header.hasAlpha())
-            PtexUtils::multalpha(_constdata, _header.nfaces, _header.datatype,
+            PtexUtils::multalpha(_constdata, _header.nfaces, datatype(),
                                  _header.nchannels, _header.alphachan);
         increaseMemUsed(size);
     }
@@ -516,7 +516,7 @@ void PtexReader::readEditFaceData()
     uint8_t* constdata = _constdata + _pixelsize * faceid;
     if (!readBlock(constdata, _pixelsize)) return;
     if (_premultiply && _header.hasAlpha())
-        PtexUtils::multalpha(constdata, 1, _header.datatype,
+        PtexUtils::multalpha(constdata, 1, datatype(),
                              _header.nchannels, _header.alphachan);
 
     // update header info for remaining data
@@ -658,7 +658,7 @@ void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int leve
             newMemUsed = sizeof(ConstantFace) + _pixelsize;
             readBlock(cf->data(), _pixelsize);
             if (levelid==0 && _premultiply && _header.hasAlpha())
-                PtexUtils::multalpha(cf->data(), 1, _header.datatype,
+                PtexUtils::multalpha(cf->data(), 1, datatype(),
                                      _header.nchannels, _header.alphachan);
         }
         break;
@@ -688,12 +688,12 @@ void PtexReader::readFaceData(FilePos pos, FaceDataHeader fdh, Res res, int leve
             char* tmp = useNew ? new char [unpackedSize] : (char*) alloca(unpackedSize);
             readZipBlock(tmp, fdh.blocksize(), unpackedSize);
             if (fdh.encoding() == enc_diffzipped)
-                PtexUtils::decodeDifference(tmp, unpackedSize, _header.datatype);
-            PtexUtils::interleave(tmp, uw * DataSize(_header.datatype), uw, vw,
+                PtexUtils::decodeDifference(tmp, unpackedSize, datatype());
+            PtexUtils::interleave(tmp, uw * DataSize(datatype()), uw, vw,
                                   pf->data(), uw * _pixelsize,
-                                  _header.datatype, _header.nchannels);
+                                  datatype(), _header.nchannels);
             if (levelid==0 && _premultiply && _header.hasAlpha())
-                PtexUtils::multalpha(pf->data(), npixels, _header.datatype,
+                PtexUtils::multalpha(pf->data(), npixels, datatype(),
                                      _header.nchannels, _header.alphachan);
             if (useNew) delete [] tmp;
         }
@@ -904,15 +904,15 @@ void PtexReader::getPixel(int faceid, int u, int v,
     data->getPixel(u, v, pixel);
 
     // adjust for firstchan offset
-    int datasize = DataSize(_header.datatype);
+    int datasize = DataSize(datatype());
     if (firstchan)
         pixel = (char*) pixel + datasize * firstchan;
 
     // convert/copy to result as needed
-    if (_header.datatype == dt_float)
+    if (datatype() == dt_float)
         memcpy(result, pixel, datasize * nchannelsArg);
     else
-        ConvertToFloat(result, pixel, _header.datatype, nchannelsArg);
+        ConvertToFloat(result, pixel, datatype(), nchannelsArg);
 }
 
 
@@ -932,15 +932,15 @@ void PtexReader::getPixel(int faceid, int u, int v,
     data->getPixel(u, v, pixel);
 
     // adjust for firstchan offset
-    int datasize = DataSize(_header.datatype);
+    int datasize = DataSize(datatype());
     if (firstchan)
         pixel = (char*) pixel + datasize * firstchan;
 
     // convert/copy to result as needed
-    if (_header.datatype == dt_float)
+    if (datatype() == dt_float)
         memcpy(result, pixel, datasize * nchannelsArg);
     else
-        ConvertToFloat(result, pixel, _header.datatype, nchannelsArg);
+        ConvertToFloat(result, pixel, datatype(), nchannelsArg);
 }
 
 
