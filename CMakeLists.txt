@@ -19,6 +19,19 @@ if (NOT WIN32)
     set(CMAKE_CXX_FLAGS "-std=c++98 -Wall -Wextra -pedantic")
 endif ()
 
+if(MSVC)
+    add_definitions(
+
+        #warning C4800: 'BOOL': forcing value to bool 'true' or 'false' (performance warning)
+        /wd4800 
+
+        #warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+        /wd4244 
+
+        /D_CRT_SECURE_NO_WARNINGS
+    )
+endif()
+
 if (${PRMAN_15_COMPATIBLE_PTEX})
     add_definitions(-DPTEX_NO_LARGE_METADATA_BLOCKS)
 endif ()
