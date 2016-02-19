@@ -1,3 +1,5 @@
+add_definitions(-DPTEX_STATIC)
+
 add_executable(wtest wtest.cpp)
 target_link_libraries(wtest Ptex_dynamic)
 
