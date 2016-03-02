@@ -72,16 +72,23 @@ void PtexSeparableFilter::eval(float* result, int firstChan, int nChannels,
     float uw = PtexUtils::abs(uw1) + PtexUtils::abs(uw2), vw = PtexUtils::abs(vw1) + PtexUtils::abs(vw2);
 
     // handle border modes
+    bool return_black = false;
+
     switch (_uMode) {
     case m_clamp: u = PtexUtils::clamp(u, 0.0f, 1.0f); break;
     case m_periodic: u = u-PtexUtils::floor(u); break;
-    case m_black: break; // do nothing
+    case m_black: if (u <= -1.0f || u >= 2.0f) return_black = true; break;
     }
 
     switch (_vMode) {
     case m_clamp: v = PtexUtils::clamp(v, 0.0f, 1.0f); break;
-    case m_periodic: v = v-PtexUtils::floor(v);
-    case m_black: break; // do nothing
+    case m_periodic: v = v-PtexUtils::floor(v); break;
+    case m_black: if (v <= -1.0f || v >= 2.0f) return_black = true; break;
+    }
+
+    if (return_black) {
+        memset(result, 0, sizeof(float)*_nchan);
+        return;
     }
 
     // build kernel
