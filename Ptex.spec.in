@@ -1,0 +1,97 @@
+Name:           Ptex
+Version:        @@VERSION@@
+Release:        @@RELEASE@@%{?dist}
+Summary:        Per-Face Texture Mapping for Production Rendering
+
+Group:          System Environment/Libraries
+License:        Apache License v2.0
+URL:            https://github.com/wdas/ptex
+Source0:        %{name}-%{version}.tar.gz
+
+Requires:       zlib
+BuildRequires:  gcc
+BuildRequires:  gcc-c++
+BuildRequires:  make
+BuildRequires:  cmake
+BuildRequires:  zlib-devel
+BuildRequires:  zlib-static
+
+prefix:         %{_prefix}
+BuildRoot:      %{_topdir}/BUILDROOT/%{name}-%{version}
+
+%description
+Ptex is a texture mapping system developed by
+Walt Disney Animation Studios for production-quality rendering.
+
+%package all
+Summary:        Meta-package for all Ptex components
+Group:          System Environment/Libraries
+Requires:       Ptex = %{version}
+Requires:       Ptex-docs = %{version}
+Requires:       Ptex-devel = %{version}
+
+%description all
+Meta-package for Ptex
+
+%package docs
+Summary:        Ptex documentation
+Requires:       Ptex = %{version}
+
+%description docs
+Documentation for Ptex
+
+%package devel
+Summary:        Ptex headers and libraries
+Requires:       Ptex = %{version}
+
+%description devel
+Development headers and static libraries for Ptex
+
+%prep
+%setup -q
+
+%build
+
+%install
+%{__make} prefix=%{_prefix}
+%{__make} prefix=%{_prefix} DESTDIR=%{buildroot} install
+
+# Create a pkgconfig file
+%{__mkdir_p} %{buildroot}%{_datadir}/pkgconfig
+cat >%{buildroot}%{_datadir}/pkgconfig/Ptex.pc << \-EOF
+# pkg-config configuration for Ptex
+prefix=%{_prefix}
+libdir=${prefix}/%{_lib}
+includedir=${prefix}/include
+
+Name: Ptex
+Description: Per-Face Texture Mapping for Production Rendering
+Version: %{version}
+Cflags: -I${includedir}
+Libs: -L${libdir} -l:libPtex.a -lz
+-EOF
+
+%clean
+rm -rf %{buildroot}
+
+%post
+
+%postun
+
+%files
+%defattr(-,root,root,-)
+%{_bindir}/*
+
+%files docs
+%defattr(-,root,root,-)
+%{_defaultdocdir}/ptex
+
+%files devel
+%defattr(-,root,root,-)
+%{_includedir}/*.h
+%{_libdir}/libPtex.a
+%{_libdir}/libPtex.so
+%{_datadir}/pkgconfig/Ptex.pc
+
+%files all
+# This is a virtual package and contains no files
