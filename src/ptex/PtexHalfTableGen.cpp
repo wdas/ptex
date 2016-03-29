@@ -53,14 +53,14 @@ int main()
     uint32_t h2fTable[65536];
     uint16_t f2hTable[512];
     PtexHalfInit(h2fTable, f2hTable);
-    fprintf(fp, "uint32_t PtexHalf::h2fTable[65536] = {");
+    fprintf(fp, "PTEXAPI uint32_t PtexHalf::h2fTable[65536] = {");
     for (int i = 0; i < 65536; i++) {
         if (i % 8 == 0) fprintf(fp, "\n");
         fprintf(fp, "    0x%08x", h2fTable[i]);
         if (i != 65535) fprintf(fp, ",");
     }
     fprintf(fp, "\n};\n");
-    fprintf(fp, "uint16_t PtexHalf::f2hTable[512] = {");
+    fprintf(fp, "PTEXAPI uint16_t PtexHalf::f2hTable[512] = {");
     for (int i = 0; i < 512; i++) {
         if (i % 8 == 0) fprintf(fp, "\n");
         fprintf(fp, "    0x%04x", f2hTable[i]);
