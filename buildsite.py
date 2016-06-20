@@ -191,6 +191,7 @@ releases = [
     ['v2.0.37', 'Apr 8, 2013', 'Cmake support, compiler warnings, WIN32 export control.'],
     ['v2.0.41', 'Apr 9, 2013', 'Limit I/O buffer size, avoid float/double conversion, remove LOD bias on bilinear filter, silence warnings.'],
     ['v2.1.10', 'Dec 8, 2015', 'New cache architecture for better threading. New cache stats API. New edge filter mode for tangent-space maps. Optimizations.'],
+    ['v2.1.28', 'Apr 4, 2016', 'API: MetaData::findKey, const neighborhood check improvement, build/portability fixes.'],
     ['master', '', 'Latest commit']]
 
 download='''
