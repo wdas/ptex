@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 PTEX_NAMESPACE_BEGIN
 
+#pragma pack(push, 1)
 struct Header {
     uint32_t magic;
     uint32_t version;
@@ -98,6 +99,7 @@ struct EditMetaDataHeader {
     uint32_t metadatazipsize;
     uint32_t metadatamemsize;
 };
+#pragma pack(pop)
 
 const uint32_t Magic = 'P' | ('t'<<8) | ('e'<<16) | ('x'<<24);
 const int HeaderSize = sizeof(Header);
