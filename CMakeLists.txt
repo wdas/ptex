@@ -16,7 +16,7 @@ else ()
 endif ()
 
 if (NOT WIN32)
-    set(CMAKE_CXX_FLAGS "-std=c++98 -Wall -Wextra -pedantic")
+    set(CMAKE_CXX_FLAGS "-std=c++98 -Wall -Wextra -pedantic ${CMAKE_CXX_FLAGS}")
 endif ()
 
 if(MSVC)
