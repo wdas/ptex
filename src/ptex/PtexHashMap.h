@@ -284,14 +284,11 @@ private:
 
     Entry* lockEntriesAndGrowIfNeeded(size_t& newMemUsed)
     {
-        while (_size*2 >= _numEntries) {
-            Entry* entries = lockEntries();
-            if (_size*2 >= _numEntries) {
-                entries = grow(entries, newMemUsed);
-            }
-            return entries;
+        Entry* entries = lockEntries();
+        if (_size*2 >= _numEntries) {
+            entries = grow(entries, newMemUsed);
         }
-        return lockEntries();
+        return entries;
     }
 
     Entry* grow(Entry* oldEntries, size_t& newMemUsed)
