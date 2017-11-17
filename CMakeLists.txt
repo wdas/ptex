@@ -8,11 +8,16 @@ include(FindThreads)
 
 enable_testing()
 
-# Detect the build type from the $FLAVOR environment variable
-if ("$ENV{FLAVOR}" MATCHES "debug")
-    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "type of build" FORCE)
-else ()
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "type of build" FORCE)
+if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    # Detect the build type from the $FLAVOR environment variable
+    # Default to optimized Release builds when unspecified.
+    if ("$ENV{FLAVOR}" MATCHES "debug")
+        set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "type of build" FORCE)
+    elseif ("$ENV{FLAVOR}" MATCHES "profile")
+        set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "type of build" FORCE)
+    else ()
+        set(CMAKE_BUILD_TYPE "Release" CACHE STRING "type of build" FORCE)
+    endif ()
 endif ()
 
 if (NOT WIN32)

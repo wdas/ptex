@@ -21,6 +21,10 @@ ifdef TOOLCHAIN
     CMAKE_FLAGS += -DCMAKE_TOOLCHAIN_FILE=$(TOOLCHAIN)
 endif
 
+ifdef BUILD_TYPE
+    CMAKE_FLAGS += -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
+endif
+
 # make V=1 shortcut for VERBOSE=1
 ifdef V
     VERBOSE=1
