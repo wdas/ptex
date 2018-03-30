@@ -1,16 +1,21 @@
 add_definitions(-DPTEX_STATIC)
 
 add_executable(wtest wtest.cpp)
-target_link_libraries(wtest Ptex_dynamic)
-
 add_executable(rtest rtest.cpp)
-target_link_libraries(rtest Ptex_dynamic)
-
 add_executable(ftest ftest.cpp)
-target_link_libraries(ftest Ptex_dynamic)
-
 add_executable(halftest halftest.cpp)
-target_link_libraries(halftest Ptex_dynamic)
+
+if(PTEX_BUILD_SHARED_LIBS)
+  target_link_libraries(wtest Ptex_dynamic)
+  target_link_libraries(rtest Ptex_dynamic)
+  target_link_libraries(ftest Ptex_dynamic)
+  target_link_libraries(halftest Ptex_dynamic)
+elseif(PTEX_BUILD_STATIC_LIBS)
+  target_link_libraries(wtest Ptex_static)
+  target_link_libraries(rtest Ptex_static)
+  target_link_libraries(ftest Ptex_static)
+  target_link_libraries(halftest Ptex_static)
+endif()
 
 # create a function to add tests that compare output
 # file results

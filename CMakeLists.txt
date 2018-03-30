@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8)
 project(ptex)
 
+option(PTEX_BUILD_STATIC_LIBS "Enable building Ptex static libraries" ON)
+option(PTEX_BUILD_SHARED_LIBS "Enable building Ptex shared libraries" ON)
+
 include(GNUInstallDirs)
 include(CTest)
 include(FindZLIB)
