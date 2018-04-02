@@ -1052,13 +1052,13 @@ template <class T> class PtexPtr {
     ~PtexPtr() { if (_ptr) _ptr->release(); }
 
     /// Use as pointer value.
-    operator T* () { return _ptr; }
+    operator T* () const { return _ptr; }
 
     /// Access members of pointer.
-    T* operator-> () { return _ptr; }
+    T* operator-> () const { return _ptr; }
 
     /// Get pointer value.
-    T* get() { return _ptr; }
+    T* get() const { return _ptr; }
 
     /// Swap pointer values.
     void swap(PtexPtr& p)
