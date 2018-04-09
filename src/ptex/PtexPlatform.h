@@ -67,7 +67,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <pthread.h>
 
 #ifdef __APPLE__
-#include <libkern/OSAtomic.h>
+#include <os/lock.h>
 #include <sys/types.h>
 #endif
 #endif
@@ -136,13 +136,13 @@ private:
 #ifdef __APPLE__
 class SpinLock {
 public:
-    SpinLock()   { _spinlock = 0; }
+    SpinLock()   { _spinlock = OS_UNFAIR_LOCK_INIT; }
     ~SpinLock()  { }
-    void lock()   { OSSpinLockLock(&_spinlock); }
-    bool trylock() { return OSSpinLockTry(&_spinlock); }
-    void unlock() { OSSpinLockUnlock(&_spinlock); }
+    void lock()   { os_unfair_lock_lock(&_spinlock); }
+    bool trylock() { return os_unfair_lock_trylock(&_spinlock); }
+    void unlock() { os_unfair_lock_unlock(&_spinlock); }
 private:
-    OSSpinLock _spinlock;
+    os_unfair_lock _spinlock;
 };
 #else
 class SpinLock {
