@@ -547,8 +547,8 @@ void PtexReader::readEditMetaData()
 
 bool PtexReader::readBlock(void* data, int size, bool reporterror)
 {
-    assert(_fp);
-    if (!_fp) return false;
+    assert(_fp && size >= 0);
+    if (!_fp || size < 0) return false;
     int result = (int)_io->read(data, size, _fp);
     if (result == size) {
         _pos += size;
@@ -562,6 +562,7 @@ bool PtexReader::readBlock(void* data, int size, bool reporterror)
 
 bool PtexReader::readZipBlock(void* data, int zipsize, int unzipsize)
 {
+    if (zipsize < 0 || unzipsize < 0) return false;
     if (!_zstream.state) {
         inflateInit(&_zstream);
     }

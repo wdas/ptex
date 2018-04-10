@@ -14,15 +14,19 @@ set(SRCS
     PtexUtils.cpp
     PtexWriter.cpp)
 
-add_library(Ptex_static STATIC ${SRCS})
-set_target_properties(Ptex_static PROPERTIES OUTPUT_NAME Ptex)
+if(PTEX_BUILD_STATIC_LIBS)
+  add_library(Ptex_static STATIC ${SRCS})
+  set_target_properties(Ptex_static PROPERTIES OUTPUT_NAME Ptex)
+  target_link_libraries(Ptex_static ${CMAKE_THREAD_LIBS_INIT} ${ZLIB_LIBRARIES})
+  install(TARGETS Ptex_static DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endif()
 
-add_library(Ptex_dynamic SHARED ${SRCS})
-set_target_properties(Ptex_dynamic PROPERTIES OUTPUT_NAME Ptex)
-
-target_link_libraries(Ptex_dynamic ${CMAKE_THREAD_LIBS_INIT} ${ZLIB_LIBRARIES})
-
-install(TARGETS Ptex_static Ptex_dynamic DESTINATION ${CMAKE_INSTALL_LIBDIR})
+if(PTEX_BUILD_SHARED_LIBS)
+  add_library(Ptex_dynamic SHARED ${SRCS})
+  set_target_properties(Ptex_dynamic PROPERTIES OUTPUT_NAME Ptex)
+  target_link_libraries(Ptex_dynamic ${CMAKE_THREAD_LIBS_INIT} ${ZLIB_LIBRARIES})
+  install(TARGETS Ptex_dynamic DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endif()
 
 install(FILES
         PtexHalf.h
