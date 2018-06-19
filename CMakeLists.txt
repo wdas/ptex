@@ -1,10 +1,12 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.8.0)
 project(Ptex)
 
 option(PTEX_BUILD_STATIC_LIBS "Enable building Ptex static libraries" ON)
 option(PTEX_BUILD_SHARED_LIBS "Enable building Ptex shared libraries" ON)
 option(PRMAN_15_COMPATIBLE_PTEX "Enable PRMan 15 compatibility" OFF)
 
+set(CMAKE_CXX_STANDARD 98)
+set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_INSTALL_MESSAGE LAZY) # Silence "Up-to-date:" install messages
 
 if (NOT DEFINED PTEX_SHA)
@@ -61,7 +63,7 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif ()
 
 if (NOT WIN32)
-    set(CMAKE_CXX_FLAGS "-std=c++98 -Wall -Wextra -pedantic ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 endif ()
 
 if(MSVC)
