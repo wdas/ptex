@@ -56,6 +56,10 @@ $(configure):
 	$(QUIET)cd $(build) && cmake $(CMAKE_FLAGS) $(CURDIR)
 	$(QUIET)touch $@
 
+cmake:
+	$(QUIET)mkdir -p $(build)
+	$(QUIET)cd $(build) && cmake $(CMAKE_FLAGS) $(CURDIR)
+
 all clean doc install test:: $(configure)
 	+$(QUIET)cmake --build $(build) --target $@ $(FLAGS)
 
