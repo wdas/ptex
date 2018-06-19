@@ -7,6 +7,15 @@ option(PRMAN_15_COMPATIBLE_PTEX "Enable PRMan 15 compatibility" OFF)
 
 set(CMAKE_INSTALL_MESSAGE LAZY) # Silence "Up-to-date:" install messages
 
+# Enable C++11
+if (CMAKE_VERSION VERSION_LESS "3.1")
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    endif ()
+else ()
+    set(CMAKE_CXX_STANDARD 11)
+endif ()
+
 if (NOT DEFINED PTEX_SHA)
     # Query git for current commit ID
     execute_process(
