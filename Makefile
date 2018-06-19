@@ -50,6 +50,8 @@ default:: test
 
 test:: all
 
+clean:: uninstall
+
 configure = $(build)/cmake.conf
 $(configure):
 	$(QUIET)mkdir -p $(build)
@@ -63,3 +65,11 @@ cmake:
 all clean doc install test:: $(configure)
 	+$(QUIET)cmake --build $(build) --target $@ $(FLAGS)
 
+install::
+	$(QUIET)cp $(build)/install_manifest.txt $(build).manifest.txt
+
+uninstall: $(configure)
+	$(QUIET)touch $(build).manifest.txt
+	$(QUIET)xargs rm -f <$(build).manifest.txt
+	$(QUIET)xargs dirname <$(build).manifest.txt 2>/dev/null | \
+	sort -u -r | xargs rmdir -p >/dev/null 2>&1 || true
