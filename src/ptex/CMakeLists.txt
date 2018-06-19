@@ -2,6 +2,9 @@ if (WIN32)
     add_definitions(/DPTEX_EXPORTS)
 endif (WIN32)
 
+configure_file(PtexVersion.h.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/PtexVersion.h @ONLY)
+
 set(SRCS
     PtexCache.cpp
     PtexFilters.cpp
