@@ -5,6 +5,8 @@ option(PTEX_BUILD_STATIC_LIBS "Enable building Ptex static libraries" ON)
 option(PTEX_BUILD_SHARED_LIBS "Enable building Ptex shared libraries" ON)
 option(PRMAN_15_COMPATIBLE_PTEX "Enable PRMan 15 compatibility" OFF)
 
+set(CMAKE_INSTALL_MESSAGE LAZY) # Silence "Up-to-date:" install messages
+
 if (NOT DEFINED PTEX_SHA)
     # Query git for current commit ID
     execute_process(
