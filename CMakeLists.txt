@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(ptex)
+project(Ptex)
 
 option(PTEX_BUILD_STATIC_LIBS "Enable building Ptex static libraries" ON)
 option(PTEX_BUILD_SHARED_LIBS "Enable building Ptex shared libraries" ON)
@@ -82,9 +82,9 @@ if (${PRMAN_15_COMPATIBLE_PTEX})
 endif ()
 
 include_directories(src/ptex)
-include_directories(${ZLIB_INCLUDE_DIR})
 
 add_subdirectory(src/ptex)
 add_subdirectory(src/utils)
 add_subdirectory(src/tests)
 add_subdirectory(src/doc)
+add_subdirectory(src/build)
