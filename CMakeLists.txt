@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 project(ptex)
 
+option(PTEX_BUILD_STATIC_LIBS "Enable building Ptex static libraries" ON)
+option(PTEX_BUILD_SHARED_LIBS "Enable building Ptex shared libraries" ON)
+option(PRMAN_15_COMPATIBLE_PTEX "Enable PRMan 15 compatibility" OFF)
+
 if (NOT DEFINED PTEX_SHA)
     # Query git for current commit ID
     execute_process(
@@ -34,9 +38,6 @@ endif ()
 # The version variables are used to generate PtexVersion.h
 list(GET PTEX_VER_LIST 0 PTEX_MAJOR_VERSION)
 list(GET PTEX_VER_LIST 1 PTEX_MINOR_VERSION)
-
-option(PTEX_BUILD_STATIC_LIBS "Enable building Ptex static libraries" ON)
-option(PTEX_BUILD_SHARED_LIBS "Enable building Ptex shared libraries" ON)
 
 include(GNUInstallDirs)
 include(CTest)
