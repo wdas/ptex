@@ -140,6 +140,7 @@ section:nth-child(odd) h4,
 section:nth-child(odd) h5,
 section:nth-child(odd) h6,
 section:nth-child(odd) p,
+section:nth-child(odd) td,
 section:nth-child(odd) li {
   color: #443E3A;
 }

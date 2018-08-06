@@ -4,7 +4,7 @@ from string import Template
 main='''
   <section>
     <div class="left">
-    <img src="PtexCubeOrange64.png" border=0>
+    <h1>Ptex</h1>
     </div>
     <div class="right">
         <b>Ptex</b> is a texture mapping system developed
@@ -19,13 +19,11 @@ main='''
     </div>
   </section>
   <section>
-  </section>
-  <section>
    <div class="left">
     <h2>News</h2>
    </div>
    <div class="right">
-       $news
+   <p>$news</p>
    </div>
   </section>
 '''
@@ -77,81 +75,107 @@ main = Template(main).safe_substitute(news=news)
 
 overview='''
 
+<section>
+<div class="left">
 <a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptex-teaser-big.png"><img border=0 src="ptex-teaser.png" alt=""></a>
-<br> Model with 2694 faces rendered with Ptex.  No explicit UV
-assignment was used.  The largest texture layer, the fine-scale
-displacements, has 836 million texels stored in a single Ptex file
-with individual face resolutions ranging from 64 x 64 to 2048 x 2048
-texels.  No seams are visible across faces, even under <a
-href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptex-teaser-big.png">close
-magnification</a>.<br>(&copy; Walt Disney Animation Studios)
+</div>
+<div class="right">
+<p>Model with 2694 faces rendered with Ptex.  No explicit UV assignment was used.  The largest texture layer, the fine-scale displacements, has 836 million texels stored in a single Ptex file with individual face resolutions ranging from 64 x 64 to 2048 x 2048 texels.
+No seams are visible across faces, even under <a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptex-teaser-big.png">close magnification</a>.<br>(&copy; Walt Disney Animation Studios)</a></p>
+</div>
+</section>
 
+<section>
+<div class="left">
 <h2>Motivation</h2>
+</div>
 
-There were many drawbacks to traditional texture mapping methods that led to the development of Ptex:
+<div class="right">
+<p>There were many drawbacks to traditional texture mapping methods that led to the development of Ptex:</p>
 <ul>
 <li>UV assignment was a tedious task, and making good UVs on complex models was difficult.</li>
 <li>Texture seams could produce visible artifacts especially with displacement maps.</li>
 <li>Large numbers of texture files were required creating a significant I/O bottleneck.</li>
 </ul>
+<p>Ptex addresses all these issues by eliminating UV assignment, providing seamless filtering, and allowing any number of textures to be stored in a single file.</p>
+<p>Ptex has been used on virtually every surface of every Walt Disney Animation Studios production since 2008.</p>
+</div>
+</section>
 
-Ptex addresses all these issues by eliminating UV assignment,
-providing seamless filtering, and allowing any number of textures to
-be stored in a single file. <br><br>
-
-Ptex has been used on virtually every surface of every Walt Disney Animation Studios production since 2008.
-
+<section>
+<div class="left">
 <h2>Major Features</h2>
+</div>
 
+<div class="right">
 <ul>
 <li>Supports Catmull-Clark subdivision surfaces (including quad and non-quad faces), Loop subdivision surfaces, and polymeshes (either all-quad or all-triangle).</li>
 <li>Several data types are supported including 8 or 16-bit integer, float, and half-precision float.</li>
 <li>An arbitrary number of channels can be stored in a Ptex file.</li>
 <li>Arbitrary meta data can be stored in the Ptex file and accessed through the memory-managed cache.</li>
 </ul>
-<br>
+</div>
+</section>
+
 '''
 
 documentation='''
+<section>
+<div class="left">
 <h2 style="margin-top:0px">Technical Details</h2>
+</div>
+<div class="right"
 <ul>
-    <li>See the <a href="ptexpaper.html">paper</a>, 
-<i>Ptex: Per-Face Texture Mapping for Production Rendering</i>, Brent Burley and Dylan Lacewell, Eurographics Symposium on Rendering 2008.
+    <li>See the <a href="ptexpaper.html">paper</a>, <i>Ptex: Per-Face Texture Mapping for Production Rendering</i>, Brent Burley and Dylan Lacewell, Eurographics Symposium on Rendering 2008.
     <li>View the slides from the Eurographics presentation as <a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptex.ppt">Powerpoint</a> or <a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptex-slides.pdf">pdf</a>.</li>
 </ul>
+</div>
+</section>
 
+<section>
+<div class="left">
 <h2>Workflow</h2>
+</div>
+<div class="right"
 <ul>
     <li>Watch a YouTube video, demonstrating the <a href="http://www.youtube.com/watch?v=GxNlAlOuQQQ">Ptex painting workflow</a>.  <br><i>Note: the application shown in the video is not part of the Ptex open source package.</i></li>
 </ul>
+</div>
+</section>
 
+<section>
+<div class="left">
 <a name="fileformat"></a><h2>Ptex File Format</h2>
-
-<blockquote>
-Ptex uses a custom file format that is designed specifically for
-efficient rendering.  A Ptex file can store an arbitrary number of
-textures along with mipmaps and adjacency data used for filtering
-across face boundaries.
-</blockquote>
-
+</div>
+<div class="right"
+<p>Ptex uses a custom file format that is designed specifically for efficient rendering.
+A Ptex file can store an arbitrary number of textures along with mipmaps and adjacency data used for filtering across face boundaries.</p>
 <ul>
 <li><a href="PtexFile.html">Ptex File Format Specification</a></li>
 <li><a href="adjdata.html">Adjacency data</a></li>
 <li><a href="tritex.html">Triangle textures</a></li>
 <li><a href="metakeys.html">Standard meta data keys</a></li>
 </ul>
+</section>
 
+<section>
+<div class="left">
 <a name="api"></a><h2>Ptex API</h2>
-<blockquote>
-The Ptex API is written in C++ and can peform file I/O, caching, and filtering needed for rendering.<br>
-See the <a href="apidocs/index.html">Ptex API docs</a> for details.
-</blockquote>
+</div>
+<div class="right">
+<p>The Ptex API is written in C++ and can peform file I/O, caching, and filtering needed for rendering.<br>
+See the <a href="apidocs/index.html">Ptex API docs</a> for details.</p>
+</div>
+</section>
 
+<section>
+<div class="left">
 <a name="license"></a><h2>Ptex License</h2>
-
+</div>
+<div class="right"
 <blockquote>
 PTEX SOFTWARE<br>
-Copyright 2009 Disney Enterprises, Inc. All rights reserved<br><br>
+Copyright 2018 Disney Enterprises, Inc. All rights reserved<br><br>
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -185,6 +209,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 </blockquote>
+</div>
+</section>
 '''
 
 releases = [
@@ -202,16 +228,34 @@ releases = [
 releases.reverse()
 
 download='''
-Read the <a href="documentation.html#api">Ptex License</a> before downloading this software.<br><br>
-The Ptex API is hosted as free open source at <a href="http://github.com/wdas/ptex">github.com/wdas/ptex</a> and discussed at <a href="http://groups.google.com/group/ptex">groups.google.com/group/ptex</a>.<br>
-Browse the <a href="http://github.com/wdas/ptex/commits/master">change history</a>.<br><br>
+<section>
+<div class="left">
+<H2>Read the license</H2>
+<p>Read the <a href="documentation.html#api">Ptex License</a> before downloading this software.</p>
+</div>
+
+<div class="right">
+<H2>Source code</H2>
+<p>The Ptex API is hosted as free open source at <a href="http://github.com/wdas/ptex">github.com/wdas/ptex</a> and discussed at <a href="http://groups.google.com/group/ptex">groups.google.com/group/ptex</a>.</p>
+<p>Browse the <a href="http://github.com/wdas/ptex/commits/master">change history</a>.</p>
+</div>
+</section>
+
+
+<section>
+<div class="left">
+<H2>Release History</H2>
+</div>
+<div class="right">
+
 Download the source:<br>
-<hr width=100%%>
-<table style="table-layout:fixed;width:600px;">
+<table>
 <col width=80> <col width=120> <col>
+</div>
 %s
 </table>
-''' % ('\n'.join(['<tr><td><a href="http://github.com/wdas/ptex/archive/%s.zip">%s</a></td><td>%s</td><td>%s</td></tr>'
+</section>
+''' % ('\n'.join(['<tr><td valign="top"><a href="http://github.com/wdas/ptex/archive/%s.zip">%s</a></td><td valign="top">%s</td><td>%s</td></tr>'
                   % (v,v,d,c) for v,d,c in releases]))
 
 sampleitems=[
@@ -223,23 +267,39 @@ sampleitems=[
     ['triangle', '263K', 'Mesh with nine triangle faces mapped with 4x4 texels per face, rendered using point and gaussian filter.'],
     ['envcube', '534K', 'Ptex cube maps reflected on a sphere.'],
     ]
+sample='''
+<section>
+<div class="left">
+<h2>Example project</h2>
+<p>Download <a href="samples/%s.zip">%s.zip</a></p>
+</div>
+<div class="right">
+<img border=0 src="samples/%s.png">
+</div>
+</section>
+'''
+
 samples='''
-Download a Quicktime movie showing
-<a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptexTurntables.mov">production
-models</a> painted and rendered with Ptex (69M, JPEG encoding).<p>
+<section>
+<div class="left">
+<h2>Rendered images</h2>
+</div>
+<div class="right">
+<p>Download a Quicktime movie showing <a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptexTurntables.mov">production models</a> painted and rendered with Ptex (69M, JPEG encoding).<p/>
+</div>
+</section>
 
-Download sample Ptex projects below.  Each sample project includes a geometry obj
-file, a Renderman rib file, Renderman shaders, one or more ptex textures, and
-512x512 image renders corresponding to the thumbnails shown below. <p>
+<section>
+<div class="left">
+<h2>Production data set</h2>
+y</div>
+<div class="right">
+<p><a href="https://www.disneyanimation.com/technology/datasets">Moana Island Scene</a> 93 GB of geometry and Ptex textures.<p/>
+</div>
+</section>
 
-A <a href="https://www.disneyanimation.com/technology/datasets">large production data set</a> from Moana including 93 GB of geometry and Ptex textures is also available.
-
-<table style="table-layout:fixed;width:600px;">
-<col width=300px> <col>
 %s
-</table>
-''' % ('\n'.join(['<tr><td><a href="samples/%s.zip">%s.zip</a> (%s)<br>%s</td><td><img border=0 src="samples/%s.png"></td></tr>' %
-                  (item,item,size,desc,item) for item,size,desc in sampleitems]))
+''' % ('\n'.join([sample % (item,item,item) for item,size,desc in sampleitems]))
 
 
 page_template='''
@@ -256,7 +316,7 @@ page_template='''
 <body>
   <nav>
     <div class="software">
-      <a href="index.html" class="software">Ptex</a>
+      <a href="index.html" class="software"><img src="PtexCubeOrange64.png" border=0></a>
     </div>
     <div class="navigation"> $nav </div>
   </nav>

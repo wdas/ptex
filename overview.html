@@ -12,45 +12,54 @@
 <body>
   <nav>
     <div class="software">
-      <a href="index.html" class="software">Ptex</a>
+      <a href="index.html" class="software"><img src="PtexCubeOrange64.png" border=0></a>
     </div>
     <div class="navigation"> <a class="navigation" href="overview.html">Overview</a> <a class="navigation" href="documentation.html">Documentation</a> <a class="navigation" href="samples.html">Samples</a> <a class="navigation" href="download.html">Download</a> </div>
   </nav>
 
 
+<section>
+<div class="left">
 <a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptex-teaser-big.png"><img border=0 src="ptex-teaser.png" alt=""></a>
-<br> Model with 2694 faces rendered with Ptex.  No explicit UV
-assignment was used.  The largest texture layer, the fine-scale
-displacements, has 836 million texels stored in a single Ptex file
-with individual face resolutions ranging from 64 x 64 to 2048 x 2048
-texels.  No seams are visible across faces, even under <a
-href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptex-teaser-big.png">close
-magnification</a>.<br>(&copy; Walt Disney Animation Studios)
+</div>
+<div class="right">
+<p>Model with 2694 faces rendered with Ptex.  No explicit UV assignment was used.  The largest texture layer, the fine-scale displacements, has 836 million texels stored in a single Ptex file with individual face resolutions ranging from 64 x 64 to 2048 x 2048 texels.
+No seams are visible across faces, even under <a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptex-teaser-big.png">close magnification</a>.<br>(&copy; Walt Disney Animation Studios)</a></p>
+</div>
+</section>
 
+<section>
+<div class="left">
 <h2>Motivation</h2>
+</div>
 
-There were many drawbacks to traditional texture mapping methods that led to the development of Ptex:
+<div class="right">
+<p>There were many drawbacks to traditional texture mapping methods that led to the development of Ptex:</p>
 <ul>
 <li>UV assignment was a tedious task, and making good UVs on complex models was difficult.</li>
 <li>Texture seams could produce visible artifacts especially with displacement maps.</li>
 <li>Large numbers of texture files were required creating a significant I/O bottleneck.</li>
 </ul>
+<p>Ptex addresses all these issues by eliminating UV assignment, providing seamless filtering, and allowing any number of textures to be stored in a single file.</p>
+<p>Ptex has been used on virtually every surface of every Walt Disney Animation Studios production since 2008.</p>
+</div>
+</section>
 
-Ptex addresses all these issues by eliminating UV assignment,
-providing seamless filtering, and allowing any number of textures to
-be stored in a single file. <br><br>
-
-Ptex has been used on virtually every surface of every Walt Disney Animation Studios production since 2008.
-
+<section>
+<div class="left">
 <h2>Major Features</h2>
+</div>
 
+<div class="right">
 <ul>
 <li>Supports Catmull-Clark subdivision surfaces (including quad and non-quad faces), Loop subdivision surfaces, and polymeshes (either all-quad or all-triangle).</li>
 <li>Several data types are supported including 8 or 16-bit integer, float, and half-precision float.</li>
 <li>An arbitrary number of channels can be stored in a Ptex file.</li>
 <li>Arbitrary meta data can be stored in the Ptex file and accessed through the memory-managed cache.</li>
 </ul>
-<br>
+</div>
+</section>
+
 
 </body>
 <footer>
