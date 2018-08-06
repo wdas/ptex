@@ -2,30 +2,39 @@
 from string import Template
 
 main='''
-<b>Ptex</b> is a texture mapping system developed
-by <a href="http://www.disneyanimation.com" target="_top">Walt Disney
-Animation Studios</a> for production-quality rendering:
-<ul>
-<li class="pad">No UV assignment is required!  Ptex applies a
-separate texture to each face of a subdivision or polygon mesh.</li>
-<li class="pad">The Ptex <a href="documentation.html#fileformat">file format</a> can efficiently store hundreds of thousands of texture images in a single file.</li>
-<li class="pad">The Ptex <a href="documentation.html#api">API</a> provides cached file I/O and high-quality filtering -
-everything that is needed to easily add Ptex support to a production-quality renderer or texture authoring application. </li>
-</ul>
-
-<br>
-News<hr width=100%>
-$news
-
-<br>
-<br>
-<center>
-<a target="_top" href="http://www.disneyanimation.com">
-<img src="wdaslogo.png" border=0></a>
-</center>
+  <section>
+    <div class="left">
+    <img src="PtexCubeOrange64.png" border=0>
+    </div>
+    <div class="right">
+        <b>Ptex</b> is a texture mapping system developed
+        by <a href="http://www.disneyanimation.com" target="_top">Walt Disney
+        Animation Studios</a> for production-quality rendering:
+        <ul>
+        <li>No UV assignment is required!  Ptex applies a separate texture to each face of a subdivision or polygon mesh.</li>
+        <li>The Ptex <a href="documentation.html#fileformat">file format</a> can efficiently store hundreds of thousands of texture images in a single file.</li>
+        <li>The Ptex <a href="documentation.html#api">API</a> provides cached file I/O and high-quality filtering -
+        everything that is needed to easily add Ptex support to a production-quality renderer or texture authoring application. </li>
+        </ul>
+    </div>
+  </section>
+  <section>
+  </section>
+  <section>
+   <div class="left">
+    <h2>News</h2>
+   </div>
+   <div class="right">
+       $news
+   </div>
+  </section>
 '''
 
 newsitems = [
+    ['Jul 16, 2018',
+     '<a href="http://pharr.org/matt/blog/2018/07/16/moana-island-pbrt-5.html">Ptex performance evaluated on 96 threads</a> using Moana data in PBRT.'],
+    ['Jul 4, 2018',
+     '<a href="https://www.disneyanimation.com/technology/datasets>">Production data set</a> from Moana including Ptex textures was publicly released for research use.'],
     ['Jan 17, 2012',
      'Ptex supported in <a href="http://www.mentalimages.com">mental ray 3.10</a>.'],
     ['Oct 5, 2011',
@@ -58,18 +67,17 @@ newsitems = [
      'Glago\'s Guest premiered at Annecy; first production to use Ptex.']]
 
 news = '''
-<table style="table-layout:fixed;width:600px;">
+<table>
 <col width=120> <col>
 %s
 </table>
-''' % ('\n'.join(['<tr><td>%s</td><td>%s</td></tr>' % (d,i) for d,i in newsitems]))
+''' % ('\n'.join(['<tr><td valign="top">%s</td><td>%s</td></tr>' % (d,i) for d,i in newsitems]))
 
 main = Template(main).safe_substitute(news=news)
 
 overview='''
 
 <a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptex-teaser-big.png"><img border=0 src="ptex-teaser.png" alt=""></a>
-
 <br> Model with 2694 faces rendered with Ptex.  No explicit UV
 assignment was used.  The largest texture layer, the fine-scale
 displacements, has 836 million texels stored in a single Ptex file
@@ -91,10 +99,7 @@ Ptex addresses all these issues by eliminating UV assignment,
 providing seamless filtering, and allowing any number of textures to
 be stored in a single file. <br><br>
 
-Ptex was used on virtually every surface
-in the feature film Bolt, and is now the primary texture mapping
-method for all productions at Walt Disney Animation Studios.
-
+Ptex has been used on virtually every surface of every Walt Disney Animation Studios production since 2008.
 
 <h2>Major Features</h2>
 
@@ -138,8 +143,8 @@ across face boundaries.
 
 <a name="api"></a><h2>Ptex API</h2>
 <blockquote>
-The Ptex API is written in C++ and can peform file I/O, caching, and filtering needed for rendering.
-See the <a href="apidocs/index.html">Ptex API</a> docs for details.
+The Ptex API is written in C++ and can peform file I/O, caching, and filtering needed for rendering.<br>
+See the <a href="apidocs/index.html">Ptex API docs</a> for details.
 </blockquote>
 
 <a name="license"></a><h2>Ptex License</h2>
@@ -193,11 +198,12 @@ releases = [
     ['v2.1.10', 'Dec 8, 2015', 'New cache architecture for better threading. New cache stats API. New edge filter mode for tangent-space maps. Optimizations.'],
     ['v2.1.28', 'Apr 4, 2016', 'API: MetaData::findKey, const neighborhood check improvement, build/portability fixes.'],
     ['v2.1.33', 'Jan 24, 2018', 'Security fix, build fixes.'],
-    ['master', '', 'Latest commit']]
+    ['v2.3.0', 'Apr 10, 2018', 'Minor maintenance. Version number rollup to sync w/ in-house version.']]
+releases.reverse()
 
 download='''
 Read the <a href="documentation.html#api">Ptex License</a> before downloading this software.<br><br>
-The Ptex API is hosted as free open source at <a href="http://github.com/wdas/ptex">github</a>.<br>
+The Ptex API is hosted as free open source at <a href="http://github.com/wdas/ptex">github.com/wdas/ptex</a> and discussed at <a href="http://groups.google.com/group/ptex">groups.google.com/group/ptex</a>.<br>
 Browse the <a href="http://github.com/wdas/ptex/commits/master">change history</a>.<br><br>
 Download the source:<br>
 <hr width=100%%>
@@ -207,13 +213,6 @@ Download the source:<br>
 </table>
 ''' % ('\n'.join(['<tr><td><a href="http://github.com/wdas/ptex/archive/%s.zip">%s</a></td><td>%s</td><td>%s</td></tr>'
                   % (v,v,d,c) for v,d,c in releases]))
-mailinglists='''
-Two mailing lists have been set up for Ptex on Google Groups:
-<ul>
-<li> <a href="http://groups.google.com/group/ptex"><b>ptex</b></a> - for general Ptex discussion</li>
-<li> <a href="http://groups.google.com/group/ptex-announce"><b>ptex-announce</b></a> - for release announcements</li>
-</ul>
-'''
 
 sampleitems=[
     ['teapot', '274K', 'Utah Teapot (Catmull-Clark subd).'],
@@ -231,7 +230,9 @@ models</a> painted and rendered with Ptex (69M, JPEG encoding).<p>
 
 Download sample Ptex projects below.  Each sample project includes a geometry obj
 file, a Renderman rib file, Renderman shaders, one or more ptex textures, and
-512x512 image renders corresponding to the thumbnails shown below.
+512x512 image renders corresponding to the thumbnails shown below. <p>
+
+A <a href="https://www.disneyanimation.com/technology/datasets">large production data set</a> from Moana including 93 GB of geometry and Ptex textures is also available.
 
 <table style="table-layout:fixed;width:600px;">
 <col width=300px> <col>
@@ -242,66 +243,45 @@ file, a Renderman rib file, Renderman shaders, one or more ptex textures, and
 
 
 page_template='''
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html>
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
 <head>
-<link rel="icon" href="PtexCube16.png">
-<link href="ptex.css" rel="stylesheet" type="text/css">
-<title>$title</title>
+  <meta charset="utf-8">
+  <title>$title</title>
+  <link rel="icon" href="PtexCube16.png">
+  <link rel="stylesheet" href="style.css">
+</head>
 
-<style type="text/css">
-BODY { background-color:#E7E2D5; color:black;
-       background-image:url('bg.gif'); background-repeat:no-repeat }
-A         { color: #00005f; }
-A.nav     { text-decoration: none; }
-A:hover   { color: #3f3f9f; }
-DIV.container { width:100%; margin:0px;}
-DIV.logo    { position:absolute; left:20px; top:20px; }
-DIV.nav     { position:absolute; left:0px; top:80px; width:132px; text-align:right; font-size: 14px; }
-DIV.content { position:absolute; left:170px; top:80px; width:600px; }
-LI.pad      { padding-top:10px; padding-bottom:10px; }
-
-</style>
-
-  </head>
-  <body>
-
-<a class="logo" href="index.html"><img src="PtexLogoColor64.png" border=0 alt="Ptex"></a> <br>
-<div class="nav">
-$hilite
-$nav
-</div>
-
-<div class="content">
+<body>
+  <nav>
+    <div class="software">
+      <a href="index.html" class="software">Ptex</a>
+    </div>
+    <div class="navigation"> $nav </div>
+  </nav>
 $body
-</div>
 </body>
+<footer>
+''' + open("wdaslogo.html").read() + '''
+</footer>
 </html>
 '''
 
 navitems = [["Overview", "overview.html"],
             ["Documentation", "documentation.html"],
             ["Samples", "samples.html"],
-            ["Download", "download.html"],
-            ["Mailing Lists", "mailinglists.html"]]
+            ["Download", "download.html"]]
 
-nav = '\n'.join(['<div class="nav" style="top:%dpx;"><a class="nav" href="%s">%s</a></div>' %
-                 (i*30, n[1], n[0]) for i,n in enumerate(navitems)])
-hiliteTemplate = '<div class="nav" style="top:%dpx"><img src="grad.png"></div>'
-
+nav = ' '.join(['<a class="navigation" href="%s">%s</a>' %
+                 (href,text) for text,href in navitems])
 
 def genpage(name, title, heading, body):
-    hilite = ''
-    for i,n in enumerate(navitems):
-        if n[1] == name:
-            hilite = hiliteTemplate % (i*30 + 2)
-
     open(name, 'w').write(Template(page_template).safe_substitute(
         title=title,
         heading=heading,
         body=body,
-        nav=nav,
-        hilite=hilite
+        nav=nav
         ))
 
 genpage("index.html", "Ptex", "&nbsp;", main)
@@ -309,4 +289,3 @@ genpage("overview.html", "Ptex Overview", "Overview", overview)
 genpage("documentation.html", "Ptex Documentation", "Documentation", documentation)
 genpage("samples.html", "Ptex Samples", "Samples", samples)
 genpage("download.html", "Ptex Download", "Download", download)
-genpage("mailinglists.html", "Ptex Mailing Lists", "Mailing Lists", mailinglists)
