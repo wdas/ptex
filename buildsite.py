@@ -7,8 +7,9 @@ main='''
     <h1>Ptex</h1>
     </div>
     <div class="right">
-        <button class="btn btn-light"><a href="http://github.com/wdas/ptex">GITHUB</a></button>
-        <button class="btn btn-light"><a href="documentation.html#license">LICENSE</a></button>
+        <p><a href="http://github.com/wdas/ptex"><button class="btn btn-light">GITHUB</button></a>
+        <a href="documentation.html#license"><button class="btn btn-light">LICENSE</button></a></p>
+
         <p><b>Ptex</b> is a texture mapping system developed by <a href="http://www.disneyanimation.com" target="_top">Walt Disney Animation Studios</a> for production-quality rendering:</p>
         <ul>
         <li>No UV assignment is required!  Ptex applies a separate texture to each face of a subdivision or polygon mesh.</li>
