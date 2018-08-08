@@ -7,9 +7,9 @@ main='''
     <h1>Ptex</h1>
     </div>
     <div class="right">
-        <b>Ptex</b> is a texture mapping system developed
-        by <a href="http://www.disneyanimation.com" target="_top">Walt Disney
-        Animation Studios</a> for production-quality rendering:
+        <button class="btn btn-light"><a href="http://github.com/wdas/ptex">GITHUB</a></button>
+        <button class="btn btn-light"><a href="documentation.html#license">LICENSE</a></button>
+        <p><b>Ptex</b> is a texture mapping system developed by <a href="http://www.disneyanimation.com" target="_top">Walt Disney Animation Studios</a> for production-quality rendering:</p>
         <ul>
         <li>No UV assignment is required!  Ptex applies a separate texture to each face of a subdivision or polygon mesh.</li>
         <li>The Ptex <a href="documentation.html#fileformat">file format</a> can efficiently store hundreds of thousands of texture images in a single file.</li>
@@ -141,11 +141,12 @@ documentation='''
     <li>Watch a YouTube video, demonstrating the <a href="http://www.youtube.com/watch?v=GxNlAlOuQQQ">Ptex painting workflow</a>.  <br><i>Note: the application shown in the video is not part of the Ptex open source package.</i></li>
 </ul>
 </div>
+<a id="fileformat"></a>
 </section>
 
 <section>
 <div class="left">
-<a name="fileformat"></a><h2>Ptex File Format</h2>
+<h2>Ptex File Format</h2>
 </div>
 <div class="right"
 <p>Ptex uses a custom file format that is designed specifically for efficient rendering.
@@ -156,21 +157,23 @@ A Ptex file can store an arbitrary number of textures along with mipmaps and adj
 <li><a href="tritex.html">Triangle textures</a></li>
 <li><a href="metakeys.html">Standard meta data keys</a></li>
 </ul>
+<a id="api"></a>
 </section>
 
 <section>
 <div class="left">
-<a name="api"></a><h2>Ptex API</h2>
+<h2>Ptex API</h2>
 </div>
 <div class="right">
 <p>The Ptex API is written in C++ and can peform file I/O, caching, and filtering needed for rendering.<br>
 See the <a href="apidocs/index.html">Ptex API docs</a> for details.</p>
 </div>
+<a id="license"></a>
 </section>
 
 <section>
 <div class="left">
-<a name="license"></a><h2>Ptex License</h2>
+<h2>Ptex License</h2>
 </div>
 <div class="right"
 <blockquote>
@@ -231,7 +234,7 @@ download='''
 <section>
 <div class="left">
 <H2>Read the license</H2>
-<p>Read the <a href="documentation.html#api">Ptex License</a> before downloading this software.</p>
+<p>Read the <a href="documentation.html#license">Ptex License</a> before downloading this software.</p>
 </div>
 
 <div class="right">
