@@ -39,8 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #define PtexAPIVersion 4
 #define PtexFileMajorVersion 1
 #define PtexFileMinorVersion 4
-#define PtexLibraryMajorVersion 2
-#define PtexLibraryMinorVersion 2
+#define PtexLibraryMajorVersion @PTEX_MAJOR_VERSION@
+#define PtexLibraryMinorVersion @PTEX_MINOR_VERSION@
 
 #define PTEX_NAMESPACE Ptex
 #ifdef PTEX_VENDOR

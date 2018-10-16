@@ -1,8 +1,45 @@
 cmake_minimum_required(VERSION 2.8)
-project(ptex)
+project(Ptex)
 
 option(PTEX_BUILD_STATIC_LIBS "Enable building Ptex static libraries" ON)
 option(PTEX_BUILD_SHARED_LIBS "Enable building Ptex shared libraries" ON)
+option(PRMAN_15_COMPATIBLE_PTEX "Enable PRMan 15 compatibility" OFF)
+
+set(CMAKE_INSTALL_MESSAGE LAZY) # Silence "Up-to-date:" install messages
+
+if (NOT DEFINED PTEX_SHA)
+    # Query git for current commit ID
+    execute_process(
+        COMMAND git rev-parse HEAD
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+        OUTPUT_VARIABLE PTEX_SHA
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif ()
+
+if (NOT DEFINED PTEX_VER)
+    # Get the version string from a "version" file or from git
+    if (EXISTS "${PROJECT_SOURCE_DIR}/version")
+        file(STRINGS "${PROJECT_SOURCE_DIR}/version" PTEX_VER)
+    else  ()
+        execute_process(
+            COMMAND git describe --first-parent --always HEAD
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+            OUTPUT_VARIABLE PTEX_VER
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+    endif ()
+endif ()
+
+# Transform PTEX_VER into PTEX_MAJOR_VERSION and PTEX_MINOR_VERSION
+string(REPLACE "v" "" PTEX_VER_STRIPPED ${PTEX_VER})  # strip leading "v"
+string(REPLACE "." ";" PTEX_VER_LIST ${PTEX_VER_STRIPPED})
+list(LENGTH PTEX_VER_LIST PTEX_VER_LENGTH)
+if (${PTEX_VER_LENGTH} LESS 2)
+    message(FATAL_ERROR "Could not determine the Ptex library version")
+endif ()
+
+# The version variables are used to generate PtexVersion.h
+list(GET PTEX_VER_LIST 0 PTEX_MAJOR_VERSION)
+list(GET PTEX_VER_LIST 1 PTEX_MINOR_VERSION)
 
 include(GNUInstallDirs)
 include(CTest)
@@ -45,9 +82,9 @@ if (${PRMAN_15_COMPATIBLE_PTEX})
 endif ()
 
 include_directories(src/ptex)
-include_directories(${ZLIB_INCLUDE_DIR})
 
 add_subdirectory(src/ptex)
 add_subdirectory(src/utils)
 add_subdirectory(src/tests)
 add_subdirectory(src/doc)
+add_subdirectory(src/build)
