@@ -22,7 +22,7 @@ if (NOT DEFINED PTEX_VER)
     # Get the version string from a "version" file or from git
     if (EXISTS "${PROJECT_SOURCE_DIR}/version")
         file(STRINGS "${PROJECT_SOURCE_DIR}/version" PTEX_VER)
-    else  ()
+    else ()
         execute_process(
             COMMAND git describe --first-parent --always HEAD
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
@@ -66,15 +66,12 @@ if (NOT WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 endif ()
 
-if(MSVC)
+if (MSVC)
     add_definitions(
-
-        #warning C4800: 'BOOL': forcing value to bool 'true' or 'false' (performance warning)
-        /wd4800 
-
-        #warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-        /wd4244 
-
+        # forcing value to bool 'true' or 'false' (performance warning)
+        /wd4800
+        # conversion from 'double' to 'float', possible loss of data
+        /wd4244
         /D_CRT_SECURE_NO_WARNINGS
     )
 endif()
