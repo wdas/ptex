@@ -1,10 +1,24 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.8.0)
 project(Ptex)
 
 option(PTEX_BUILD_STATIC_LIBS "Enable building Ptex static libraries" ON)
 option(PTEX_BUILD_SHARED_LIBS "Enable building Ptex shared libraries" ON)
 option(PRMAN_15_COMPATIBLE_PTEX "Enable PRMan 15 compatibility" OFF)
 
+if (DEFINED ENV{CXXFLAGS_STD})
+    if ($ENV{CXXFLAGS_STD} STREQUAL "c++17")
+        set(CMAKE_CXX_STANDARD 17)
+    elseif ($ENV{CXXFLAGS_STD} STREQUAL "c++14")
+        set(CMAKE_CXX_STANDARD 14)
+    elseif ($ENV{CXXFLAGS_STD} STREQUAL "c++11")
+        set(CMAKE_CXX_STANDARD 11)
+    else ()
+        set(CMAKE_CXX_STANDARD 98)
+    endif ()
+else ()
+    set(CMAKE_CXX_STANDARD 98)
+endif ()
+set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_INSTALL_MESSAGE LAZY) # Silence "Up-to-date:" install messages
 
 if (NOT DEFINED PTEX_SHA)
@@ -20,7 +34,7 @@ if (NOT DEFINED PTEX_VER)
     # Get the version string from a "version" file or from git
     if (EXISTS "${PROJECT_SOURCE_DIR}/version")
         file(STRINGS "${PROJECT_SOURCE_DIR}/version" PTEX_VER)
-    else  ()
+    else ()
         execute_process(
             COMMAND git describe --first-parent --always HEAD
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
@@ -61,18 +75,15 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif ()
 
 if (NOT WIN32)
-    set(CMAKE_CXX_FLAGS "-std=c++98 -Wall -Wextra -pedantic ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 endif ()
 
-if(MSVC)
+if (MSVC)
     add_definitions(
-
-        #warning C4800: 'BOOL': forcing value to bool 'true' or 'false' (performance warning)
-        /wd4800 
-
-        #warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-        /wd4244 
-
+        # forcing value to bool 'true' or 'false' (performance warning)
+        /wd4800
+        # conversion from 'double' to 'float', possible loss of data
+        /wd4244
         /D_CRT_SECURE_NO_WARNINGS
     )
 endif()
