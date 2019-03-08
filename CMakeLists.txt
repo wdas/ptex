@@ -19,6 +19,7 @@ else ()
     set(CMAKE_CXX_STANDARD 98)
 endif ()
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_FIND_PACKAGE_RESOLVE_SYMLINKS ON)
 set(CMAKE_INSTALL_MESSAGE LAZY) # Silence "Up-to-date:" install messages
 
 if (NOT DEFINED PTEX_SHA)
