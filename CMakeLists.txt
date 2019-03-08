@@ -58,8 +58,11 @@ list(GET PTEX_VER_LIST 1 PTEX_MINOR_VERSION)
 
 include(GNUInstallDirs)
 include(CTest)
-include(FindZLIB)
 include(FindThreads)
+
+# Use pkg-config to create a PkgConfig::Ptex_ZLIB imported target
+find_package(PkgConfig REQUIRED)
+pkg_checK_modules(Ptex_ZLIB REQUIRED zlib IMPORTED_TARGET)
 
 enable_testing()
 
