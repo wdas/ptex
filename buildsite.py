@@ -228,7 +228,9 @@ releases = [
     ['v2.1.10', 'Dec 8, 2015', 'New cache architecture for better threading. New cache stats API. New edge filter mode for tangent-space maps. Optimizations.'],
     ['v2.1.28', 'Apr 4, 2016', 'API: MetaData::findKey, const neighborhood check improvement, build/portability fixes.'],
     ['v2.1.33', 'Jan 24, 2018', 'Security fix, build fixes.'],
-    ['v2.3.0', 'Apr 10, 2018', 'Minor maintenance. Version number rollup to sync w/ in-house version.']]
+    ['v2.3.0', 'Apr 10, 2018', 'Minor maintenance. Version number rollup to sync w/ in-house version.'],
+    ['v2.3.2', 'Mar 8, 2019', 'Minor maintenance. Windows fixes.'],
+]
 releases.reverse()
 
 download='''
