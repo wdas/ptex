@@ -17,6 +17,7 @@ build = build/$(platform)
 # Installation prefix
 prefix = $(CURDIR)/$(platform)
 CMAKE_FLAGS = -DCMAKE_INSTALL_PREFIX=$(prefix)
+TEST_FLAGS = --output-on-failure --force-new-ctest-process
 
 ifdef V
     VERBOSE = 1
@@ -62,8 +63,11 @@ cmake:
 	$(QUIET)mkdir -p $(build)
 	$(QUIET)cd $(build) && cmake $(CMAKE_FLAGS) $(CURDIR)
 
-all clean doc install test:: $(configure)
+all clean doc install:: $(configure)
 	+$(QUIET)cmake --build $(build) --target $@ $(FLAGS)
+
+test:: $(configure)
+	+$(QUIET)cd $(build) && ctest $(TEST_FLAGS) $(flags)
 
 install::
 	$(QUIET)cp $(build)/install_manifest.txt $(build).manifest.txt
