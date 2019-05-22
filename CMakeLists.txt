@@ -37,12 +37,16 @@ if (NOT DEFINED PTEX_VER)
         file(STRINGS "${PROJECT_SOURCE_DIR}/version" PTEX_VER)
     else ()
         execute_process(
-            COMMAND git describe --first-parent --always HEAD
+            COMMAND git describe --match=v[0-9]*.[0-9]* --first-parent HEAD
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             OUTPUT_VARIABLE PTEX_VER
             OUTPUT_STRIP_TRAILING_WHITESPACE)
     endif ()
 endif ()
+# Provide a fallback version when the Git repository is unavailable.
+if (NOT PTEX_VER)
+    set(PTEX_VER "v2.3.X")
+endif()
 
 # Transform PTEX_VER into PTEX_MAJOR_VERSION and PTEX_MINOR_VERSION
 string(REPLACE "v" "" PTEX_VER_STRIPPED ${PTEX_VER})  # strip leading "v"
