@@ -15,6 +15,7 @@ install:
   - "test \"$CXX\" = g++ && export CXX=g++-6 || true"
   - "test \"$CXX\" = clang++ && export CXX=clang++-3.8 || true"
 script:
-  - make
+  - make prefix=./build/install all
+  - make install
   - make test
   - ./src/tests/check_version.sh
