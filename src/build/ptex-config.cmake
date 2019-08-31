@@ -3,6 +3,10 @@
 include("${CMAKE_CURRENT_LIST_DIR}/ptex-version.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ptex-exports.cmake")
 
+set(CMAKE_THREAD_PREFER_PTHREAD ON)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
 # Provide PkgConfig::ZLIB to downstream dependents
 find_package(PkgConfig REQUIRED)
 pkg_checK_modules(Ptex_ZLIB REQUIRED zlib IMPORTED_TARGET)
