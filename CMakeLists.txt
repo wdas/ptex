@@ -101,6 +101,13 @@ if (MSVC)
     )
 endif()
 
+# Set the default Ptex library to use for tools and tests.
+if (PTEX_BUILD_STATIC_LIBS)
+    set(PTEX_LIBRARY Ptex_static)
+else()
+    set(PTEX_LIBRARY Ptex_dynamic)
+endif()
+
 if (${PRMAN_15_COMPATIBLE_PTEX})
     add_definitions(-DPTEX_NO_LARGE_METADATA_BLOCKS)
 endif ()
