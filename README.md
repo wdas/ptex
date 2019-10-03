@@ -49,7 +49,7 @@ and installed as 'install/share/doc/ptex'.
 ## Source tree
 
 * [Ptex library](src/ptex)
-* [Command-line utilities](src/utilities)
+* [Command-line utilities](src/utils)
 * [Test suite](src/tests)
 * [Documentation](src/doc)
 * The Ptex website is developed in the `gh-pages` branch.
