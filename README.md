@@ -25,7 +25,7 @@ Building with make (Linux):
 
 The Makefile uses cmake under the hood.
 
-This will build, install to a local 'install' directory, and
+This will build, install to a local `install` directory, and
 run regression tests.
 
 
@@ -40,8 +40,8 @@ run regression tests.
     install/lib:
         libPtex.a  libPtex.so
 
-Note: docs will be generated in the 'src/doc/ptex' directory
-and installed as 'install/share/doc/ptex'.
+Note: docs will be generated in the `src/doc/ptex` directory
+and installed as `install/share/doc/ptex`.
 
 
 # Development
