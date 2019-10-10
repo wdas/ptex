@@ -28,6 +28,11 @@ The Makefile uses cmake under the hood.
 This will build, install to a local `install` directory, and
 run regression tests.
 
+Documentation is only built if the following dependencies are installed:
+
+- [Doxygen](http://www.doxygen.nl/)
+- [Graphviz](https://graphviz.org/)
+
 
 ## Installation Contents
 
