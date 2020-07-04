@@ -69,6 +69,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #ifdef __APPLE__
 #include <os/lock.h>
 #include <sys/types.h>
+#include <unistd.h>
 #endif
 #endif
 
