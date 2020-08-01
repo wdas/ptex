@@ -4,7 +4,7 @@ Release:        @@RELEASE@@%{?dist}
 Summary:        Per-Face Texture Mapping for Production Rendering
 
 Group:          System Environment/Libraries
-License:        Apache License v2.0
+License:        BSD
 URL:            https://github.com/wdas/ptex
 Source0:        %{name}-%{version}.tar.gz
 
