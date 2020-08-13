@@ -20,8 +20,3 @@
 \page license License
 \verbinclude "../../LICENSE"
 */
-
-/**
-\page filterfootprint Filter footprint calculation
-\htmlinclude FilterFootprint.html
-*/

@@ -681,6 +681,15 @@ HTML_FOOTER            =
 
 HTML_STYLESHEET        = 
 
+# The HTML_EXTRA_STYLESHEET tag can be used to specify additional user-defined
+# cascading style sheets that are included after the standard style sheets
+# created by doxygen. Using this option one can overrule certain style
+# aspects. This is preferred over using HTML_STYLESHEET since it does not
+# replace the standard style sheet and is therefore more robust against future
+# updates. Doxygen will copy the style sheet files to the output directory.
+
+HTML_EXTRA_STYLESHEET  = style.css
+
 # If the GENERATE_HTMLHELP tag is set to YES, additional index files 
 # will be generated that can be used as input for tools like the 
 # Microsoft HTML help workshop to generate a compressed HTML help file (.chm) 
@@ -1241,3 +1250,13 @@ DOT_CLEANUP            = YES
 # used. If set to NO the values of all tags below this one will be ignored.
 
 SEARCHENGINE           = NO
+
+# Enable the USE_MATHJAX option to render LaTeX formulas using MathJax (see
+# https://www.mathjax.org) which uses client side JavaScript for the rendering
+# instead of using pre-rendered bitmaps. Use this if you do not have LaTeX
+# installed or if you want to formulas look prettier in the HTML output.
+
+USE_MATHJAX		= YES
+
+# Configure Mathjax so that it left-aligns formulas.
+MATHJAX_CODEFILE        = mathjax-config.js

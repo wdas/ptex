@@ -1,0 +1,9 @@
+/* left-align images */
+.image {
+    text-align: left;
+}
+
+/* add a left margin to mathjax formulas */
+.formulaDsp {
+    margin-left: 40px;
+}
