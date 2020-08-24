@@ -63,7 +63,7 @@ cmake:
 	$(QUIET)mkdir -p $(build)
 	$(QUIET)cd $(build) && cmake $(CMAKE_FLAGS) $(CURDIR)
 
-all clean doc install:: $(configure)
+all clean doc doxygen install:: $(configure)
 	+$(QUIET)cmake --build $(build) --target $@ $(FLAGS)
 
 test:: $(configure)

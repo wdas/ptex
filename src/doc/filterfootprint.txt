@@ -1,0 +1,99 @@
+/**
+\page filterfootprint Filter footprint calculation
+
+\image html uvellipse.png
+
+The Ptex filter footprint is specified as two vectors in uv space:
+
+\f[
+    W_1 = [uw1, vw1] \\
+    W_2 = [uw2, vw2]
+\f]
+
+The vectors form a parallelogram around the sample point, \f$ [u, v] \f$.
+
+When the vectors are orthogonal, they form the major and minor axis of
+the enclosed ellipse.
+
+\par Determining the filter footprint
+
+In general, the vectors represent the uv sampling interval along two
+axes, a and b:
+
+\f[
+    [uw1, vw1] = \left[ \frac{du}{da}, \frac{dv}{da} \right] \\
+    [uw2, vw2] = \left[ \frac{du}{db}, \frac{dv}{db} \right]
+\f]
+
+Two special cases are of interest:
+
+A) Texture aligned grid (the classic Ptex case) - the vectors form two
+sides of a rectangle, uw by vw:
+
+\f[
+    [uw1, vw1] = [uw, 0] \\
+    [uw2, vw2] = [0, vw]
+\f]
+
+B) Projection from screen space (where a and b are screen coordinates in pixels):
+
+<div style="margin-left: 40px;">
+
+Given derivatives of the screen coordinates:
+
+\f[ \frac{da}{du} = Du(a) \f]
+\f[ \frac{db}{du} = Du(b) \f]
+\f[ \frac{da}{dv} = Dv(a) \f]
+\f[ \frac{db}{dv} = Dv(b) \f]
+
+the vectors can be found by inverting the Jacobian matrix \f$
+    \begin{bmatrix}
+        \frac{da}{du} & \frac{db}{du} \\
+        \frac{da}{dv} & \frac{db}{dv}
+    \end{bmatrix}
+\f$:
+
+\f[
+    det = \left(
+        \frac{da}{du} * \frac{db}{dv} - \frac{db}{du} * \frac{da}{dv}
+    \right)
+\f]
+
+\f[ \frac{du}{da} = \frac{1}{det} * \frac{db}{dv} \f]
+\f[ \frac{dv}{da} = -\frac{1}{det} * \frac{db}{du} \f]
+\f[ \frac{du}{db} = -\frac{1}{det} * \frac{da}{dv} \f]
+\f[ \frac{dv}{db} = \frac{1}{det} * \frac{da}{du} \f]
+
+\f[
+    [uw1, vw1] = \left[ \frac{du}{da}, \frac{dv}{da} \right] \\
+    [uw2, vw2] = \left[ \frac{du}{db}, \frac{dv}{db} \right]
+\f]
+
+
+Note: if the ptex u, v coordinates aren't aligned with the renderer's
+uv coordinates, the chain rule can be used.
+
+Given texture coordinates s and t:
+
+\f[ \frac{ds}{du} = Du(s) \f]
+\f[ \frac{dt}{du} = Du(t) \f]
+\f[ \frac{ds}{dv} = Dv(s) \f]
+\f[ \frac{dt}{dv} = Dv(t) \f]
+
+\f[
+[uw1, vw1] = \left[
+    \frac{ds}{du} * \frac{du}{da} + \frac{ds}{dv} * \frac{dv}{da},
+    \frac{dt}{du} * \frac{du}{da} + \frac{dt}{dv} * \frac{dv}{da}
+\right]
+\f]
+
+\f[
+[uw2, vw2] = \left[
+    \frac{ds}{du} * \frac{du}{db} + \frac{ds}{dv} * \frac{dv}{db},
+    \frac{dt}{du} * \frac{du}{db} + \frac{dt}{dv} * \frac{dv}{db}
+\right]
+\f]
+
+</div>
+
+*/

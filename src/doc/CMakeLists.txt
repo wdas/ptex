@@ -16,7 +16,4 @@ if (DOXYGEN_FOUND)
 
     install(DIRECTORY ptex/ DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
-    file(GLOB images "*.png")
-    install(FILES ${images} DESTINATION ${CMAKE_INSTALL_DOCDIR})
-
 endif (DOXYGEN_FOUND)
