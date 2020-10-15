@@ -324,7 +324,7 @@ private:
 
 /// std::stream output operator.  \relates Ptex::String
 #ifndef PTEX_USE_STDSTRING
-std::ostream& operator << (std::ostream& stream, const Ptex::String& str);
+PTEXAPI std::ostream& operator << (std::ostream& stream, const Ptex::String& str);
 #endif
 
 
