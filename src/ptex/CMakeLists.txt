@@ -32,7 +32,9 @@ endif()
 
 if(PTEX_BUILD_SHARED_LIBS)
     add_library(Ptex_dynamic SHARED ${SRCS})
-    set_target_properties(Ptex_dynamic PROPERTIES OUTPUT_NAME Ptex)
+    set_target_properties(Ptex_dynamic PROPERTIES
+        OUTPUT_NAME Ptex
+        SOVERSION "${PTEX_MAJOR_VERSION}.${PTEX_MINOR_VERSION}")
     target_include_directories(Ptex_dynamic
         PUBLIC
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
