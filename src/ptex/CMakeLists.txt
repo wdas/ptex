@@ -1,5 +1,7 @@
 if (WIN32)
     add_definitions(/DPTEX_EXPORTS)
+else()
+    add_definitions(-DPTEX_EXPORTS)
 endif (WIN32)
 
 configure_file(PtexVersion.h.in

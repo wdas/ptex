@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #         define PTEXAPI __declspec(dllimport)
 #      endif
 #    else
-#      define PTEXAPI
+#      define PTEXAPI __attribute__ ((visibility("default")))
 #    endif
 #  else
 #    define PTEXAPI
