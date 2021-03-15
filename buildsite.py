@@ -243,6 +243,15 @@ download='''
 </div>
 </section>
 
+<section>
+<div class="left">
+</div>
+<div class="right">
+<H2>Ptex Utilities</H2>
+<p> Download utilities to assist in the use of Ptex in production at</H2>
+<a href="https://github.com/wdas/ptexutils">github.com/wdas/ptexutils</a>.</p>
+</div>
+</section>
 
 <section>
 <div class="left">
@@ -250,7 +259,6 @@ download='''
 </div>
 <div class="right">
 
-Download the source:<br>
 <table>
 <col width=80> <col width=120> <col>
 </div>
