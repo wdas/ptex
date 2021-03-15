@@ -291,6 +291,15 @@ samples='''
 </div>
 </section>
 
+<section>
+<div class="left">
+<h2>Rendered images</h2>
+</div>
+<div class="right">
+<p>Download a Quicktime movie showing <a href="http://media.disneyanimation.com/technology/opensource/ptex/ptexTurntables.mp4">production models</a> from Glago's Guest painted and rendered with Ptex.<p/>
+</div>
+</section>
+
 %s
 ''' % ('\n'.join([sample % (desc,item,item,item) for item,desc in sampleitems]))
 
