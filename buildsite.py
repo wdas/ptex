@@ -34,22 +34,18 @@ newsitems = [
      '<a href="http://pharr.org/matt/blog/2018/07/16/moana-island-pbrt-5.html">Ptex performance evaluated on 96 threads</a> using Moana data in PBRT.'],
     ['Jul 4, 2018',
      '<a href="https://www.disneyanimation.com/technology/datasets>">Production data set</a> from Moana including Ptex textures was publicly released for research use.'],
-    ['Jan 17, 2012',
-     'Ptex supported in <a href="http://www.mentalimages.com">mental ray 3.10</a>.'],
     ['Oct 5, 2011',
      'Ptex supported in <a href="http://www.3delight.com">3Delight Studio Pro 10</a>.'],
     ['Aug 11, 2011',
      '<a href="http://developer.nvidia.com/siggraph-2011/">Real-time Ptex</a> demonstrated by NVIDIA at Siggraph 2011.'],
     ['July 22, 2011',
-     'Ptex supported in <a href="http://www.sitexgraphics.com/">Air 11</a>.'],
+     'Ptex supported in <a href="http://www.sitexgraphics.com/html/air_11_press_release.html">Air 11</a>.'],
     ['May 31, 2011',
-     'Ptex supported in <a href="http://thefoundry.co.uk/products/mari/">Mari 1.3</a>.'],
+     'Ptex supported in <a href="https://www.foundry.com/products/mari">Mari 1.3</a>.'],
     ['Apr 29, 2011',
-     'Ptex supported in <a href="http://www.chaosgroup.com/en/2/vray_maya.html">V-Ray 2.0 for Maya</a>.'],
-    ['Dec 19, 2010',
-     'Ptex plugin for Cinema 4D released by <a href="http://www.blackstar-solutions.de/index.php?id=10170">Blackstar Solutions</a>.'],
+     'Ptex supported in <a href="http://www.chaosgroup.com">V-Ray 2.0</a>.'],
     ['Sep 29, 2010',
-     'Ptex export supported in <a href="http://www.mudbox3d.com/advantage_packs_2011_mudbox_data_sheet_us.pdf">Mudbox 2011 SAP</a>.'],
+     'Ptex export supported in <a href="https://www.autodesk.com/products/mudbox/overview?plc=MBXPRO">Mudbox 2011 SAP</a>.'],
     ['Aug 24, 2010',
      'Ptex supported in <a href="http://www.3d-coat.com/">3D-Coat 3.3</a>.'],
     ['July 27, 2010',
@@ -78,11 +74,11 @@ overview='''
 
 <section>
 <div class="left">
-<a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptex-teaser-big.png"><img border=0 src="ptex-teaser.png" alt=""></a>
+<a href="http://media.disneyanimation.com/technology/opensource/ptex/ptex-teaser-big.png"><img border=0 src="ptex-teaser.png" alt=""></a>
 </div>
 <div class="right">
 <p>Model with 2694 faces rendered with Ptex.  No explicit UV assignment was used.  The largest texture layer, the fine-scale displacements, has 836 million texels stored in a single Ptex file with individual face resolutions ranging from 64 x 64 to 2048 x 2048 texels.
-No seams are visible across faces, even under <a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptex-teaser-big.png">close magnification</a>.<br>(&copy; Walt Disney Animation Studios)</a></p>
+No seams are visible across faces, even under <a href="http://media.disneyanimation.com/technology/opensource/ptex/ptex-teaser-big.png">close magnification</a>.<br>(&copy; Walt Disney Animation Studios)</a></p>
 </div>
 </section>
 
@@ -128,7 +124,7 @@ documentation='''
 <div class="right"
 <ul>
     <li>See the <a href="ptexpaper.html">paper</a>, <i>Ptex: Per-Face Texture Mapping for Production Rendering</i>, Brent Burley and Dylan Lacewell, Eurographics Symposium on Rendering 2008.
-    <li>View the slides from the Eurographics presentation as <a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptex.ppt">Powerpoint</a> or <a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptex-slides.pdf">pdf</a>.</li>
+    <li>View the slides from the Eurographics presentation as <a href="http://media.disneyanimation.com/technology/opensource/ptex/ptex.ppt">Powerpoint</a> or <a href="http://media.disneyanimation.com/technology/opensource/ptex/ptex-slides.pdf">pdf</a>.</li>
 </ul>
 </div>
 </section>
@@ -265,18 +261,18 @@ Download the source:<br>
                   % (v,v,d,c) for v,d,c in releases]))
 
 sampleitems=[
-    ['teapot', '274K', 'Utah Teapot (Catmull-Clark subd).'],
-    ['bunny', '22M', 'Stanford Bunny (Loop subd).'],
-    ['holeycube', '2.3M', 'Cube w/ holes through center, rendered with displacement map (Catmull-Clark subd).'],
-    ['nonquad', '494K', 'Catmull-Clark subd with fifteen quad faces and two triangle faces.'],
-    ['pentagon', '1.6M', 'Catmull-Clark subd with single pentagon face.'],
-    ['triangle', '263K', 'Mesh with nine triangle faces mapped with 4x4 texels per face, rendered using point and gaussian filter.'],
-    ['envcube', '534K', 'Ptex cube maps reflected on a sphere.'],
+    ['teapot', 'Utah Teapot (Catmull-Clark subd)'],
+    ['bunny', 'Stanford Bunny (Loop subd, w/ triangular texels)'],
+    ['holeycube', 'Smooth displacement filtering around extraordinary points'],
+    ['nonquad', 'Mixed quad/triangle mesh'],
+    ['pentagon', 'Catmull-Clark subd with single pentagon face'],
+    ['triangle', 'Filtered triangular texels'],
+    ['envcube', 'Ptex cube maps reflected on a sphere'],
     ]
 sample='''
 <section>
 <div class="left">
-<h2>Example project</h2>
+<h2>%s</h2>
 <p>Download <a href="samples/%s.zip">%s.zip</a></p>
 </div>
 <div class="right">
@@ -288,24 +284,15 @@ sample='''
 samples='''
 <section>
 <div class="left">
-<h2>Rendered images</h2>
-</div>
-<div class="right">
-<p>Download a Quicktime movie showing <a href="http://disney-animation.s3.amazonaws.com/technology/opensource/ptex/ptexTurntables.mov">production models</a> painted and rendered with Ptex (69M, JPEG encoding).<p/>
-</div>
-</section>
-
-<section>
-<div class="left">
 <h2>Production data set</h2>
-y</div>
+</div>
 <div class="right">
 <p><a href="https://www.disneyanimation.com/technology/datasets">Moana Island Scene</a> 93 GB of geometry and Ptex textures.<p/>
 </div>
 </section>
 
 %s
-''' % ('\n'.join([sample % (item,item,item) for item,size,desc in sampleitems]))
+''' % ('\n'.join([sample % (desc,item,item,item) for item,desc in sampleitems]))
 
 
 page_template='''
