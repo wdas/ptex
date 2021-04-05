@@ -1,9 +1,3 @@
-if (WIN32)
-    add_definitions(/DPTEX_EXPORTS)
-else()
-    add_definitions(-DPTEX_EXPORTS)
-endif (WIN32)
-
 configure_file(PtexVersion.h.in
     ${CMAKE_CURRENT_SOURCE_DIR}/PtexVersion.h @ONLY)
 
@@ -42,6 +36,7 @@ if(PTEX_BUILD_SHARED_LIBS)
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR})
+    target_compile_definitions(Ptex_dynamic PRIVATE PTEX_EXPORTS)
     target_link_libraries(Ptex_dynamic
         PUBLIC Threads::Threads PkgConfig::Ptex_ZLIB)
     install(TARGETS Ptex_dynamic EXPORT Ptex DESTINATION ${CMAKE_INSTALL_LIBDIR})
