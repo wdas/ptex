@@ -85,7 +85,7 @@ namespace {
         static int initialized = 0;
         if (!initialized) {
             initialized = 1;
-#ifdef WINDOWS
+#ifdef PTEX_PLATFORM_WINDOWS
             // use GetTempPath API (first call determines length of result)
             DWORD result = ::GetTempPath(0, (LPTSTR) L"");
             if (result > 0) {
@@ -108,7 +108,7 @@ namespace {
 
         // build temp path
 
-#ifdef WINDOWS
+#ifdef PTEX_PLATFORM_WINDOWS
         // use process id and counter to make unique filename
         std::stringstream s;
         static int count = 0;

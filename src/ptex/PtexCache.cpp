@@ -91,7 +91,7 @@ void PtexCachedReader::release()
 bool PtexReaderCache::findFile(const char*& filename, std::string& buffer, Ptex::String& error)
 {
     bool isAbsolute = (filename[0] == '/'
-#ifdef WINDOWS
+#ifdef PTEX_PLATFORM_WINDOWS
                        || filename[0] == '\\'
                        || (isalpha(filename[0]) && filename[1] == ':')
 #endif

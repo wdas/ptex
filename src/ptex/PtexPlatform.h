@@ -1,6 +1,5 @@
 #ifndef PtexPlatform_h
 #define PtexPlatform_h
-#define PtexPlatform_h
 /*
 PTEX SOFTWARE
 Copyright 2014 Disney Enterprises, Inc.  All rights reserved
@@ -43,10 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "PtexInt.h"
 
 // platform-specific includes
-#if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
-#ifndef WINDOWS
-#define WINDOWS
-#endif
+#if defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS) || defined(_MSC_VER)
+#define PTEX_PLATFORM_WINDOWS
 #define _CRT_NONSTDC_NO_DEPRECATE 1
 #define _CRT_SECURE_NO_DEPRECATE 1
 #define NOMINMAX 1
@@ -70,6 +67,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <os/lock.h>
 #include <sys/types.h>
 #include <unistd.h>
+#define PTEX_PLATFORM_MACOS
+#else
+#define PTEX_PLATFORM_UNIX
 #endif
 #endif
 
@@ -79,7 +79,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <assert.h>
 
 // missing functions on Windows
-#ifdef WINDOWS
+#ifdef PTEX_PLATFORM_WINDOWS
 typedef __int64 FilePos;
 #define fseeko _fseeki64
 #define ftello _ftelli64
@@ -96,7 +96,7 @@ PTEX_NAMESPACE_BEGIN
  * Mutex
  */
 
-#ifdef WINDOWS
+#ifdef PTEX_PLATFORM_WINDOWS
 
 class Mutex {
 public:
@@ -163,7 +163,7 @@ private:
  * Atomics
  */
 
-#ifdef WINDOWS
+#ifdef PTEX_PLATFORM_WINDOWS
     #define ATOMIC_ALIGNED __declspec(align(8))
     #define ATOMIC_ADD32(x,y) (InterlockedExchangeAdd((volatile long*)(x),(long)(y)) + (y))
     #define ATOMIC_ADD64(x,y) (InterlockedExchangeAdd64((volatile long long*)(x),(long long)(y)) + (y))
