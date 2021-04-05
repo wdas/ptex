@@ -43,6 +43,7 @@ if(PTEX_BUILD_SHARED_LIBS)
 endif()
 
 install(FILES
+        PtexExports.h
         PtexHalf.h
         PtexInt.h
         Ptexture.h

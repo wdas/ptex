@@ -41,6 +41,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 #include "PtexInt.h"
 
+// compiler-specific defines: PTEX_COMPILER_{CLANG,GCC,ICC,MSVC}
+#if defined(__clang__)
+#   define PTEX_COMPILER_CLANG
+#elif defined(__GNUC__)
+#   define PTEX_COMPILER_GCC
+#elif defined(__ICC)
+#   define PTEX_COMPILER_ICC
+#elif defined(_MSC_VER)
+#   define PTEX_COMPILER_MSVC
+#endif
+
 // platform-specific includes
 #if defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS) || defined(_MSC_VER)
 #define PTEX_PLATFORM_WINDOWS
