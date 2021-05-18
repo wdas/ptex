@@ -46,6 +46,7 @@ install(FILES
         PtexExports.h
         PtexHalf.h
         PtexInt.h
+        PtexPlatform.h
         Ptexture.h
         PtexUtils.h
         PtexVersion.h
