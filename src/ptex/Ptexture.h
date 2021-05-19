@@ -41,31 +41,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
   @brief Public API classes for reading, writing, caching, and filtering Ptex files.
 */
 
-#if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
-# ifndef PTEXAPI
-#  ifndef PTEX_STATIC
-#    ifdef PTEX_EXPORTS
-#       define PTEXAPI __declspec(dllexport)
-#    else
-#       define PTEXAPI __declspec(dllimport)
-#    endif
-#  else
-#    define PTEXAPI
-#  endif
-# endif
-#else
-#  ifndef PTEXAPI
-#    define PTEXAPI
-#  endif
+#include "PtexExports.h"
+#include "PtexInt.h"
+#include "PtexVersion.h"
+
+#include <ostream>
+
+#if !defined(PTEX_PLATFORM_WINDOWS)
 #  ifndef DOXYGEN
 #    define PTEX_USE_STDSTRING
 #  endif
 #endif
 
-#include "PtexInt.h"
-#include <ostream>
-
-#include "PtexVersion.h"
 #ifdef DOXYGEN
 /** Common data structures and enums used throughout the API */
 namespace Ptex {

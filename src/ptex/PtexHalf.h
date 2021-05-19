@@ -41,24 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
   @brief Half-precision floating-point type.
 */
 
-#ifndef PTEXAPI
-#  if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
-#    ifndef PTEX_STATIC
-#      ifdef PTEX_EXPORTS
-#         define PTEXAPI __declspec(dllexport)
-#      else
-#         define PTEXAPI __declspec(dllimport)
-#      endif
-#    else
-#      define PTEXAPI
-#    endif
-#  else
-#    define PTEXAPI
-#  endif
-#endif
-
+#include "PtexExports.h"
 #include "PtexInt.h"
-
 #include "PtexVersion.h"
 
 PTEX_NAMESPACE_BEGIN

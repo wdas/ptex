@@ -48,53 +48,59 @@ PTEX_NAMESPACE_BEGIN
 const char* MeshTypeName(MeshType mt)
 {
     static const char* names[] = { "triangle", "quad" };
-    if (mt < 0 || mt >= int(sizeof(names)/sizeof(const char*)))
+    const int mtype = static_cast<int>(mt);
+    if (mtype < 0 || mtype >= int(sizeof(names)/sizeof(const char*)))
         return "(invalid mesh type)";
-    return names[mt];
+    return names[mtype];
 }
 
 
 const char* DataTypeName(DataType dt)
 {
     static const char* names[] = { "uint8", "uint16", "float16", "float32" };
-    if (dt < 0 || dt >= int(sizeof(names)/sizeof(const char*)))
+    const int dtype = static_cast<int>(dt);
+    if (dtype < 0 || dtype >= int(sizeof(names)/sizeof(const char*)))
         return "(invalid data type)";
-    return names[dt];
+    return names[dtype];
 }
 
 
 const char* BorderModeName(BorderMode m)
 {
     static const char* names[] = { "clamp", "black", "periodic" };
-    if (m < 0 || m >= int(sizeof(names)/sizeof(const char*)))
+    const int mode = static_cast<int>(m);
+    if (mode < 0 || mode >= int(sizeof(names)/sizeof(const char*)))
         return "(invalid border mode)";
-    return names[m];
+    return names[mode];
 }
 
 const char* EdgeFilterModeName(EdgeFilterMode m)
 {
     static const char* names[] = { "none", "tanvec" };
-    if (m < 0 || m >= int(sizeof(names)/sizeof(const char*)))
+    const int mode = static_cast<int>(m);
+    if (mode < 0 || mode >= int(sizeof(names)/sizeof(const char*)))
         return "(invalid edge filter mode)";
-    return names[m];
+    return names[mode];
 }
 
 
 const char* EdgeIdName(EdgeId eid)
 {
     static const char* names[] = { "bottom", "right", "top", "left" };
-    if (eid < 0 || eid >= int(sizeof(names)/sizeof(const char*)))
+    const int edgeid = static_cast<int>(eid);
+    if (edgeid < 0 || edgeid >= int(sizeof(names)/sizeof(const char*)))
         return "(invalid edge id)";
-    return names[eid];
+    return names[edgeid];
 }
 
 
 const char* MetaDataTypeName(MetaDataType mdt)
 {
     static const char* names[] = { "string", "int8", "int16", "int32", "float", "double" };
-    if (mdt < 0 || mdt >= int(sizeof(names)/sizeof(const char*)))
+    const int mdtype = static_cast<int>(mdt);
+    if (mdtype < 0 || mdtype >= int(sizeof(names)/sizeof(const char*)))
         return "(invalid meta data type)";
-    return names[mdt];
+    return names[mdtype];
 }
 
 
