@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 */
 
 #include <cmath>
+#include "PtexExports.h"
 #include "Ptexture.h"
 #include "PtexHalf.h"
 
@@ -164,34 +165,66 @@ inline T quarter(T val) { return T(val>>2); }
 inline float quarter(float val) { return 0.25f * val; }
 inline PtexHalf quarter(PtexHalf val) { return 0.25f * val; }
 
+PTEXAPI
 bool isConstant(const void* data, int stride, int ures, int vres, int pixelSize);
+
+PTEXAPI
 void interleave(const void* src, int sstride, int ures, int vres,
                 void* dst, int dstride, DataType dt, int nchannels);
+
+PTEXAPI
 void deinterleave(const void* src, int sstride, int ures, int vres,
                   void* dst, int dstride, DataType dt, int nchannels);
+
+PTEXAPI
 void encodeDifference(void* data, int size, DataType dt);
+
+PTEXAPI
 void decodeDifference(void* data, int size, DataType dt);
+
 typedef void ReduceFn(const void* src, int sstride, int ures, int vres,
                       void* dst, int dstride, DataType dt, int nchannels);
+
+PTEXAPI
 void reduce(const void* src, int sstride, int ures, int vres,
             void* dst, int dstride, DataType dt, int nchannels);
+
+PTEXAPI
 void reduceu(const void* src, int sstride, int ures, int vres,
              void* dst, int dstride, DataType dt, int nchannels);
+
+PTEXAPI
 void reducev(const void* src, int sstride, int ures, int vres,
              void* dst, int dstride, DataType dt, int nchannels);
+
+PTEXAPI
 void reduceTri(const void* src, int sstride, int ures, int vres,
                void* dst, int dstride, DataType dt, int nchannels);
+
+PTEXAPI
 void average(const void* src, int sstride, int ures, int vres,
              void* dst, DataType dt, int nchannels);
+
+PTEXAPI
 void fill(const void* src, void* dst, int dstride,
           int ures, int vres, int pixelsize);
+
+PTEXAPI
 void copy(const void* src, int sstride, void* dst, int dstride,
           int nrows, int rowlen);
+
+PTEXAPI
 void blend(const void* src, float weight, void* dst, bool flip,
            int rowlen, DataType dt, int nchannels);
+
+PTEXAPI
 void multalpha(void* data, int npixels, DataType dt, int nchannels, int alphachan);
+
+PTEXAPI
 void divalpha(void* data, int npixels, DataType dt, int nchannels, int alphachan);
 
+
+PTEXAPI
 void genRfaceids(const FaceInfo* faces, int nfaces,
                  uint32_t* rfaceids, uint32_t* faceids);
 
