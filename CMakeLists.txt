@@ -61,7 +61,7 @@ if (NOT DEFINED PTEX_VER)
 endif ()
 # Provide a fallback version when the Git repository is unavailable.
 if (NOT PTEX_VER)
-    set(PTEX_VER "v2.3.X")
+    set(PTEX_VER "v2.4.X")
 endif()
 
 # Transform PTEX_VER into PTEX_MAJOR_VERSION and PTEX_MINOR_VERSION
