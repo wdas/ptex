@@ -16,6 +16,7 @@ set(SRCS
 if(PTEX_BUILD_STATIC_LIBS)
     add_library(Ptex_static STATIC ${SRCS})
     set_target_properties(Ptex_static PROPERTIES OUTPUT_NAME Ptex)
+    target_compile_definitions(Ptex_static PUBLIC PTEX_STATIC)
     target_include_directories(Ptex_static
     PUBLIC
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
