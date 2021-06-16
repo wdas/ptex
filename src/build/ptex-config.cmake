@@ -1,6 +1,4 @@
 @PACKAGE_INIT@
-
-include("${CMAKE_CURRENT_LIST_DIR}/ptex-config-version.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ptex-exports.cmake")
 
 include(CMakeFindDependencyMacro)
