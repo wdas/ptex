@@ -47,14 +47,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #       if defined(PTEX_EXPORTS)
 #           define PTEXAPI __declspec(dllexport)
 #       else
-#           define PTEXAPI
+#           define PTEXAPI ____declspec(dllimport)
 #       endif
 #   elif defined(PTEX_COMPILER_CLANG) || defined(PTEX_COMPILER_GCC) \
         || defined(PTEX_COMPILER_ICC)
 #       if defined(PTEX_EXPORTS)
 #           define PTEXAPI __attribute__((visibility("default")))
 #       else
-#           define PTEXAPI ____declspec(dllimport)
+#           define PTEXAPI
 #       endif
 #   else
 #       define PTEXAPI
