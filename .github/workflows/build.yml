@@ -1,0 +1,66 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-linux-unix:
+    strategy:
+      matrix:
+        os: [ubuntu]
+        config: [Debug, RelWithDebInfo, Release]
+        standard: [c++98, c++11, c++14, c++17, c++20]
+    name: ${{matrix.os}}-${{matrix.config}}-${{matrix.standard}}
+    runs-on: ${{matrix.os}}-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: sudo apt update && sudo apt install -y cmake make ninja-build zlib1g-dev
+    - name: Build
+      run: |
+        make \
+          BUILD_TYPE=${{matrix.config}} \
+          BUILD_SHARED_LIBS=ON \
+          BUILD_STATIC_LIBS=ON \
+          VERBOSE=1 \
+          prefix=/usr \
+          all
+      env:
+        CXXFLAGS_STD: ${{matrix.standard}}
+    - name: Install
+      run: make install DESTDIR=$PWD/dist prefix=/usr VERBOSE=1
+      env:
+        CXXFLAGS_STD: ${{matrix.standard}}
+    - name: Test
+      run: make test DESTDIR=$PWD/dist prefix=/usr VERBOSE=1
+      env:
+        CXXFLAGS_STD: ${{matrix.standard}}
+
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        architecture: [x64]
+        config: [Debug, RelWithDebInfo, Release]
+        shared-libs: [ON, OFF]
+        standard: [c++98, c++11, c++14, c++17, c++20]
+    name: windows-${{matrix.architecture}}-${{matrix.config}}-${{matrix.standard}}-${{matrix.shared-libs}}
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Get ZLIB
+      run: vcpkg install zlib:${{matrix.architecture}}-windows
+    - name: CMake configure
+      run: cmake -D CMAKE_INSTALL_PREFIX=/dist -D CMAKE_BUILD_TYPE=${{matrix.config}} "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -D PTEX_BUILD_SHARED_LIBS=${{matrix.shared-libs}} -A ${{matrix.architecture}} .
+      env:
+        CXXFLAGS_STD: ${{matrix.standard}}
+    - name: Build
+      run: cmake --build . --config ${{matrix.config}} --target install
+      env:
+        CXXFLAGS_STD: ${{matrix.standard}}
+    - name: Test
+      run: ctest --verbose --force-new-ctest-process --build-config ${{matrix.config}}
