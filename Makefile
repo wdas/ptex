@@ -16,7 +16,7 @@ platform ?= $(uname_S)-$(uname_R)-$(uname_M)-$(FLAVOR)
 build = build/$(platform)
 # Installation prefix
 prefix = $(CURDIR)/$(platform)
-CMAKE_FLAGS = -DCMAKE_INSTALL_PREFIX=$(prefix)
+CMAKE_FLAGS += -DCMAKE_INSTALL_PREFIX=$(prefix)
 TEST_FLAGS = --output-on-failure --force-new-ctest-process
 
 ifdef V
@@ -44,6 +44,12 @@ ifdef TOOLCHAIN
 endif
 ifdef BUILD_TYPE
     CMAKE_FLAGS += -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
+endif
+ifdef BUILD_SHARED_LIBS
+    CMAKE_FLAGS += -DPTEX_BUILD_SHARED_LIBS=$(BUILD_SHARED_LIBS)
+endif
+ifdef BUILD_STATIC_LIBS
+    CMAKE_FLAGS += -DPTEX_BUILD_SHARED_LIBS=$(BUILD_STATIC_LIBS)
 endif
 
 # Targets
