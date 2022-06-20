@@ -34,8 +34,7 @@ enable_testing()
 find_package(Threads REQUIRED)
 
 # Use pkg-config to create a PkgConfig::Ptex_ZLIB imported target
-find_package(PkgConfig REQUIRED)
-pkg_checK_modules(Ptex_ZLIB REQUIRED zlib IMPORTED_TARGET)
+find_package(ZLIB REQUIRED)
 
 
 if (NOT DEFINED PTEX_SHA)

@@ -4,6 +4,6 @@ if (PTEX_BUILD_STATIC_LIBS)
     add_definitions(-DPTEX_STATIC)
 endif()
 
-target_link_libraries(ptxinfo ${PTEX_LIBRARY} PkgConfig::Ptex_ZLIB)
+target_link_libraries(ptxinfo ${PTEX_LIBRARY} ZLIB::ZLIB)
 
 install(TARGETS ptxinfo DESTINATION ${CMAKE_INSTALL_BINDIR})
