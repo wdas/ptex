@@ -333,7 +333,7 @@ public:
             return e;
         }
 
-        Entry* getEntry(int index);
+        PTEXAPI Entry* getEntry(int index);
 
         PtexReader* _reader;
         typedef std::map<std::string, Entry> MetaMap;
