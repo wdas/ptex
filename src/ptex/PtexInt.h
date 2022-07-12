@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 #if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
 
-#if defined(_MSC_VER) && _MSC_VER >= 1600
+#if defined(_MSC_VER) && _MSC_VER >= 1600 || defined(__MINGW64__)
 #include <stdint.h>
 #else
 typedef __int8            int8_t;
