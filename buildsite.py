@@ -228,6 +228,7 @@ releases = [
     ['v2.3.2', 'Mar 8, 2019', 'Minor maintenance. Windows fixes.'],
     ['v2.4.0', 'May 18, 2021', 'API: headers and DSOs hide non-API symbols by default.'],
     ['v2.4.1', 'Aug 3, 2021', 'API: Windows symbol visibility fixes.'],
+    ['v2.4.2', 'Aug 4, 2022', 'API: Windows Clang/14 support, visibility fixes and cmake enhancements.'],
 ]
 releases.reverse()
 
