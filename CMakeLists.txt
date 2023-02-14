@@ -116,3 +116,6 @@ add_subdirectory(src/utils)
 add_subdirectory(src/tests)
 add_subdirectory(src/doc)
 add_subdirectory(src/build)
+
+get_target_property(PTEX_DYNAMIC_OUTPUT_NAME Ptex_dynamic OUTPUT_NAME)
+configure_file(ptex.pc.in ptex.pc @ONLY)
