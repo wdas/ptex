@@ -117,10 +117,3 @@ add_subdirectory(src/tests)
 add_subdirectory(src/doc)
 add_subdirectory(src/build)
 
-get_target_property(PTEX_DYNAMIC_OUTPUT_NAME Ptex_dynamic OUTPUT_NAME)
-configure_file(
-	"${CMAKE_CURRENT_SOURCE_DIR}/ptex.pc.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/ptex.pc"
-        @ONLY)
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/ptex.pc"
-	DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig" COMPONENT DEV)

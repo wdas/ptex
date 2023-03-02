@@ -7,8 +7,8 @@
 
 prefix="@CMAKE_INSTALL_PREFIX@"
 exec_prefix="${prefix}"
-libdir="${prefix}/lib"
-includedir="${prefix}/include"
+libdir="@CMAKE_INSTALL_PKGCONFIG_LIBDIR@"
+includedir="@CMAKE_INSTALL_PKGCONFIG_INCLUDEDIR@"
 
 Name: @PROJECT_NAME@
 Description: @CMAKE_PROJECT_DESCRIPTION@
