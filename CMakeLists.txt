@@ -3,7 +3,7 @@ project(Ptex)
 
 option(PTEX_BUILD_STATIC_LIBS "Enable building Ptex static libraries" ON)
 option(PTEX_BUILD_SHARED_LIBS "Enable building Ptex shared libraries" ON)
-option(PTEX_BUILD_DOCS "Enable building Ptex documentation (require Doxygen)" OFF)
+option(PTEX_BUILD_DOCS "Enable building Ptex documentation (require Doxygen)" ON)
 option(PRMAN_15_COMPATIBLE_PTEX "Enable PRMan 15 compatibility" OFF)
 
 # The C++ standard can set either through the environment or by specifyign
