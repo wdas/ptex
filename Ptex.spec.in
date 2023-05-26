@@ -81,6 +81,7 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %{_bindir}/*
+%{_libdir}/libPtex.so.*
 
 %files docs
 %defattr(-,root,root,-)
@@ -89,6 +90,7 @@ rm -rf %{buildroot}
 %files devel
 %defattr(-,root,root,-)
 %{_includedir}/*.h
+%{_libdir}/cmake/Ptex
 %{_libdir}/libPtex.a
 %{_libdir}/libPtex.so
 %{_datadir}/pkgconfig/Ptex.pc
