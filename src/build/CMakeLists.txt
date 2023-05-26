@@ -1,6 +1,6 @@
 include(CMakePackageConfigHelpers)
 
-set(CMAKE_DIR "share/cmake/Ptex")
+set(CMAKE_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/Ptex")
 
 write_basic_package_version_file("ptex-config-version.cmake"
     VERSION "${PTEX_MAJOR_VERSION}.${PTEX_MINOR_VERSION}"
