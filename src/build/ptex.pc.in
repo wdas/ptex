@@ -17,5 +17,5 @@ Version: @PROJECT_VERSION@
 Requires: @pc_req_public@
 Requires.private: @pc_req_private@
 Cflags: -I"${includedir}"
-Libs: -L"${libdir}" -l@PTEX_DYNAMIC_OUTPUT_NAME@
+Libs: -L"${libdir}" -l@PTEX_OUTPUT_NAME@
 

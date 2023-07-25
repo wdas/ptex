@@ -31,7 +31,11 @@ endif()
 
 string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWERCASE)
 
-get_target_property(PTEX_DYNAMIC_OUTPUT_NAME Ptex_dynamic OUTPUT_NAME)
+if (PTEX_BUILD_SHARED_LIBS)
+    get_target_property(PTEX_OUTPUT_NAME Ptex_dynamic OUTPUT_NAME)
+else()
+    get_target_property(PTEX_OUTPUT_NAME Ptex_static OUTPUT_NAME)
+endif()
 configure_file("${PROJECT_NAME_LOWERCASE}.pc.in" "${PROJECT_NAME_LOWERCASE}.pc" @ONLY)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME_LOWERCASE}.pc"
     COMPONENT devel DESTINATION share/pkgconfig)
