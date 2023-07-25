@@ -119,4 +119,3 @@ if (PTEX_BUILD_DOCS)
     add_subdirectory(src/doc)
 endif ()
 add_subdirectory(src/build)
-
