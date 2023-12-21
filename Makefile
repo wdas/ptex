@@ -1,5 +1,5 @@
 #!/usr/bin/env make
-# prefix=<path> specifies the installation prefix (ex: /usr/local)
+# prefix=<path> specifies the installation prefix (ex: /usr/local) 
 # DESTDIR=<path> specifies the temporary staging directory (ex: /tmp/stage)
 # V=1 or VERBOSE=1 enables verbose builds
 # NO_NINJA=1 disables autodetection and use of ninja
