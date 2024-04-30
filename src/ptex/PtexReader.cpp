@@ -169,6 +169,14 @@ bool PtexReader::open(const char* pathArg, Ptex::String& error)
         closeFP();
         return 0;
     }
+    if (!(_header.meshtype == mt_triangle || _header.meshtype == mt_quad)) {
+        std::stringstream s;
+        s << "Invalid mesh type (" << _header.meshtype << "): " << pathArg;
+	error = s.str();
+	_ok = 0;
+	closeFP();
+	return 0;
+    }
     _pixelsize = _header.pixelSize();
     _errorPixel.resize(_pixelsize);
 
