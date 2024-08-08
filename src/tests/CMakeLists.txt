@@ -27,3 +27,6 @@ add_test(NAME wtest COMMAND wtest)
 add_compare_test(rtest)
 add_compare_test(ftest)
 add_test(NAME halftest COMMAND halftest)
+
+set_tests_properties(rtest PROPERTIES DEPENDS wtest)
+set_tests_properties(ftest PROPERTIES DEPENDS wtest)
