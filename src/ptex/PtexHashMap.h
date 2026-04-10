@@ -163,6 +163,7 @@ class PtexHashMap
         getTable(_table, header, entries);
 
         for (uint32_t i = 0; i < header->numEntries; ++i) {
+            entries[i].key.~Key();
             if (entries[i].value) delete entries[i].value;
         }
         free(_table);
@@ -264,9 +265,14 @@ private:
         memsize = sizeof(TableHeader) + sizeof(Entry) * numEntries;
         void* table = malloc(memsize);
         memset(table, 0, memsize);
-        TableHeader* header = (TableHeader*) table;
+        TableHeader* header = new (table) TableHeader;
         header->numEntries = numEntries;
         header->size = 0;
+        Entry* entries = (Entry*)((char*)table + sizeof(TableHeader));
+        for (int32_t i = 0; i < numEntries; ++i)
+        {
+            new (&entries[i]) Entry();
+        }
         return table;
     }
 
