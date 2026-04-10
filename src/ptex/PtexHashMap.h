@@ -163,6 +163,7 @@ class PtexHashMap
         getTable(_table, header, entries);
 
         for (uint32_t i = 0; i < header->numEntries; ++i) {
+            entries[i].key.~Key();
             if (entries[i].value) delete entries[i].value;
         }
         free(_table);
