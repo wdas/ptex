@@ -79,7 +79,7 @@ Ptex's build scripts will use a hardcoded version number that may or may not
 match the tagged version number when Ptex is built from a tarball instead of
 from a git worktree.
 
-This version be overriden by placing a file called `version` at the root of
+This version can be overridden by placing a file called `version` at the root of
 the source tree containing the desired version number.
 
 For example, the following command will generate a version file that will be
@@ -100,5 +100,5 @@ with the specified minor version number.
 Running `./src/tests/check_version.sh` without any arguments will warn when
 the git tags do not match the default version.
 
-The `gh-pages` branch contains the `ptex.us` website.  When new release are
+The `gh-pages` branch contains the `ptex.us` website.  When new releases are
 created add an entry to `buildsite.py` and run the script to update the site.
