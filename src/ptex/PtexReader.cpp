@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 */
 
 #include "PtexPlatform.h"
+#include <climits>
 #include <iostream>
 #include <sstream>
 #include <stdio.h>
@@ -172,12 +173,85 @@ bool PtexReader::open(const char* pathArg, Ptex::String& error)
     if (!(_header.meshtype == mt_triangle || _header.meshtype == mt_quad)) {
         std::stringstream s;
         s << "Invalid mesh type (" << _header.meshtype << "): " << pathArg;
-	error = s.str();
-	_ok = 0;
-	closeFP();
-	return 0;
+        error = s.str();
+        _ok = 0;
+        closeFP();
+        return 0;
+    }
+    if (_header.datatype > dt_float) {
+        std::stringstream s;
+        s << "Invalid data type (" << _header.datatype << "): " << pathArg;
+        error = s.str();
+        _ok = 0;
+        closeFP();
+        return 0;
+    }
+    if (_header.nchannels == 0) {
+        std::string errstr = "Invalid number of channels (0): "; errstr += pathArg;
+        error = errstr.c_str();
+        _ok = 0;
+        closeFP();
+        return 0;
+    }
+    if (_header.nfaces == 0) {
+        std::string errstr = "Invalid number of faces (0): "; errstr += pathArg;
+        error = errstr.c_str();
+        _ok = 0;
+        closeFP();
+        return 0;
+    }
+    if (_header.nlevels == 0) {
+        std::string errstr = "Invalid number of levels (0): "; errstr += pathArg;
+        error = errstr.c_str();
+        _ok = 0;
+        closeFP();
+        return 0;
+    }
+    if (_header.faceinfosize == 0) {
+        std::string errstr = "Invalid face info size (0): "; errstr += pathArg;
+        error = errstr.c_str();
+        _ok = 0;
+        closeFP();
+        return 0;
+    }
+    if (_header.levelinfosize != uint64_t(_header.nlevels) * LevelInfoSize) {
+        std::string errstr = "Inconsistent level info size: "; errstr += pathArg;
+        error = errstr.c_str();
+        _ok = 0;
+        closeFP();
+        return 0;
     }
     _pixelsize = _header.pixelSize();
+
+    // Validate claimed uncompressed sizes against compressed sizes on disk.
+    // A valid deflate stream cannot expand beyond 1032x, so a header claiming
+    // a larger uncompressed size is invalid / corrupt.
+    static const uint64_t MaxDeflateExpansion = 1032;
+    const uint64_t pixelsize = uint64_t(_pixelsize);
+    if (uint64_t(_header.nfaces) * sizeof(FaceInfo)
+            > uint64_t(_header.faceinfosize) * MaxDeflateExpansion) {
+        std::string errstr = "Unreasonable face count: "; errstr += pathArg;
+        error = errstr.c_str();
+        _ok = 0;
+        closeFP();
+        return 0;
+    }
+    if (uint64_t(_header.nfaces) * pixelsize
+            > uint64_t(_header.constdatasize) * MaxDeflateExpansion) {
+        std::string errstr = "Unreasonable constdata size: "; errstr += pathArg;
+        error = errstr.c_str();
+        _ok = 0;
+        closeFP();
+        return 0;
+    }
+    if (uint64_t(_header.metadatamemsize)
+            > uint64_t(_header.metadatazipsize) * MaxDeflateExpansion) {
+        std::string errstr = "Unreasonable metadata size: "; errstr += pathArg;
+        error = errstr.c_str();
+        _ok = 0;
+        closeFP();
+        return 0;
+    }
     _errorPixel.resize(_pixelsize);
 
     // install temp error handler to capture error (to return in error param)
@@ -281,10 +355,14 @@ void PtexReader::readFaceInfo()
     if (_faceinfo.empty()) {
         // read compressed face info block
         seek(_faceinfopos);
-        int nfaces = _header.nfaces;
+        uint32_t nfaces = _header.nfaces;
+        int64_t faceInfoSize64 = (int64_t)sizeof(FaceInfo) * nfaces;
+        if (faceInfoSize64 > INT_MAX) {
+            setError("PtexReader error: faceinfo size overflow");
+            return;
+        }
         _faceinfo.resize(nfaces);
-        readZipBlock(&_faceinfo[0], _header.faceinfosize,
-                     (int)(sizeof(FaceInfo)*nfaces));
+        readZipBlock(&_faceinfo[0], _header.faceinfosize, (int)faceInfoSize64);
 
         // generate rfaceids
         _rfaceids.resize(nfaces);
@@ -323,7 +401,12 @@ void PtexReader::readConstData()
     if (!_constdata) {
         // read compressed constant data block
         seek(_constdatapos);
-        int size = _pixelsize * _header.nfaces;
+        int64_t size64 = (int64_t)_pixelsize * _header.nfaces;
+        if (size64 > INT_MAX) {
+            setError("PtexReader error: constdata size overflow");
+            return;
+        }
+        int size = (int)size64;
         _constdata = new uint8_t[size];
         readZipBlock(_constdata, _header.constdatasize, size);
         if (_premultiply && _header.hasAlpha())
