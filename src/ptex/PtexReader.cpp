@@ -140,9 +140,16 @@ bool PtexReader::open(const char* pathArg, Ptex::String& error)
     AutoMutex locker(readlock);
     if (!needToOpen()) return false;
 
+    auto openError = [&](const std::string& msg) -> bool {
+        error = msg.c_str();
+        _ok = false;
+        closeFP();
+        return false;
+    };
+
     if (!LittleEndian()) {
         error = "Ptex library doesn't currently support big-endian cpu's";
-        return 0;
+        return false;
     }
     _path = pathArg;
     _fp = _io->open(pathArg);
@@ -150,76 +157,43 @@ bool PtexReader::open(const char* pathArg, Ptex::String& error)
         std::string errstr = "Can't open ptex file: ";
         errstr += pathArg; errstr += "\n"; errstr += _io->lastError();
         error = errstr.c_str();
-        _ok = 0;
-        return 0;
+        _ok = false;
+        return false;
     }
     memset(&_header, 0, sizeof(_header));
     readBlock(&_header, HeaderSize);
     if (_header.magic != Magic) {
-        std::string errstr = "Not a ptex file: "; errstr += pathArg;
-        error = errstr.c_str();
-        _ok = 0;
-        closeFP();
-        return 0;
+        return openError(std::string("Not a ptex file: ") + pathArg);
     }
     if (_header.version != 1) {
         std::stringstream s;
-        s << "Unsupported ptex file version ("<< _header.version << "): " << pathArg;
-        error = s.str();
-        _ok = 0;
-        closeFP();
-        return 0;
+        s << "Unsupported ptex file version (" << _header.version << "): " << pathArg;
+        return openError(s.str());
     }
     if (!(_header.meshtype == mt_triangle || _header.meshtype == mt_quad)) {
         std::stringstream s;
         s << "Invalid mesh type (" << _header.meshtype << "): " << pathArg;
-        error = s.str();
-        _ok = 0;
-        closeFP();
-        return 0;
+        return openError(s.str());
     }
     if (_header.datatype > dt_float) {
         std::stringstream s;
         s << "Invalid data type (" << _header.datatype << "): " << pathArg;
-        error = s.str();
-        _ok = 0;
-        closeFP();
-        return 0;
+        return openError(s.str());
     }
     if (_header.nchannels == 0) {
-        std::string errstr = "Invalid number of channels (0): "; errstr += pathArg;
-        error = errstr.c_str();
-        _ok = 0;
-        closeFP();
-        return 0;
+        return openError(std::string("Invalid number of channels (0): ") + pathArg);
     }
     if (_header.nfaces == 0) {
-        std::string errstr = "Invalid number of faces (0): "; errstr += pathArg;
-        error = errstr.c_str();
-        _ok = 0;
-        closeFP();
-        return 0;
+        return openError(std::string("Invalid number of faces (0): ") + pathArg);
     }
     if (_header.nlevels == 0) {
-        std::string errstr = "Invalid number of levels (0): "; errstr += pathArg;
-        error = errstr.c_str();
-        _ok = 0;
-        closeFP();
-        return 0;
+        return openError(std::string("Invalid number of levels (0): ") + pathArg);
     }
     if (_header.faceinfosize == 0) {
-        std::string errstr = "Invalid face info size (0): "; errstr += pathArg;
-        error = errstr.c_str();
-        _ok = 0;
-        closeFP();
-        return 0;
+        return openError(std::string("Invalid face info size (0): ") + pathArg);
     }
     if (_header.levelinfosize != uint64_t(_header.nlevels) * LevelInfoSize) {
-        std::string errstr = "Inconsistent level info size: "; errstr += pathArg;
-        error = errstr.c_str();
-        _ok = 0;
-        closeFP();
-        return 0;
+        return openError(std::string("Inconsistent level info size: ") + pathArg);
     }
     _pixelsize = _header.pixelSize();
 
@@ -230,27 +204,15 @@ bool PtexReader::open(const char* pathArg, Ptex::String& error)
     const uint64_t pixelsize = uint64_t(_pixelsize);
     if (uint64_t(_header.nfaces) * sizeof(FaceInfo)
             > uint64_t(_header.faceinfosize) * MaxDeflateExpansion) {
-        std::string errstr = "Unreasonable face count: "; errstr += pathArg;
-        error = errstr.c_str();
-        _ok = 0;
-        closeFP();
-        return 0;
+        return openError(std::string("Unreasonable face count: ") + pathArg);
     }
     if (uint64_t(_header.nfaces) * pixelsize
             > uint64_t(_header.constdatasize) * MaxDeflateExpansion) {
-        std::string errstr = "Unreasonable constdata size: "; errstr += pathArg;
-        error = errstr.c_str();
-        _ok = 0;
-        closeFP();
-        return 0;
+        return openError(std::string("Unreasonable constdata size: ") + pathArg);
     }
     if (uint64_t(_header.metadatamemsize)
             > uint64_t(_header.metadatazipsize) * MaxDeflateExpansion) {
-        std::string errstr = "Unreasonable metadata size: "; errstr += pathArg;
-        error = errstr.c_str();
-        _ok = 0;
-        closeFP();
-        return 0;
+        return openError(std::string("Unreasonable metadata size: ") + pathArg);
     }
     _errorPixel.resize(_pixelsize);
 
