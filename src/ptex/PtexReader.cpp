@@ -125,7 +125,10 @@ void PtexReader::purge()
     std::vector<LevelInfo>().swap(_levelinfo);
     std::vector<FilePos>().swap(_levelpos);
     std::vector<Level*>().swap(_levels);
-    closeFP();
+    {
+        AutoMutex locker(readlock);
+        closeFP();
+    }
 
     // reset initial state
     _ok = true;
